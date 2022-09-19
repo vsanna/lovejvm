@@ -28,9 +28,18 @@ public class ByteUtil {
                 | (0b0000000000000000000000000000000000000000000000000000000011111111L & ((long) h));
     }
 
-    public static byte[] readClassfile(String filePath) throws IOException {
-        Path file = Path.of(filePath);
-        var inputStream = new FileInputStream(file.toFile());
-        return inputStream.readAllBytes();
+
+    public static byte[] readBytesFromFilePath(String filePath) {
+        byte[] fileBytes;
+        try {
+            Path file = Path.of(filePath);
+            var inputStream = new FileInputStream(file.toFile());
+            fileBytes = inputStream.readAllBytes();
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException("invalid file");
+        }
+
+        return fileBytes;
     }
 }

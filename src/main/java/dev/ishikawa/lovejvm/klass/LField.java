@@ -7,7 +7,7 @@ public class LField {
     private int accessFlag;
     private ConstantUtf8 name;
     private ConstantUtf8 descriptor;
-    private Attrs fieldAttrs;
+    private Attrs attrs;
 
     public LField(
             int accessFlag,
@@ -17,6 +17,13 @@ public class LField {
         this.accessFlag = accessFlag;
         this.name = name;
         this.descriptor = descriptor;
-        this.fieldAttrs = attrs;
+        this.attrs = attrs;
+    }
+
+    public int size() {
+        return 2 // accessFlag
+                + 2 // fieldName
+                + 2 // fieldDesc
+                + attrs.size(); // attrs
     }
 }

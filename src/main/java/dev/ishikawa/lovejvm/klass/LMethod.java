@@ -7,6 +7,7 @@ import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantUtf8;
 import java.util.Optional;
 
 public class LMethod {
+    private Methods methods;
     private int accessFlag;
     private ConstantUtf8 name;
     private ConstantUtf8 descriptor;
@@ -43,6 +44,10 @@ public class LMethod {
         return getCode().map(LAttrCode::getLocalsSize).orElse(0);
     }
 
+    public Attrs getAttrs() {
+        return attrs;
+    }
+
     /**
      * If the method is either native or abstract, and is not a class or interface initialization method,
      *     then its method_info structure must not have a Code attribute in its attributes table.
@@ -51,5 +56,26 @@ public class LMethod {
      */
     private Optional<LAttrCode> getCode() {
         return attrs.findAllBy(AttrName.CODE).stream().map((it) -> (LAttrCode)it).findFirst();
+    }
+
+    public int size() {
+        return 2 // accessFlag
+                + 2 // methodName
+                + 2 // methodDesc
+                + attrs.size(); // attrs
+    }
+
+    public int offsetToAttrs() {
+        return 2     // accessFlag
+                + 2  // methodName
+                + 2; // methodDesc
+    }
+
+    public Methods getMethods() {
+        return methods;
+    }
+
+    public void setMethods(Methods methods) {
+        this.methods = methods;
     }
 }

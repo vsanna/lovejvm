@@ -3,16 +3,16 @@ package dev.ishikawa.lovejvm.klass;
 import java.util.List;
 
 public class Interfaces {
-    private final int size;
+    private final int entrySize;
     private List<LInterface> interfaces;
 
-    public Interfaces(int size, List<LInterface> entries) {
-        if(size != entries.size()) throw new RuntimeException("invalid Interfaces. the size doesn't match with num of entries");
-        this.size = size;
+    public Interfaces(int entrySize, List<LInterface> entries) {
+        if(entrySize != entries.size()) throw new RuntimeException("invalid Interfaces. the entrySize doesn't match with num of entries");
+        this.entrySize = entrySize;
         this.interfaces = entries;
     }
 
-    public int getSize() {
-        return size;
+    public int size() {
+        return 2 + interfaces.stream().map(LInterface::size).reduce(0, Integer::sum);
     }
 }

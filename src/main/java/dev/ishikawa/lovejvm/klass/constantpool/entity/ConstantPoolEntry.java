@@ -12,4 +12,9 @@ public interface ConstantPoolEntry {
      * */
     void resolve(ConstantPool constantPool);
     boolean isResolved();
+
+    /**
+     * @return int the size of bytes for the constant pool entry
+     * */
+    int size();
 }

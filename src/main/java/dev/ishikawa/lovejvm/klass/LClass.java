@@ -36,6 +36,7 @@ public class LClass {
         this.superClass = superClass;
         this.interfaces = interfaces;
         this.fileds = fileds;
+        methods.setKlass(this);
         this.methods = methods;
         this.attrs = attrs;
     }
@@ -122,7 +123,35 @@ public class LClass {
     }
 
     public Optional<LMethod> findEntryPoint() {
-        // TODO: 一旦mainでないもの
+        // TODO: using non main method tentatively
         return methods.findStaticBy("add", "()V");
     }
+
+    public int size() {
+        return 4                      // magic number
+                + 2 + 2               // versions
+                + constantPool.size() // constant pool
+                + 2                   // access flag
+                + 2                   // this class
+                + 2                   // super class
+                + interfaces.size()
+                + fileds.size()
+                + methods.size()
+                + attrs.size();
+    }
+
+    /**
+     * @return int position of the initial byte in methods area.
+     * */
+    public int offsetToMethods() {
+        return 4                      // magic number
+                + 2 + 2               // versions
+                + constantPool.size() // constant pool
+                + 2                   // access flag
+                + 2                   // this class
+                + 2                   // super class
+                + interfaces.size()
+                + fileds.size();
+    }
+
 }

@@ -5,19 +5,26 @@ import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantPoolEntry;
 import java.util.List;
 
 public class ConstantPool {
-    private final int size;
+    private final int entrySize;
     private List<ConstantPoolEntry> entries;
 
     // entrySize = actual num of entries - 1
     // TODO: research why
-    public ConstantPool(int size, List<ConstantPoolEntry> entries) {
-        if(size -1 != entries.size()) throw new RuntimeException("invalid constant pool. the size doesn't match with num of entries");
-        this.size = size;
+    public ConstantPool(int entrySize, List<ConstantPoolEntry> entries) {
+        if(entrySize -1 != entries.size()) throw new RuntimeException("invalid constant pool. the entrySize doesn't match with num of entries");
+        this.entrySize = entrySize;
         this.entries = entries;
     }
 
-    public int getSize() {
-        return size;
+    public int getEntrySize() {
+        return entrySize;
+    }
+
+    /**
+     * @return int lenfth of bytes for the constant pool
+     * */
+    public int size() {
+        return 2 + entries.stream().map(ConstantPoolEntry::size).reduce(0, Integer::sum);
     }
 
     /**

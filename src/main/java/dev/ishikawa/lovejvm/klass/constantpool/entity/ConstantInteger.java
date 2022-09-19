@@ -22,4 +22,9 @@ public class ConstantInteger implements ConstantPoolEntry {
     public boolean isResolved() {
         return true;
     }
+
+    @Override
+    public int size() {
+        return 5;
+    }
 }

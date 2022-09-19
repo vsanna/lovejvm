@@ -1,22 +1,19 @@
 package dev.ishikawa.lovejvm.klass;
 
-import dev.ishikawa.lovejvm.klass.constantpool.Attrs;
-import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantUtf8;
+import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantClass;
 
 public class LInterface {
     private int accessFlag;
-    private ConstantUtf8 name;
-    private ConstantUtf8 descriptor;
-    private Attrs attrs;
+    private ConstantClass klass;
 
     public LInterface(
             int accessFlag,
-            ConstantUtf8 name,
-            ConstantUtf8 descriptor,
-            Attrs attrs) {
+            ConstantClass klass) {
         this.accessFlag = accessFlag;
-        this.name = name;
-        this.descriptor = descriptor;
-        this.attrs = attrs;
+        this.klass = klass;
+    }
+
+    public int size() {
+        return 2;
     }
 }

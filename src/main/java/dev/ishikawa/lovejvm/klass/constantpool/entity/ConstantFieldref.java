@@ -37,4 +37,9 @@ public class ConstantFieldref implements ConstantPoolEntry {
     public boolean isResolved() {
         return isResolved;
     }
+
+    @Override
+    public int size() {
+        return 5;
+    }
 }

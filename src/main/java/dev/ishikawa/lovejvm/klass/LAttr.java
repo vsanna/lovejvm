@@ -20,4 +20,10 @@ public abstract class LAttr<T> {
     public T getAttrBody() {
         return attrBody;
     }
+
+    public int size() {
+        return 2 // attrName
+                + 4 // num to show dataLength
+                + dataLength;
+    }
 }

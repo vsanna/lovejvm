@@ -27,4 +27,9 @@ public class ConstantClass implements ConstantPoolEntry {
     public boolean isResolved() {
         return isResolved;
     }
+
+    @Override
+    public int size() {
+        return 3; // 3bytes
+    }
 }

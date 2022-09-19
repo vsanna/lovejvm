@@ -22,4 +22,9 @@ public class ConstantUtf8 implements ConstantPoolEntry {
     public boolean isResolved() {
         return true;
     }
+
+    @Override
+    public int size() {
+        return 3 + label.getBytes().length;
+    }
 }

@@ -5,13 +5,15 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class Methods {
-    private final int size;
+    private LClass klass;
+    private final int entrySize;
     private List<LMethod> methods;
 
-    public Methods(int size, List<LMethod> methods) {
-        if(size != methods.size()) throw new RuntimeException("invalid Methods. the size doesn't match with num of entries");
-        this.size = size;
+    public Methods(int entrySize, List<LMethod> methods) {
+        if(entrySize != methods.size()) throw new RuntimeException("invalid Methods. the entrySize doesn't match with num of entries");
+        this.entrySize = entrySize;
         this.methods = methods;
+        this.methods.forEach(it -> it.setMethods(this));
     }
 
     public Optional<LMethod> findBy(String methodName, String methodDescriptor) {
@@ -34,7 +36,31 @@ public class Methods {
                 .findFirst();
     }
 
-    public int getSize() {
-        return size;
+    public int size() {
+        return 2 + methods.stream().map(LMethod::size).reduce(0, Integer::sum);
+    }
+
+    public int offsetToMethod(LMethod method) {
+        if(!methods.contains(method)) return 0;
+
+        int result = 2;
+
+        for (LMethod lMethod : methods) {
+            if(lMethod != method) {
+                result += lMethod.size();
+            } else {
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    public LClass getKlass() {
+        return klass;
+    }
+
+    public void setKlass(LClass klass) {
+        this.klass = klass;
     }
 }
