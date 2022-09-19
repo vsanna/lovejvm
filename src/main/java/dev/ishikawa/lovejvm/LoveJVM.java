@@ -40,7 +40,7 @@ public class LoveJVM {
         var mainThread = entryPoint
                 .map((ep) -> {
                     var thread = new LThread("main");
-                    thread.init(ep);
+                    thread.stackUp(ep);
                     thread.run();
                     return thread;
                 })

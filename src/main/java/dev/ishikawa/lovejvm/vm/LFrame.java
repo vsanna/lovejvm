@@ -37,4 +37,8 @@ public class LFrame {
     public String toString() {
         return String.format("LFrame{locals=%s, operandStack=%s}", Arrays.toString(locals), operandStack);
     }
+
+    public LMethod getMethod() {
+        return method;
+    }
 }

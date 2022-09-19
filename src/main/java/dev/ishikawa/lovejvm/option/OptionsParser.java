@@ -7,7 +7,8 @@ public class OptionsParser {
         // TODO: this is mock.
         return new Options(
 //                "guest/out/ForLoop.class", // "test", "()I");
-                "guest/out/Add.class", // "add", "()V"
+//                "guest/out/Add.class", // "add", "()V"
+                "guest/out/Recursive.class", // "recursive", "()I"
                 LogLevel.INFO
         );
     }

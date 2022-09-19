@@ -3,6 +3,7 @@ package dev.ishikawa.lovejvm.klass;
 import dev.ishikawa.lovejvm.klass.constantpool.Attrs;
 import dev.ishikawa.lovejvm.klass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantClass;
+import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantNameAndType;
 
 import java.util.Optional;
 
@@ -70,10 +71,11 @@ public class LClass {
         return raw;
     }
 
+    // ex: org.some.SomeApp
     public String getFullyQualifiedName() {
         return fullyQualifiedName;
     }
-
+    // ex: SomeApp
     public String getName() {
         return name;
     }
@@ -122,9 +124,15 @@ public class LClass {
         return classLoaderName;
     }
 
+    ///////////
+
+    public Optional<LMethod> findBy(ConstantNameAndType nameAndType) {
+        return methods.findBy(nameAndType.getName().getLabel(), nameAndType.getDescriptor().getLabel());
+    }
+
     public Optional<LMethod> findEntryPoint() {
         // TODO: using non main method tentatively
-        return methods.findStaticBy("add", "()V");
+        return methods.findStaticBy("recursiveMain", "()V");
     }
 
     public int size() {

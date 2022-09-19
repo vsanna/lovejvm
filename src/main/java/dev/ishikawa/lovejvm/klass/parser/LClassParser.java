@@ -168,6 +168,7 @@ public class LClassParser {
         return parseAttrsResult.getRight();
     }
 
+    // ex: java/lang/Object, my/sample/App,
     private String retrieveClassName(ConstantClass thisClass) {
         return thisClass.getName().getLabel();
     }

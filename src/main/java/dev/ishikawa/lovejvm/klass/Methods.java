@@ -16,23 +16,25 @@ public class Methods {
         this.methods.forEach(it -> it.setMethods(this));
     }
 
+    // TODO: if we can use the same signature for static/member methods in a class, this is broken.
+    // What is the identifical information of one method?
     public Optional<LMethod> findBy(String methodName, String methodDescriptor) {
         return methods.stream()
-                .filter((method) -> Objects.equals(method.getName().getLabel(), methodName) && Objects.equals(method.getDescriptor().getLabel(), methodDescriptor))
+                .filter((method) -> method.hasSignature(methodName, methodDescriptor))
                 .findFirst();
     }
 
     public Optional<LMethod> findMemberBy(String methodName, String methodDescriptor) {
         return methods.stream()
                 .filter((method) -> !method.isStatic())
-                .filter((method) -> Objects.equals(method.getName().getLabel(), methodName) && Objects.equals(method.getDescriptor().getLabel(), methodDescriptor))
+                .filter((method) -> method.hasSignature(methodName, methodDescriptor))
                 .findFirst();
     }
 
     public Optional<LMethod> findStaticBy(String methodName, String methodDescriptor) {
         return methods.stream()
                 .filter(LMethod::isStatic)
-                .filter((method) -> Objects.equals(method.getName().getLabel(), methodName) && Objects.equals(method.getDescriptor().getLabel(), methodDescriptor))
+                .filter((method) -> method.hasSignature(methodName, methodDescriptor))
                 .findFirst();
     }
 

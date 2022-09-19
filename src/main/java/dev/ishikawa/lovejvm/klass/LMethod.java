@@ -4,6 +4,7 @@ import dev.ishikawa.lovejvm.klass.constantpool.AttrName;
 import dev.ishikawa.lovejvm.klass.constantpool.Attrs;
 import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantUtf8;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class LMethod {
@@ -71,11 +72,16 @@ public class LMethod {
                 + 2; // methodDesc
     }
 
-    public Methods getMethods() {
-        return methods;
-    }
-
     public void setMethods(Methods methods) {
         this.methods = methods;
+    }
+
+    public LClass getKlass() {
+        return this.methods.getKlass();
+    }
+
+    public boolean hasSignature(String methodName, String methodDescriptor) {
+        return Objects.equals(this.getName().getLabel(), methodName)
+                && Objects.equals(this.getDescriptor().getLabel(), methodDescriptor);
     }
 }
