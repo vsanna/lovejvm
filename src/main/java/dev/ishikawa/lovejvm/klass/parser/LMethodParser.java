@@ -19,7 +19,7 @@ public class LMethodParser {
     public static Pair<Integer, LMethod> parse(int pointer, byte[] bytecode, ConstantPool constantPool) {
         var parseAccessFlagResult = parseAccessFlag(pointer, bytecode);
         pointer = parseAccessFlagResult.getLeft();
-        int accessFlag = parseAccessFlagResult.getRight();
+        var accessFlag = parseAccessFlagResult.getRight();
 
         var parseNameAndDescResult = parseNameAndDesc(pointer, bytecode, constantPool);
         pointer = parseNameAndDescResult.getLeft();
@@ -35,9 +35,9 @@ public class LMethodParser {
 
 
     /**
-     * @return Pair<Integer, Integer> ... pair{pointer, accessField}
+     * @return Pair<Integer, Short> ... pair{pointer, accessField}
      * */
-    private static Pair<Integer, Integer> parseAccessFlag(int pointer, byte[] bytecode) {
+    private static Pair<Integer, Short> parseAccessFlag(int pointer, byte[] bytecode) {
         var accessFlag = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
         pointer += 2;
         return Pair.of(pointer, accessFlag);

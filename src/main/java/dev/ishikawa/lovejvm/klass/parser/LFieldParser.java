@@ -32,9 +32,9 @@ public class LFieldParser {
 
 
     /**
-     * @return Pair<Integer, Integer> ... pair{pointer, accessField}
+     * @return Pair<Integer, Short> ... pair{pointer, accessField}
      * */
-    private static Pair<Integer, Integer> parseAccessFlag(int pointer, byte[] bytecode) {
+    private static Pair<Integer, Short> parseAccessFlag(int pointer, byte[] bytecode) {
         var accessFlag = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
         pointer += 2;
         return Pair.of(pointer, accessFlag);

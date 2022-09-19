@@ -6,7 +6,8 @@ public class OptionsParser {
     public static Options parse(String[] args) {
         // TODO: this is mock.
         return new Options(
-                "guest/out/Add.class",
+//                "guest/out/ForLoop.class", // "test", "()I");
+                "guest/out/Add.class", // "add", "()V"
                 LogLevel.INFO
         );
     }

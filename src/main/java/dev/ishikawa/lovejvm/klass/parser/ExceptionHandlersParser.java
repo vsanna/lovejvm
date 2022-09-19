@@ -14,7 +14,7 @@ import java.util.List;
 
 public class ExceptionHandlersParser {
     public static Pair<Integer, ExceptionHandlers> parse(int pointer, byte[] bytecode, ConstantPool constantPool) {
-        int entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
+        var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
         pointer += 2;
         List<LExceptionHandler> entries = new ArrayList<>(entrySize);
 

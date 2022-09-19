@@ -62,8 +62,8 @@ public class LAttrParser {
 
                 return LAttrCode.of(attrName, dataLength, operandStackSize, localsSize, instructionLength, instructionSection, exceptionHandlers, attrs);
             }
-//            case STACK_MAP_TABLE:
-//                break;
+            case STACK_MAP_TABLE:
+                return new LAttrDummy(attrName, dataLength, "STACK_MAP_TABLE");
 //            case BOOTSTRAP_METHODS:
 //                break;
 //            case NEST_HOST:
@@ -89,13 +89,13 @@ public class LAttrParser {
                 return new LAttrSourceFile(attrName, dataLength, constantPool.findByIndex(index));
             }
             case LINE_NUMBER_TABLE: {
-                int entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+                var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
                 pointer += 2;
                 var entries = new ArrayList<LAttrLineNumberTable.LAttrLineNumberTableEntry>(entrySize);
                 for (int i = 0; i < entrySize; i++) {
-                    int instructionLine = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+                    var instructionLine = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
                     pointer += 2;
-                    int originalLine = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+                    var originalLine = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
                     pointer += 2;
                     entries.add(new LAttrLineNumberTable.LAttrLineNumberTableEntry(instructionLine, originalLine));
                 }

@@ -72,19 +72,19 @@ public class LClassParser {
     }
 
     private int parseMinorVersion() {
-        int minorVersion = ByteUtil.concat(bytecode[4], bytecode[5]);
+        var minorVersion = ByteUtil.concat(bytecode[4], bytecode[5]);
         pointer = 6;
         return minorVersion;
     }
 
     private int parseMajorVersion() {
-        int majorVersion = ByteUtil.concat(bytecode[6], bytecode[7]);
+        var majorVersion = ByteUtil.concat(bytecode[6], bytecode[7]);
         pointer = 8;
         return majorVersion;
     }
 
     private ConstantPool parseConstantPool() {
-        int entrySize = ByteUtil.concat(bytecode[8], bytecode[9]);
+        var entrySize = ByteUtil.concat(bytecode[8], bytecode[9]);
         pointer = 10;
         List<ConstantPoolEntry> entries = new ArrayList<>(entrySize);
 
@@ -108,7 +108,7 @@ public class LClassParser {
     }
 
     private ConstantClass parseClassField() {
-        int index = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
+        var index = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
         pointer += 2;
         var entry = constantPool.findByIndex(index);
 
@@ -120,7 +120,7 @@ public class LClassParser {
     }
 
     private Interfaces parseInterface() {
-        int entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
+        var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
         pointer += 2;
         List<LInterface> entries = new ArrayList<>(entrySize);
 
@@ -132,7 +132,7 @@ public class LClassParser {
     }
 
     private Fields parseFields() {
-        int entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
+        var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
         pointer += 2;
         List<LField> entries = new ArrayList<>(entrySize);
 
@@ -147,7 +147,7 @@ public class LClassParser {
     }
 
     private Methods parseMethods() {
-        int entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
+        var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer+1]);
         pointer += 2;
         List<LMethod> entries = new ArrayList<>(entrySize);
 

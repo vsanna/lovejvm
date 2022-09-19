@@ -10,30 +10,30 @@ public class ConstantPoolEntryParser {
 
         switch (tag) {
             case CLASS: {
-                int nameIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
+                var nameIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
                 return Pair.of(
                         pointer+3,
                         new ConstantClass(nameIndex)
                 );
             }
             case FIELD_REF: {
-                int classIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
-                int nameAndTypeIndex = ByteUtil.concat(bytecode[pointer+3], bytecode[pointer+4]);
+                var classIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
+                var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer+3], bytecode[pointer+4]);
                 return Pair.of(
                         pointer+5,
                         new ConstantFieldref(classIndex, nameAndTypeIndex)
                 );
             }
             case METHOD_REF: {
-                int classIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
-                int nameAndTypeIndex = ByteUtil.concat(bytecode[pointer+3], bytecode[pointer+4]);
+                var classIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
+                var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer+3], bytecode[pointer+4]);
                 return Pair.of(
                         pointer+5,
                         new ConstantMethodref(classIndex, nameAndTypeIndex)
                 );
             }
             case STRING: {
-                int stringIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
+                var stringIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
                 return Pair.of(
                         pointer+3,
                         new ConstantString(stringIndex)
@@ -98,15 +98,15 @@ public class ConstantPoolEntryParser {
                 );
             }
             case NAME_AND_TYPE: {
-                int nameIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
-                int descriptorIndex = ByteUtil.concat(bytecode[pointer+3], bytecode[pointer+4]);
+                var nameIndex = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
+                var descriptorIndex = ByteUtil.concat(bytecode[pointer+3], bytecode[pointer+4]);
                 return Pair.of(
                         pointer+5,
                         new ConstantNameAndType(nameIndex, descriptorIndex)
                 );
             }
             case UTF8: {
-                int labelLength = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
+                var labelLength = ByteUtil.concat(bytecode[pointer+1], bytecode[pointer+2]);
                 pointer += 3;
                 byte[] bytes = new byte[labelLength];
                 System.arraycopy(bytecode, pointer, bytes, 0, labelLength);

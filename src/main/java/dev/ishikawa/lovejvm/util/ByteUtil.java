@@ -5,9 +5,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 
 public class ByteUtil {
-    public static int concat(byte a, byte b) {
-        return (0b1111111100000000 & (a << 8))
-                | (0b0000000011111111 & b);
+    public static short concat(byte a, byte b) {
+        return (short) ((0b1111111100000000 & (a << 8))
+                        | (0b0000000011111111 & b));
     }
 
     public static int concat(byte a, byte b, byte c, byte d) {
