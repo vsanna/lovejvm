@@ -132,7 +132,7 @@ public class LClass {
 
     public Optional<LMethod> findEntryPoint() {
         // TODO: using non main method tentatively
-        return methods.findStaticBy("recursiveMain", "()V");
+        return methods.findStaticBy("main", "()V");
     }
 
     public int size() {

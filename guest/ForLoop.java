@@ -1,9 +1,9 @@
 class ForLoop {
-    static public int test() {
+    static public void main() {
         int a = 0;
         for(int i = 0; i < 10000; i++) {
             a += i;
         }
-        return a;
+        return;
     }
 }

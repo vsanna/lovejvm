@@ -1,5 +1,5 @@
 class Recursive {
-    static public void recursiveMain() {
+    static public void main() {
         recursive(10);
     }
 

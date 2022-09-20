@@ -20,12 +20,18 @@ public class LThread {
 
     /**
      * add a new frame. copy necessary locals from current frame to the new frame
+     * @param {int} nextPc next pc in current frame. not in the next frame.
+     *              the caller of stackUp has to calculate nextPc beforehand.
      * */
-    public void stackUp(LMethod nextMethod) {
+    public void stackUp(LMethod nextMethod, int nextPc) {
         pc = LSystem.methodArea.lookupCodeSectionAddress(nextMethod);
-        LFrame frame = LFrame.init(this, nextMethod);
+        LFrame newFrame = LFrame.init(this, nextMethod);
 
         if(currentFrame() != null) {
+            // NOTE: store previous PC on the bottom of operandStack
+            // so that it can go back to previous PC when calling stackDown
+            newFrame.getOperandStack().push(Word.of(nextPc));
+
             // TODO: Ideally, Not copying the words, but use the unified global stack per one thread!!
             // load locals from currentFrame into the new frame
             var localsSize = nextMethod.getLocalsSize();
@@ -36,20 +42,27 @@ public class LThread {
             for (int i = 0; i < localsSize; i++) {
                 var word = tmpQueue.pop();
                 currentFrame().getOperandStack().push(word);
-                frame.getLocals()[localsSize - i - 1] = word; // put each word from the last position
+                newFrame.getLocals()[localsSize - i - 1] = word; // put each word from the last position
             }
         } else {
+            newFrame.getOperandStack().push(Word.of(nextPc)); // this nextPc won't be used because nextPc is for the previous frame
             // this is the entry point method.
             // need to pass initial args passed from command line to this method.
             // main(String[] args) <- this args.
         }
 
-        frames.push(frame);
+        frames.push(newFrame);
     }
 
     public void stackDown() {
+        // set next line of previousFrame's pc.
+        pc = currentFrame().getOperandStack().getFirst().getValue();
         // release from mem
         this.frames.pop();
+    }
+
+    private boolean canStackDown() {
+        return currentFrame() != this.frames.getLast();
     }
 
     private LFrame currentFrame() {
@@ -136,15 +149,23 @@ public class LThread {
                     pc = pc + 1;
                     break;
                 case (byte)0x60: { // iadd
-                    int iaddResult = operandStack.pop().getValue() + operandStack.pop().getValue();
-                    operandStack.push(Word.of(iaddResult));
+                    int a = operandStack.pop().getValue();
+                    int b = operandStack.pop().getValue();
+                    operandStack.push(Word.of(b + a));
+                    pc = pc + 1;
+                    break;
+                }
+                case (byte)0x64: { // isub
+                    int a = operandStack.pop().getValue();
+                    int b = operandStack.pop().getValue();
+                    operandStack.push(Word.of(b - a));
                     pc = pc + 1;
                     break;
                 }
                 case (byte)0x6c: { // idiv
-                    int idiv1 = operandStack.pop().getValue();
-                    int idiv2 = operandStack.pop().getValue();
-                    operandStack.push(Word.of(idiv2 / idiv1));
+                    int a = operandStack.pop().getValue();
+                    int b = operandStack.pop().getValue();
+                    operandStack.push(Word.of(b / a));
                     pc = pc + 1;
                     break;
                 }
@@ -154,6 +175,18 @@ public class LThread {
                     int left = operandStack.pop().getValue();
                     int jumpTo = ByteUtil.concat(methodArea.lookupByte(pc + 1), methodArea.lookupByte(pc + 2));
                     if (left >= right) {
+                        pc = pc + jumpTo;
+                    } else {
+                        pc = pc + 3;
+                    }
+                    break;
+                }
+                case (byte)0xa3: { // if_icmpgt
+                    // if (left > right) then jump to jumpTo
+                    int right = operandStack.pop().getValue();
+                    int left = operandStack.pop().getValue();
+                    int jumpTo = ByteUtil.concat(methodArea.lookupByte(pc + 1), methodArea.lookupByte(pc + 2));
+                    if (left > right) {
                         pc = pc + jumpTo;
                     } else {
                         pc = pc + 3;
@@ -175,18 +208,53 @@ public class LThread {
                     // ireturn returns one word
                     var word = currentFrame().getOperandStack().pop();
                     previousFrame().getOperandStack().push(word);
-                    stackDown();
-                    return;
+                    if(canStackDown()) {
+                        stackDown();
+                        break;
+                    } else {
+                        return;
+                    }
                 }
                 case (byte)0xb1: { // return
-                    return;
+                    // TODO: refactor
+                    if(canStackDown()) {
+                        stackDown();
+                        break;
+                    } else {
+                        return;
+                    }
                 }
                 case (byte)0xb8: { // invokestatic
                     // TODO refactor...
                     var index = ByteUtil.concat(methodArea.lookupByte(pc+1), methodArea.lookupByte(pc+2));
                     ConstantMethodref methodRef = (ConstantMethodref) currentFrame().getMethod().getKlass().getConstantPool().findByIndex(index);
                     LMethod lMethod = methodArea.lookupMethod(methodRef);
-                    this.stackUp(lMethod);
+
+                    var nextPc = pc + 3; // invokestatic(1B) u2
+                    this.stackUp(lMethod, nextPc);
+
+                    // Since arguments are copied to the new frame in stackUp,
+                    // arguments pushed into current frame should be removed here.
+                    // argumentの内容 = localsのこと
+                    for (int i = 0; i < lMethod.getLocalsSize(); i++) {
+                        previousFrame().getOperandStack().pop();
+                    }
+
+                    break;
+                }
+                case (byte)0x00: { // nop
+                    pc += 1;
+                    break;
+                }
+                case (byte)0x57: { // pop
+                    currentFrame().getOperandStack().pop();
+                    pc += 1;
+                    break;
+                }
+                case (byte)0x58: { // pop2
+                    currentFrame().getOperandStack().pop();
+                    currentFrame().getOperandStack().pop();
+                    pc += 1;
                     break;
                 }
                 default:

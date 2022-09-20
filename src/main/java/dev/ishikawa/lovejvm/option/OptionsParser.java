@@ -6,9 +6,10 @@ public class OptionsParser {
     public static Options parse(String[] args) {
         // TODO: this is mock.
         return new Options(
-//                "guest/out/ForLoop.class", // "test", "()I");
-//                "guest/out/Add.class", // "add", "()V"
-                "guest/out/Recursive.class", // "recursive", "()I"
+//                "guest/out/Add.class",
+//                "guest/out/ForLoop.class",
+//                "guest/out/Recursive.class",
+                "guest/out/Recursive2.class",
                 LogLevel.INFO
         );
     }

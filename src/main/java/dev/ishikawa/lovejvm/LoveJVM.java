@@ -28,11 +28,6 @@ public class LoveJVM {
 
         // TODO: Use classloader instead of classparser. init class object, put it in heap, etc
         var klass = new LClassParser(classfileBytes).parse();
-
-        // debug
-        System.out.printf("size = %d, length=%d\n", klass.size(), klass.getRaw().length);
-
-
         LSystem.methodArea.register(klass);
         var entryPoint = klass.findEntryPoint();
 
@@ -40,7 +35,7 @@ public class LoveJVM {
         var mainThread = entryPoint
                 .map((ep) -> {
                     var thread = new LThread("main");
-                    thread.stackUp(ep);
+                    thread.stackUp(ep, 0);
                     thread.run();
                     return thread;
                 })
