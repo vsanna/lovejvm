@@ -3,19 +3,19 @@ plugins {
     id("com.diffplug.gradle.spotless") version "4.5.1"
 }
 
-group 'dev.ishikawa'
-version '1.0-SNAPSHOT'
+group "dev.ishikawa"
+version "1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
 }
 
 dependencies {
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
 }
 
-test {
+tasks.withType<Test> {
     useJUnitPlatform()
 }
 
