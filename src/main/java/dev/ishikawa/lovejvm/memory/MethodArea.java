@@ -1,14 +1,16 @@
 package dev.ishikawa.lovejvm.memory;
 
+
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodref;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 
 public interface MethodArea {
-    void register(RawClass rawClass);
-    byte lookupByte(int pc);
+  void register(RawClass rawClass);
 
-    int lookupCodeSectionAddress(RawMethod method);
+  byte lookupByte(int pc);
 
-    RawMethod lookupMethod(ConstantMethodref constantMethodref);
+  int lookupCodeSectionAddress(RawMethod method);
+
+  RawMethod lookupMethod(ConstantMethodref constantMethodref);
 }

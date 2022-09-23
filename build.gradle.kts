@@ -25,7 +25,7 @@ spotless {
             "src/**/*.java",
         )
         removeUnusedImports()
-        googleJavaFormat("1.8").aosp()
+        googleJavaFormat("1.8")
         importOrder()
         trimTrailingWhitespace()
         endWithNewline()
