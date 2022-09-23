@@ -1,11 +1,11 @@
 package dev.ishikawa.lovejvm;
 
-import dev.ishikawa.lovejvm.klass.parser.LClassParser;
+import dev.ishikawa.lovejvm.rawclass.parser.RawClassParser;
 import dev.ishikawa.lovejvm.option.Options;
 import dev.ishikawa.lovejvm.option.OptionsParser;
 import dev.ishikawa.lovejvm.util.ByteUtil;
-import dev.ishikawa.lovejvm.vm.LSystem;
-import dev.ishikawa.lovejvm.vm.LThread;
+import dev.ishikawa.lovejvm.vm.RawSystem;
+import dev.ishikawa.lovejvm.vm.RawThread;
 
 /**
  * LoveJVM is the starting point of this hand-made JVM!
@@ -27,21 +27,27 @@ public class LoveJVM {
         var classfileBytes = ByteUtil.readBytesFromFilePath(options.getEntryClass());
 
         // TODO: Use classloader instead of classparser. init class object, put it in heap, etc
-        var klass = new LClassParser(classfileBytes).parse();
-        LSystem.methodArea.register(klass);
-        var entryPoint = klass.findEntryPoint();
+        // var entryPoint = SystemClassLoader.load(classfileBytes)
+        // SystemClassLoader.loadClasspath(classpath) ... register multiple classes into methodArea
+        // ?? when to do dynamic load?
+        var rawClass = new RawClassParser(classfileBytes).parse();
+        RawSystem.methodArea.register(rawClass);
+        var entryPoint = rawClass.findEntryPoint();
 
         // start the main thread with the entry point
         var mainThread = entryPoint
                 .map((ep) -> {
-                    var thread = new LThread("main");
-                    thread.stackUp(ep, 0);
+                    var thread = new RawThread("main");
+                    thread.init(ep);
                     thread.run();
                     return thread;
                 })
                 .orElseThrow(() -> {
                     throw new RuntimeException("no entrypoint");
                 });
-        LSystem.setMainThread(mainThread);
+        RawSystem.setMainThread(mainThread);
     }
+
+    public final static String ENTRY_METHOD_NAME = "main";
+    public final static String ENTRY_METHOD_DESC = "()V";
 }

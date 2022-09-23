@@ -1,11 +1,11 @@
 package dev.ishikawa.lovejvm.memory;
 
-import dev.ishikawa.lovejvm.klass.LClass;
-import dev.ishikawa.lovejvm.klass.LMethod;
-import dev.ishikawa.lovejvm.klass.constantpool.AttrName;
-import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantClass;
-import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantMethodref;
-import dev.ishikawa.lovejvm.klass.constantpool.entity.ConstantNameAndType;
+import dev.ishikawa.lovejvm.rawclass.RawClass;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodref;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantNameAndType;
+import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,15 +26,15 @@ public class MethodAreaSimulator implements MethodArea {
     }
 
     @Override
-    public int lookupCodeSectionAddress(LMethod method) {
-        LClass klass = method.getKlass();
+    public int lookupCodeSectionAddress(RawMethod method) {
+        RawClass rawClass = method.getKlass();
         var classAddr = Optional
-                .ofNullable(classMap.get(klass.getName()))
+                .ofNullable(classMap.get(rawClass.getName()))
                 .map(it -> it.address)
                 .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
 
-        var offsetToMethods = klass.offsetToMethods();
-        var offsetToMethod = klass.getMethods().offsetToMethod(method);
+        var offsetToMethods = rawClass.offsetToMethods();
+        var offsetToMethod = rawClass.getMethods().offsetToMethod(method);
         var offsetToAttrs = method.offsetToAttrs();
         var offsetToAttr = method.getAttrs().offsetToAttr(AttrName.CODE);
         var offsetToInstructions = 14; // attrName ~ instruction length
@@ -42,45 +42,45 @@ public class MethodAreaSimulator implements MethodArea {
     }
 
     @Override
-    public void register(LClass klass) {
+    public void register(RawClass rawClass) {
         // TODO: According to the reference, The same name class can be loaded under different classloaders.
         // Take that into consideration.
-        classMap.put(klass.getName(), new ClassEntry(size, klass));
-        System.arraycopy(klass.getRaw(), 0, memory, size, klass.getRaw().length);
-        size = klass.getRaw().length;
+        classMap.put(rawClass.getName(), new ClassEntry(size, rawClass));
+        System.arraycopy(rawClass.getRaw(), 0, memory, size, rawClass.getRaw().length);
+        size = rawClass.getRaw().length;
     }
 
     @Override
-    public LMethod lookupMethod(ConstantMethodref constantMethodref) {
-        ConstantClass klassRef = constantMethodref.getKlass();
-        LClass lClass = lookupClass(klassRef);
+    public RawMethod lookupMethod(ConstantMethodref constantMethodref) {
+        ConstantClass constantClassRef = constantMethodref.getConstantClassRef();
+        RawClass lClass = lookupClass(constantClassRef);
         ConstantNameAndType nameAndTypeRef = constantMethodref.getNameAndType();
         return lClass.findBy(nameAndTypeRef)
                 .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
     }
 
-    private LClass lookupClass(ConstantClass constantClass) {
+    private RawClass lookupClass(ConstantClass constantClass) {
         return Optional
                 .ofNullable(classMap.get(constantClass.getName().getLabel()))
-                .map(it -> it.klass)
+                .map(it -> it.rawClass)
                 .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
     }
 
     private static class ClassEntry {
         private int address;
-        private LClass klass;
+        private RawClass rawClass;
 
-        public ClassEntry(int address, LClass klass) {
+        public ClassEntry(int address, RawClass rawClass) {
             this.address = address;
-            this.klass = klass;
+            this.rawClass = rawClass;
         }
 
         public int getAddress() {
             return address;
         }
 
-        public LClass getKlass() {
-            return klass;
+        public RawClass getRawClass() {
+            return rawClass;
         }
     }
 }

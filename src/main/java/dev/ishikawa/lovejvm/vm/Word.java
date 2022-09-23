@@ -7,6 +7,7 @@ public class Word {
     private byte[] bytes;
 
     public Word(byte[] bytes) {
+        assert bytes.length == 4;
         this.bytes = bytes;
     }
 
