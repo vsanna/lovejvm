@@ -7,20 +7,20 @@ public class ConstantString implements ConstantPoolEntry {
   private boolean isResolved = false;
 
   private int stringIndex; // 2bytes
-  private ConstantUtf8 string;
+  private ConstantUtf8 label;
 
   public ConstantString(int nameIndex) {
     this.stringIndex = nameIndex;
   }
 
-  public ConstantUtf8 getString() {
+  public ConstantUtf8 getLabel() {
     if (!isResolved()) throw new RuntimeException("not resolved yet");
-    return string;
+    return label;
   }
 
   @Override
   public void resolve(ConstantPool constantPool) {
-    this.string = (ConstantUtf8) constantPool.findByIndex(stringIndex);
+    this.label = (ConstantUtf8) constantPool.findByIndex(stringIndex);
     isResolved = true;
   }
 

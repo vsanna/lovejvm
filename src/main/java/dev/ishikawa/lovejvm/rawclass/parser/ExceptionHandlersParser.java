@@ -17,7 +17,7 @@ public class ExceptionHandlersParser {
     List<RawExceptionHandler> entries = new ArrayList<>(entrySize);
 
     for (int i = 0; i < entrySize; i++) {
-      // TODO
+      // REFACTOR
     }
 
     return Pair.of(pointer, new ExceptionHandlers(entrySize, entries));

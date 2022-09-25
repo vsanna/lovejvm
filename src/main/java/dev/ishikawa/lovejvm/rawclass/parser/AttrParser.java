@@ -43,7 +43,6 @@ public class AttrParser {
         }
       case CODE:
         {
-          // TODO create LCodeParser and move these logics to it
           var operandStackSize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
 
@@ -77,7 +76,6 @@ public class AttrParser {
               operandStackSize,
               localsSize,
               instructionLength,
-              instructionSection,
               exceptionHandlers,
               attrs);
         }

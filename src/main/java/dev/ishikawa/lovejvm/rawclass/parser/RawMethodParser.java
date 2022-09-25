@@ -7,7 +7,7 @@ import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.util.Pair;
 
-// TODO: merge with LFieldParser
+// REFACTOR: merge with LFieldParser
 public class RawMethodParser {
   public static Pair<Integer, RawMethod> parse(
       int pointer, byte[] bytecode, ConstantPool constantPool) {
@@ -41,6 +41,9 @@ public class RawMethodParser {
     var descIndex = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     return Pair.of(
-        pointer, Pair.of(constantPool.findByIndex(nameIndex), constantPool.findByIndex(descIndex)));
+        pointer,
+        Pair.of(
+            (ConstantUtf8) constantPool.findByIndex(nameIndex),
+            (ConstantUtf8) constantPool.findByIndex(descIndex)));
   }
 }

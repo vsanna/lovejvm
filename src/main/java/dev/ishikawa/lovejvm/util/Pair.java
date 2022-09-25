@@ -17,7 +17,7 @@ public class Pair<S, T> {
     return right;
   }
 
-  public static <A, B> Pair of(A left, B right) {
+  public static <A, B> Pair<A, B> of(A left, B right) {
     return new Pair<>(left, right);
   }
 }

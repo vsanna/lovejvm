@@ -8,7 +8,7 @@ import java.util.Deque;
 
 public class Frame {
   private RawThread thread;
-  // TODO: keep the info of what method this frame is for for a while
+  // REFACTOR: keep the info of what method this frame is for for a while
   private RawMethod method;
   private Word[] locals;
   private Deque<Word> operandStack;

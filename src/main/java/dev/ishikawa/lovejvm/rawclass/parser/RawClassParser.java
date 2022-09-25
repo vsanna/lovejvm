@@ -17,18 +17,23 @@ import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.util.Pair;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import org.jetbrains.annotations.Nullable;
 
 public class RawClassParser {
-  private byte[] bytecode;
+  private final byte[] bytecode;
   private int pointer = 0;
   private ConstantPool constantPool;
+  private final @Nullable String loaderName;
 
-  public RawClassParser(byte[] bytecode) {
+  public RawClassParser(byte[] bytecode, String loaderName) {
     this.bytecode = bytecode;
+    this.loaderName = loaderName;
     this.pointer = 0;
   }
 
+  /** parse does parsing the given binary and make a RawClass object */
   public RawClass parse() {
     if (!hasValidMagicWord()) throw new RuntimeException("invalid magic word");
 
@@ -48,15 +53,17 @@ public class RawClassParser {
     var classAttrs = parseClassAttrs();
 
     var className = retrieveClassName(thisClass);
-    var fullyQualifiedName = parseFullyQualifiedName();
+    var fullyQualifiedName = parseFullyQualifiedName(thisClass);
     var fileName = retrieveFileName(classAttrs);
+    var classLabel = thisClass.getName().getLabel();
 
     return new RawClass(
         bytecode,
         fullyQualifiedName,
         className,
         fileName,
-        "dummyClassLoader",
+        classLabel,
+        this.getLoaderName(),
         minorVersion,
         majorVersion,
         constantPool,
@@ -132,7 +139,8 @@ public class RawClassParser {
     List<RawInterface> entries = new ArrayList<>(entrySize);
 
     for (int i = 0; i < entrySize; i++) {
-      // TODO: impl
+      var result = new RawInterface(parseClassField());
+      entries.add(result);
     }
 
     return new Interfaces(entrySize, entries);
@@ -172,13 +180,14 @@ public class RawClassParser {
     return parseAttrsResult.getRight();
   }
 
-  // ex: java/lang/Object, my/sample/App,
+  // ex: Object, App,
   private String retrieveClassName(ConstantClass thisClass) {
-    return thisClass.getName().getLabel();
+    String[] words = thisClass.getName().getLabel().split("/");
+    return words[words.length - 1];
   }
 
   /**
-   * > There may be at most one SourceFile attribute in the attributes table of a ClassFile
+   * > There may be at most one SourceFile attribute in the attributes table of a ClassFile >
    * structure.
    */
   private String retrieveFileName(Attrs classAttrs) {
@@ -188,15 +197,13 @@ public class RawClassParser {
         .orElse("N/A");
   }
 
-  // ex. Object, MyApp
-  private String parseClassName() {
-    return "hoge"; // TODO
+  // ex. dev.ishikawa.app.MyApp
+  private String parseFullyQualifiedName(ConstantClass thisClass) {
+    String[] words = thisClass.getName().getLabel().split("/");
+    return String.join(".", Arrays.asList(words));
   }
 
-  // ex. dev.ishikawa.great.app
-  private String parseFullyQualifiedName() {
-    // TODO.
-    // package name should be given to classfile somehow
-    return "hello";
+  public @Nullable String getLoaderName() {
+    return loaderName;
   }
 }

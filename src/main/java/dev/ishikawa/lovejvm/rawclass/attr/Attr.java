@@ -3,6 +3,7 @@ package dev.ishikawa.lovejvm.rawclass.attr;
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantUtf8;
 
+/** binary format: u2 attribute_name_index u4 attribute_length {attribute_length} data */
 public abstract class Attr<T> {
   private ConstantUtf8 attrName;
   private final int dataLength;

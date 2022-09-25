@@ -14,6 +14,10 @@ public class ConstantFloat implements ConstantPoolEntry {
     return floatValue;
   }
 
+  public int getIntBits() {
+    return Float.floatToIntBits(this.getFloatValue());
+  }
+
   @Override
   public void resolve(ConstantPool constantPool) {
     // noop

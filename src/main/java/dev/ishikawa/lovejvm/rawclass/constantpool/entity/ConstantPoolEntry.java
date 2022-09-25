@@ -6,8 +6,8 @@ import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 /** marker interface */
 public interface ConstantPoolEntry {
   /**
-   * resolve is called before the entry is retrieved from the constant pool resolve occurs
-   * recursively until it reaches the leaf element of the pool
+   * resolve is called before the entry is retrieved from the constant pool. recursively until it
+   * reaches the leaf element of the pool
    */
   void resolve(ConstantPool constantPool);
 

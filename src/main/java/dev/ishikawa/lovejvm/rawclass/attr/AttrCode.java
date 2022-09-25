@@ -16,17 +16,11 @@ public class AttrCode extends Attr<AttrCode.LAttrCodeBody> {
       int operandStackSize,
       int localsSize,
       int instructionLength,
-      byte[] instructionSection,
       ExceptionHandlers exceptionHandlers,
       Attrs attrs) {
     var body =
         new LAttrCodeBody(
-            operandStackSize,
-            localsSize,
-            instructionLength,
-            instructionSection,
-            exceptionHandlers,
-            attrs);
+            operandStackSize, localsSize, instructionLength, exceptionHandlers, attrs);
     return new AttrCode(attrName, dataLength, body);
   }
 
@@ -39,13 +33,9 @@ public class AttrCode extends Attr<AttrCode.LAttrCodeBody> {
   }
 
   static class LAttrCodeBody {
-    // TODO: consider how to hold this part.
-    // just as an array of byte OR something like List<Instruction>.
-
     private int operandStackSize;
     private int localsSize;
     private int instructionLength;
-    private byte[] instructionSection;
     private ExceptionHandlers exceptionHandlers;
     private Attrs attrs;
 
@@ -53,19 +43,13 @@ public class AttrCode extends Attr<AttrCode.LAttrCodeBody> {
         int operandStackSize,
         int localsSize,
         int instructionLength,
-        byte[] instructionSection,
         ExceptionHandlers exceptionHandlers,
         Attrs attrs) {
       this.operandStackSize = operandStackSize;
       this.localsSize = localsSize;
       this.instructionLength = instructionLength;
-      this.instructionSection = instructionSection;
       this.exceptionHandlers = exceptionHandlers;
       this.attrs = attrs;
-    }
-
-    public byte[] getInstructionSection() {
-      return instructionSection;
     }
   }
 }

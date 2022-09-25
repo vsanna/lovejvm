@@ -5,14 +5,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Attrs {
-  private final int size;
+  private final int entrySize;
   private List<Attr> attrs;
 
-  public Attrs(int size, List<Attr> attrs) {
-    if (size != attrs.size())
-      throw new RuntimeException("invalid attrs. the size doesn't match with num of entries");
+  public Attrs(int entrySize, List<Attr> attrs) {
+    if (entrySize != attrs.size())
+      throw new RuntimeException("invalid attrs. the entrySize doesn't match with num of entries");
 
-    this.size = size;
+    this.entrySize = entrySize;
     this.attrs = attrs;
   }
 
@@ -30,12 +30,12 @@ public class Attrs {
   }
 
   public int offsetToAttr(AttrName attrName) {
-    // TODO: check if the attrName is contained or not. if not, throw error
+    // REFACTOR: check if the attrName is contained or not. if not, throw error
 
     int result = 2;
 
     for (Attr attr : attrs) {
-      // TODO: support having two entries with the same attrName in a attr table
+      // REFACTOR: support having two entries with the same attrName in a attr table
       if (AttrName.findBy(attr.getAttrName().getLabel()) != attrName) {
         result += attr.size();
       } else {
@@ -44,5 +44,9 @@ public class Attrs {
     }
 
     return result;
+  }
+
+  public int getEntrySize() {
+    return entrySize;
   }
 }

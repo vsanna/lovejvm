@@ -15,6 +15,14 @@ public class Interfaces {
     this.interfaces = entries;
   }
 
+  public int getEntrySize() {
+    return entrySize;
+  }
+
+  public List<RawInterface> getInterfaces() {
+    return interfaces;
+  }
+
   public int size() {
     return 2 + interfaces.stream().map(RawInterface::size).reduce(0, Integer::sum);
   }

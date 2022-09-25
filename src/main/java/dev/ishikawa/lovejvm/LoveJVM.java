@@ -3,12 +3,14 @@ package dev.ishikawa.lovejvm;
 
 import dev.ishikawa.lovejvm.option.Options;
 import dev.ishikawa.lovejvm.option.OptionsParser;
-import dev.ishikawa.lovejvm.rawclass.parser.RawClassParser;
-import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.RawThread;
 
-/** LoveJVM is the starting point of this hand-made JVM! */
+/**
+ * LoveJVM is the starting point of this hand-made JVM!
+ *
+ * @see Options what options are available
+ */
 public class LoveJVM {
   public static void main(String[] args) {
     Options options = OptionsParser.parse(args);
@@ -23,15 +25,9 @@ public class LoveJVM {
   }
 
   public void run() {
-    var classfileBytes = ByteUtil.readBytesFromFilePath(options.getEntryClass());
-
-    // TODO: Use classloader instead of classparser. init class object, put it in heap, etc
-    // var entryPoint = SystemClassLoader.load(classfileBytes)
-    // SystemClassLoader.loadClasspath(classpath) ... register multiple classes into methodArea
-    // ?? when to do dynamic load?
-    var rawClass = new RawClassParser(classfileBytes).parse();
-    RawSystem.methodArea.register(rawClass);
-    var entryPoint = rawClass.findEntryPoint();
+    var entryPoint = RawSystem.bootstrapLoader
+        .loadByPath(options.getEntryClass())
+        .findEntryPoint();
 
     // start the main thread with the entry point
     var mainThread =

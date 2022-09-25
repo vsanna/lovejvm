@@ -8,17 +8,17 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public enum ConstantPoolTag {
-  CLASS((byte) 0x07),
-  FIELD_REF((byte) 0x09),
-  METHOD_REF((byte) 0x0A),
-  INTERFACE_METHOD_REF((byte) 0x0B),
-  STRING((byte) 0x08),
+  UTF8((byte) 0x01),
   INTEGER((byte) 0x03),
   FLOAT((byte) 0x04),
   LONG((byte) 0x05),
   DOUBLE((byte) 0x06),
+  CLASS((byte) 0x07),
+  STRING((byte) 0x08),
+  FIELD_REF((byte) 0x09),
+  METHOD_REF((byte) 0x0A),
+  INTERFACE_METHOD_REF((byte) 0x0B),
   NAME_AND_TYPE((byte) 0x0C),
-  UTF8((byte) 0x01),
   METHOD_HANDLE((byte) 0x0F),
   METHOD_TYPE((byte) 0x10),
   DYNAMIC((byte) 0x11),

@@ -12,7 +12,7 @@ public class AttrSourceFile extends Attr<ConstantPoolEntry> {
   }
 
   private void validate(ConstantPoolEntry entry) {
-    // TODO: check the entry is in a whitelist.
+    // REFACTOR: check the entry is in a whitelist.
   }
 
   public String getSourceFileName() {

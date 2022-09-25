@@ -40,6 +40,9 @@ public class RawFieldParser {
     var descIndex = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     return Pair.of(
-        pointer, Pair.of(constantPool.findByIndex(nameIndex), constantPool.findByIndex(descIndex)));
+        pointer,
+        Pair.of(
+            (ConstantUtf8) constantPool.findByIndex(nameIndex),
+            (ConstantUtf8) constantPool.findByIndex(descIndex)));
   }
 }

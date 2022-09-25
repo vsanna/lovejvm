@@ -1,6 +1,9 @@
 class Recursive2 {
     static public void main() {
-        fibonacchi(10);
+//        fibonacchi(10);  // 55
+        fibonacchi(13);  // 233
+//        fibonacchi(40);  // 102334155
+//        fibonacchi(100); // 354224848179261915075
     }
 
     static int fibonacchi(int n) {

@@ -22,7 +22,7 @@ public class ConstantPool {
     return entrySize;
   }
 
-  /** @return int lenfth of bytes for the constant pool */
+  /** @return length of bytes for the constant pool */
   public int size() {
     return 2 + entries.stream().map(ConstantPoolEntry::size).reduce(0, Integer::sum);
   }

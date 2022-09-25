@@ -1,6 +1,6 @@
 class Recursive {
     static public void main() {
-        recursive(10);
+        recursive(1);
     }
 
     static int recursive(int a) {

@@ -46,6 +46,12 @@ public class Methods {
         + methods.stream().map(RawMethod::size).reduce(0, Integer::sum);
   }
 
+  /**
+   * offstToField returns offset in METHODAREA area (Not Heap) This is different in that point from
+   * Fields#offsetToField
+   *
+   * @return num of bytes
+   */
   public int offsetToMethod(RawMethod method) {
     if (!methods.contains(method)) return 0;
 
@@ -68,5 +74,9 @@ public class Methods {
 
   public void setRawClass(RawClass rawClass) {
     this.rawClass = rawClass;
+  }
+
+  public int getEntrySize() {
+    return entrySize;
   }
 }
