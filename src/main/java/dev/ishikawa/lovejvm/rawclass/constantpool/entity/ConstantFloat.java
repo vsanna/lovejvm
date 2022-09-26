@@ -3,6 +3,7 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 
+/** ConstantFloat entry takes up TWO entries. */
 public class ConstantFloat implements ConstantPoolEntry {
   private float floatValue; // 4bytes
 

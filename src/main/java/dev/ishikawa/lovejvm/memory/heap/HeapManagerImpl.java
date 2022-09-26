@@ -1,6 +1,8 @@
 package dev.ishikawa.lovejvm.memory.heap;
 
+
 import dev.ishikawa.lovejvm.rawclass.RawClass;
+import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.HashMap;
@@ -15,16 +17,16 @@ public class HeapManagerImpl implements HeapManager {
   // Map of address to ObjectEntity
   private Map<Integer, ObjectEntry> addressBasedObjectMap = new HashMap<>();
 
-  private int nextObjectId = 0;
+  // objectId starts with 100. objectId = 0 means, it's null reference.
+  private int nextObjectId = 100;
 
   private final Heap heap = HeapSimulator.INSTANCE;
 
   private HeapManagerImpl() {}
 
-
   /**
-   * allocate method doesn't consider freeing the used mem or cg at this moment.
-   * it just moves ahead every single time a new object is created.
+   * allocate method doesn't consider freeing the used mem or cg at this moment. it just moves ahead
+   * every single time a new object is created.
    *
    * @param baseClass
    */
@@ -52,8 +54,22 @@ public class HeapManagerImpl implements HeapManager {
   }
 
   @Override
-  public void setValue(int address, List<Word> value) {
-    heap.setValue(address, value);
+  public void setValue(RawObject rawObject, RawField rawField, List<Word> value) {
+    int objectAddress = objectIdBasedObjectMap.get(rawObject.getObjectId()).address;
+    int offsetToField = rawObject.getRawClass().offsetToField(rawField);
+    int startingAddress = objectAddress + offsetToField;
+    byte[] bytes = Word.toByteArray(value);
+    heap.save(startingAddress, bytes);
+  }
+
+  @Override
+  public List<Word> getValue(RawObject rawObject, RawField rawField) {
+    int objectAddress = objectIdBasedObjectMap.get(rawObject.getObjectId()).address;
+    int offsetToField = rawObject.getRawClass().offsetToField(rawField);
+    int startingAddress = objectAddress + offsetToField;
+
+    int size = rawField.getJvmType().wordSize() * Word.BYTES_SIZE;
+    return Word.of(heap.retrieve(startingAddress, size));
   }
 
   private RawObject createRawObject(int address, RawClass rawClass) {
@@ -62,7 +78,7 @@ public class HeapManagerImpl implements HeapManager {
     return new RawObject(objectId, address, rawClass);
   }
 
-  static public final HeapManager INSTANCE = new HeapManagerImpl();
+  public static final HeapManager INSTANCE = new HeapManagerImpl();
 
   private static class ObjectEntry {
     private int address;

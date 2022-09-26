@@ -25,25 +25,25 @@ public class LoveJVM {
   }
 
   public void run() {
-    var entryPoint = RawSystem.bootstrapLoader
-        .loadByPath(options.getEntryClass())
-        .findEntryPoint();
+    var entryClass = RawSystem.bootstrapLoader.loadByPath(options.getEntryClass());
+    var entryPoint = entryClass.findEntryPoint();
 
     // start the main thread with the entry point
-    var mainThread =
-        entryPoint
-            .map(
-                (ep) -> {
-                  var thread = new RawThread("main");
-                  thread.init(ep);
-                  thread.run();
-                  return thread;
-                })
-            .orElseThrow(
-                () -> {
-                  throw new RuntimeException("no entrypoint");
-                });
-    RawSystem.setMainThread(mainThread);
+    entryPoint
+        .map(
+            (ep) -> {
+              var thread = new RawThread("main");
+              RawSystem.setMainThread(thread);
+              thread.init(ep);
+              thread.run();
+              return thread;
+            })
+        .orElseThrow(
+            () -> {
+              throw new RuntimeException("no entrypoint");
+            });
+
+    // cleanup operations below
   }
 
   public static final String ENTRY_METHOD_NAME = "main";

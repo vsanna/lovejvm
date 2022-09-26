@@ -1,8 +1,6 @@
 package dev.ishikawa.lovejvm.memory.heap;
 
 
-import dev.ishikawa.lovejvm.rawclass.RawClass;
-import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 
@@ -12,19 +10,21 @@ import java.util.List;
  * -
  */
 interface Heap {
-  /**
-   * store the bytes in heap area.
-   */
+  /** store the bytes in heap area. */
   void allocate(byte[] bytes);
 
   /**
-   * set the word values from the address consecutively
-   * @param address starting address of where to put the value in Heap
+   * set the bytes from the address consecutively
+   *
+   * @param startingAddress starting address of where to put the value in Heap
    */
-  void setValue(int address, List<Word> value);
+  void save(int startingAddress, byte[] bytes);
 
   /**
-   * @return head head address of available space
+   * @return byte arrays specified by the args
    * */
+  byte[] retrieve(int startingAddress, int size);
+
+  /** @return head head address of available space */
   int headAddress();
 }

@@ -7,6 +7,9 @@ import dev.ishikawa.lovejvm.util.Pair;
 
 public class ConstantPoolEntryParser {
   public static Pair<Integer, ConstantPoolEntry> parse(int pointer, byte[] bytecode) {
+    if (bytecode[pointer] == 0) {
+      int a = 1;
+    }
     var tag = ConstantPoolTag.findBy(bytecode[pointer]);
 
     switch (tag) {
@@ -26,6 +29,12 @@ public class ConstantPoolEntryParser {
           var classIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
           var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
           return Pair.of(pointer + 5, new ConstantMethodref(classIndex, nameAndTypeIndex));
+        }
+      case INTERFACE_METHOD_REF:
+        {
+          var classIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          return Pair.of(pointer + 5, new ConstantInterfaceMethodref(classIndex, nameAndTypeIndex));
         }
       case STRING:
         {
@@ -97,16 +106,44 @@ public class ConstantPoolEntryParser {
 
           return Pair.of(pointer + labelLength, new ConstantUtf8(new String(bytes)));
         }
-      case INTERFACE_METHOD_REF:
       case METHOD_HANDLE:
+        {
+          /* u1: tag, u1: reference_kind, u2: reference_index */
+          var referenceKind = bytecode[pointer + 1];
+          var referenceIndex = ByteUtil.concat(bytecode[pointer + 2], bytecode[pointer + 3]);
+          return Pair.of(pointer + 4, new ConstantMethodHandle(referenceKind, referenceIndex));
+        }
       case METHOD_TYPE:
+        {
+          /* u1: tag, u2: descriptor_index */
+          var describtorIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          return Pair.of(pointer + 3, new ConstantMethodType(describtorIndex));
+        }
       case DYNAMIC:
+        {
+          /* u1: tag, u2: bootstrap_method_attr_index, u2: name_and_type_index */
+          var bootstrapMethodIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          return Pair.of(pointer + 5, new ConstantDynamic(bootstrapMethodIndex, nameAndTypeIndex));
+        }
       case INVOKE_DYNAMIC:
+        {
+          /* u1: tag, u2: bootstrap_method_attr_index, u2: name_and_type_index */
+          var bootstrapMethodIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          return Pair.of(
+              pointer + 5, new ConstantInvokeDynamic(bootstrapMethodIndex, nameAndTypeIndex));
+        }
       case MODULE:
+        {
+          /* u1: tag, u1: name_index */
+          var nameIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          return Pair.of(pointer + 3, new ConstantModule(nameIndex));
+        }
       case PACKAGE:
       default:
         throw new RuntimeException(
-            String.format("invalid Constant Pool Entity tag: %x", tag.getTag()));
+            String.format("invalid Constant Pool Entity tag: 0x%x", tag.getTag()));
     }
   }
 }

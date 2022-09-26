@@ -36,6 +36,7 @@ public enum AttrName {
   LINE_NUMBER_TABLE("LineNumberTable"),
   LOCAL_VARIABLE_TABLE("LocalVariableTable"),
   LOCAL_VARIABLE_TYPE_TABLE("LocalVariableTypeTable"),
+  DEPRECATED("Deprecated"),
   SOURCE_DEBUG_EXTENSION("SourceDebugExtension"),
   RUNTIME_VISIBLE_ANNOTATIONS("RuntimeVisibleAnnotations"),
   RUNTIME_INVISIBLE_ANNOTATIONS("RuntimeInvisibleAnnotations"),

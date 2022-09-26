@@ -1,5 +1,6 @@
 package dev.ishikawa.lovejvm.memory.methodarea;
 
+
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
@@ -11,6 +12,7 @@ import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -33,7 +35,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
     // REFACTOR: According to the reference, The same name class can be loaded under different
     classMap.put(rawClass.getBinaryName(), new ClassEntry(startingAddress, rawClass));
 
-    byte[] bytes = new byte[rawClass.getClassfileBytes() + rawClass.getStaticAreaWords()];
+    byte[] bytes = new byte[rawClass.getClassfileBytes() + rawClass.getStaticAreaWords() * Word.BYTES_SIZE];
     System.arraycopy(classfile, 0, bytes, 0, classfile.length);
 
     methodArea.allocate(bytes);
@@ -62,11 +64,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
 
   @Override
   public int lookupStaticAreaAddress(RawClass rawClass) {
-    var classAddr =
-        Optional.ofNullable(classMap.get(rawClass.getBinaryName()))
-            .map(it -> it.address)
-            .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
-
+    var classAddr = getClassAddress(rawClass);
     return classAddr + rawClass.offsetBytesToStaticArea();
   }
 
@@ -90,6 +88,25 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
         .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
   }
 
+  @Override
+  public List<Word> getStaticFieldValue(RawClass rawClass, RawField rawField) {
+    var startingAddress = getClassAddress(rawClass)
+        + rawClass.offsetBytesToStaticField(rawField);
+
+    var fieldByteSize = rawField.getJvmType().wordSize() * Word.BYTES_SIZE;
+    var bytes = methodArea.retrieve(startingAddress, fieldByteSize);
+    return Word.of(bytes);
+  }
+
+  @Override
+  public void putStaticFieldValue(RawClass rawClass, RawField rawField, List<Word> words) {
+    var startingAddress = getClassAddress(rawClass)
+        + rawClass.offsetBytesToStaticField(rawField);
+
+    methodArea.save(startingAddress, Word.toByteArray(words));
+  }
+
+  @Override
   public RawClass lookupClass(ConstantClass constantClassRef) {
     return Optional.ofNullable(classMap.get(constantClassRef.getName().getLabel()))
         .map(it -> it.rawClass)
@@ -108,6 +125,12 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
     int startingAddress = lookupStaticAreaAddress(rawClass);
     int staticAreaByteSize = rawClass.getStaticAreaWords() * Word.BYTES_SIZE;
     this.methodArea.clear(startingAddress, staticAreaByteSize);
+  }
+
+  private int getClassAddress(RawClass rawClass) {
+    return Optional.ofNullable(classMap.get(rawClass.getBinaryName()))
+        .map(it -> it.address)
+        .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
   }
 
   public static final MethodAreaManager INSTANCE = new MethodAreaManagerImpl();
@@ -129,5 +152,4 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
       return rawClass;
     }
   }
-
 }

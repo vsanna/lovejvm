@@ -14,11 +14,12 @@ public class StringPoolSimulator implements StringPool {
 
   /**
    * create a String object,
+   *
    * @return the newly created object's objectId
-   * */
+   */
   @Override
   public int register(String label) {
-    if(stringRawClass == null) {
+    if (stringRawClass == null) {
       stringRawClass = RawSystem.methodAreaManager.lookupOrLoadClass(STRING_CLASS_LABEL);
     }
 
@@ -28,9 +29,7 @@ public class StringPoolSimulator implements StringPool {
     return objectId;
   }
 
-  /**
-   * @return objectId of the string object corresponding to the given label
-   * */
+  /** @return objectId of the string object corresponding to the given label */
   @Override
   public int getOrCreate(String label) {
     return Optional.ofNullable(stringMap.get(label))
@@ -40,5 +39,5 @@ public class StringPoolSimulator implements StringPool {
 
   private static final String STRING_CLASS_LABEL = "java/lang/String";
 
-  static final public StringPool INSTANCE = new StringPoolSimulator();
+  public static final StringPool INSTANCE = new StringPoolSimulator();
 }

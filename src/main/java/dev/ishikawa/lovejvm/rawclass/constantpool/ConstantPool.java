@@ -8,12 +8,11 @@ public class ConstantPool {
   private final int entrySize;
   private List<ConstantPoolEntry> entries;
 
-  // entrySize = actual num of entries - 1
-  // TODO: research why
   public ConstantPool(int entrySize, List<ConstantPoolEntry> entries) {
-    if (entrySize - 1 != entries.size())
+    if (entrySize != entries.size()) {
       throw new RuntimeException(
           "invalid constant pool. the entrySize doesn't match with num of entries");
+    }
     this.entrySize = entrySize;
     this.entries = entries;
   }
@@ -27,9 +26,8 @@ public class ConstantPool {
     return 2 + entries.stream().map(ConstantPoolEntry::size).reduce(0, Integer::sum);
   }
 
-  /** constant pool entity's index is 1-index. */
   public ConstantPoolEntry findByIndex(int index) {
-    var entry = entries.get(index - 1);
+    var entry = entries.get(index);
     if (!entry.isResolved()) {
       entry.resolve(this);
     }

@@ -11,11 +11,12 @@ import dev.ishikawa.lovejvm.memory.stringpool.StringPool;
 import dev.ishikawa.lovejvm.memory.stringpool.StringPoolSimulator;
 
 public class RawSystem {
-  private static RawThread mainThread;
+  public static RawThread mainThread;
   public static final MethodAreaManager methodAreaManager = MethodAreaManagerImpl.INSTANCE;
   public static final HeapManager heapManager = HeapManagerImpl.INSTANCE;
   public static final StringPool stringPool = StringPoolSimulator.INSTANCE;
   public static final BootstrapLoader bootstrapLoader = BootstrapLoaderImpl.INSTANCE;
+
   public static void setMainThread(RawThread mainThread) {
     RawSystem.mainThread = mainThread;
   }

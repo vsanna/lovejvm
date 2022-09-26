@@ -1,35 +1,28 @@
 package dev.ishikawa.lovejvm.classloader;
 
+
 import dev.ishikawa.lovejvm.rawclass.RawClass;
-import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.parser.RawClassParser;
-import dev.ishikawa.lovejvm.rawclass.type.JvmType;
 import dev.ishikawa.lovejvm.util.ByteUtil;
-import dev.ishikawa.lovejvm.util.Pair;
 import dev.ishikawa.lovejvm.vm.RawSystem;
-import java.io.IOException;
+import dev.ishikawa.lovejvm.vm.RawThread;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class BootstrapLoaderImpl implements BootstrapLoader {
-  static public final BootstrapLoaderImpl INSTANCE = new BootstrapLoaderImpl();
+  public static final BootstrapLoaderImpl INSTANCE = new BootstrapLoaderImpl();
 
   private BootstrapLoaderImpl() {}
 
   @Override
   public RawClass loadByPath(String filePath) {
-    // load
     var classFileBytes = readClassFile(filePath);
     var rawClass = load(classFileBytes);
 
-    // link = verify + prepare
     link(classFileBytes, rawClass);
-
-    // resolve
     resolve(rawClass);
-
-    // initialize
     initialize(rawClass);
 
     return rawClass;
@@ -40,16 +33,34 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
   }
 
   private RawClass load(byte[] classFileBytes) {
-    // parse
     var rawClass = new RawClassParser(classFileBytes, null).parse();
-    // register
     RawSystem.methodAreaManager.register(rawClass, classFileBytes);
     return rawClass;
   }
 
   private void link(byte[] classFileBytes, RawClass rawClass) {
+    loadRelatedClasses(rawClass);
     verify(classFileBytes);
     prepare(rawClass);
+  }
+
+  /** load its direct superclass, its direct super interfaces, and its element's class if it has. */
+  private void loadRelatedClasses(RawClass rawClass) {
+    // Only Object.java doesn't have its superclass
+    Optional.ofNullable(rawClass.getSuperClass())
+        .ifPresent(
+            (superClass) -> {
+              String superClassBinaryName = superClass.getName().getLabel();
+              RawSystem.methodAreaManager.lookupOrLoadClass(superClassBinaryName);
+            });
+
+    List<String> superInterfaceBinaryNames =
+        rawClass.getInterfaces().getInterfaces().stream()
+            .map((it) -> it.getConstantClassRef().getName().getLabel())
+            .collect(Collectors.toList());
+    superInterfaceBinaryNames.forEach(RawSystem.methodAreaManager::lookupOrLoadClass);
+
+    // TODO: if rawClass has an element class, load the class too
   }
 
   private void verify(byte[] classFileBytes) {
@@ -57,9 +68,8 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
   }
 
   /**
-   * set default values to each field according to each field's type
-   * ex: int -> 0, boolean -> false
-   * */
+   * set default values to each field according to each field's type ex: int -> 0, boolean -> false
+   */
   private void prepare(RawClass rawClass) {
     RawSystem.methodAreaManager.prepareStaticArea(rawClass);
   }
@@ -69,37 +79,37 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
   }
 
   private void initialize(RawClass rawClass) {
-    /* TODO: impl */
     // 1. run <clinit> to set static values
+    rawClass.findClinit().ifPresent((clinit) -> {
+      // TODO: stop all the other thread.
+      new RawThread("system").init(clinit).run();
+    });
+
     // 2. make Class object, and store it in heap
   }
 
-
   /**
-   * load a class from binaryName(ex: java/lang/String).
-   * This methods checks all dirs to find libs. classpath + some default dirs.
-   * */
+   * load a class from binaryName(ex: java/lang/String). This methods checks all dirs to find libs.
+   * classpath + some default dirs.
+   */
   @Override
   public RawClass loadByBinaryName(String binaryName) {
-    String binaryNamePlusExtension = binaryName + ".java";
+    String binaryNamePlusExtension = binaryName + ".class";
 
-    var dirsToLookForFiles = List.of(
-        // default dirs to check
-        Path.of(System.getenv("JAVA_HOME") + "/lib/java.base/")
-        // TODO: add dirs in classpath here.
-    );
+    var dirsToLookForFiles =
+        List.of(
+            // default dirs to check
+            // 1. path/to/this/project/standardlibs. check README.md to see how to compile standard
+            // libraries
+            Path.of("standardlibs/java.base/")
+            // TODO: add dirs in classpath here.
+            );
 
     // traverse classpath. if not found, throw exception
-    Pair<Path, Path> targetPathInfo =
+    Path libClassPath =
         dirsToLookForFiles.stream()
-            .map((libBath) -> Pair.of(
-                libBath,
-                Path.of(libBath.toString(), binaryNamePlusExtension)
-            ))
-            .filter((pair) -> {
-              Path libPath = pair.getRight();
-              return libPath.toFile().exists();
-            })
+            .map((libBath) -> Path.of(libBath.toString(), binaryNamePlusExtension))
+            .filter((libPath) -> libPath.toFile().exists())
             .findFirst()
             .orElseThrow(
                 () -> {
@@ -108,24 +118,6 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
                           "The specified class doesn't exist! given binaryName: %s", binaryName));
                 });
 
-    // (tentative) compile the .java file in the same location.
-    var libDirPath = targetPathInfo.getLeft();
-    var libPath = targetPathInfo.getRight();
-    var libClassPath = libDirPath.toString() + binaryName + ".class";
-
-    try {
-      Process process = new ProcessBuilder(List.of("javac", libPath.toString(), "-d", libClassPath))
-          .start();
-      process.waitFor(5000, TimeUnit.MILLISECONDS);
-    } catch (IOException e) {
-      e.printStackTrace();
-      throw new RuntimeException("failed to compile the java file!");
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-      throw new RuntimeException("compile was interrupted!");
-    }
-
-    return loadByPath(libClassPath);
+    return loadByPath(libClassPath.toString());
   }
-
 }

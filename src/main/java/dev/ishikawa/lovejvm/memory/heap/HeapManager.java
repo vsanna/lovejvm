@@ -1,6 +1,8 @@
 package dev.ishikawa.lovejvm.memory.heap;
 
+
 import dev.ishikawa.lovejvm.rawclass.RawClass;
+import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
@@ -18,9 +20,9 @@ public interface HeapManager {
   RawObject lookupObject(int objectId);
 
   /**
-   * set the word values from the address consecutively
-   *
-   * @param address starting address of where to put the value in Heap
+   * set the value in heap
    */
-  void setValue(int address, List<Word> value);
+  void setValue(RawObject rawObject, RawField rawField, List<Word> value);
+
+  List<Word> getValue(RawObject rawObject, RawField rawField);
 }

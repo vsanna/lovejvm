@@ -3,17 +3,15 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 
-/** ConstantLong entry takes up TWO entries. */
-public class ConstantLong implements ConstantPoolEntry {
-  private long longValue; // 8bytes
+/**
+ * ConstantBlank is used to fill blank slots - the initial slot - slot right after ConstantDouble /
+ * ConstantLong
+ *
+ * <p>This is not specified by the spec
+ */
+public class ConstantBlank implements ConstantPoolEntry {
 
-  public ConstantLong(long value) {
-    this.longValue = value;
-  }
-
-  public long getLongValue() {
-    return longValue;
-  }
+  public ConstantBlank() {}
 
   @Override
   public void resolve(ConstantPool constantPool) {
@@ -27,6 +25,6 @@ public class ConstantLong implements ConstantPoolEntry {
 
   @Override
   public int size() {
-    return 9;
+    return 0;
   }
 }

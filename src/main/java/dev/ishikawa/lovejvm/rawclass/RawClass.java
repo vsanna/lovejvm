@@ -11,15 +11,17 @@ import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.linterface.Interfaces;
 import dev.ishikawa.lovejvm.rawclass.method.Methods;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
+import dev.ishikawa.lovejvm.rawclass.parser.RawClassParser;
+import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * RawClass is an internal representation of class binary file + its static area
- * the actual data are stored in MethodArea.
- * (Java's Class object is wrapper of this internal representation)
- * */
+ * RawClass is an internal representation of class binary file + its static area the actual data are
+ * stored in MethodArea. (Java's Class object is wrapper of this internal representation)
+ */
 public class RawClass {
   public RawClass(
       byte[] raw,
@@ -49,6 +51,12 @@ public class RawClass {
     this.constantPool = constantPool;
     this.accessFlag = accessFlag;
     this.thisClass = thisClass;
+
+    if (superClass == null
+        && !Objects.equals(
+            thisClass.getName().getLabel(), RawClassParser.OBJECT_CLASS_BINARY_NAME)) {
+      throw new RuntimeException("super class is missing");
+    }
     this.superClass = superClass;
     this.interfaces = interfaces;
 
@@ -62,10 +70,9 @@ public class RawClass {
   }
 
   /**
-   * raw bytes of the classfile
-   * Note: RawClass#raw field is duplicated data of bytes stored in MethodArea.
-   *  This is redundant. The raw field is just for debugging.
-   * */
+   * raw bytes of the classfile Note: RawClass#raw field is duplicated data of bytes stored in
+   * MethodArea. This is redundant. The raw field is just for debugging.
+   */
   private final byte[] raw;
 
   private final String fullyQualifiedName;
@@ -82,7 +89,8 @@ public class RawClass {
   private final int accessFlag;
 
   private final ConstantClass thisClass;
-  private final ConstantClass superClass;
+  // Only Object doesn't have superClass
+  private final @Nullable ConstantClass superClass;
 
   private final Interfaces interfaces;
 
@@ -133,6 +141,7 @@ public class RawClass {
     return thisClass;
   }
 
+  @Nullable
   public ConstantClass getSuperClass() {
     return superClass;
   }
@@ -163,6 +172,10 @@ public class RawClass {
     return methods.findBy(nameAndType.getName().getLabel(), nameAndType.getDescriptor().getLabel());
   }
 
+  public Optional<RawMethod> findClinit() {
+    return methods.findBy("<clinit>", "()V");
+  }
+
   public Optional<RawMethod> findEntryPoint() {
     return methods.findStaticBy(LoveJVM.ENTRY_METHOD_NAME, LoveJVM.ENTRY_METHOD_DESC);
   }
@@ -175,7 +188,10 @@ public class RawClass {
     return fields.getStaticFields();
   }
 
-  /** @return binary size(bytes) of the classfile(not including static area). should be equal to this.raw.length() */
+  /**
+   * @return binary size(bytes) of the classfile(not including static area). should be equal to
+   *     this.raw.length()
+   */
   public int getClassfileBytes() {
     return 4 // magic number
         + (2 + 2) // versions
@@ -189,17 +205,14 @@ public class RawClass {
         + attrs.size();
   }
 
-  /**
-   * @return size(words) of mem space for static area of this class
-   * */
+  /** @return size(words) of mem space for static area of this class */
   public int getStaticAreaWords() {
     return getFields().getStaticFieldsMemWords();
   }
 
   /**
-   * @return necessary binary size(words) for an object of this class 4byte ... ref to its super class's
-   *     object size(field) * num of fields.
-   *     TODO: how to put Array in heap.
+   * @return necessary binary size(words) for an object of this class 4byte ... ref to its super
+   *     class's object size(field) * num of fields. TODO: how to put Array in heap.
    */
   public int getObjectWords() {
     return 1 // reference to superclass's object. 1 word
@@ -209,8 +222,7 @@ public class RawClass {
   /** @return position of the initial byte in methods area. */
   public int offsetBytesToMethods() {
     return 4 // magic number
-        + 2
-        + 2 // versions
+        + (2 + 2) // versions
         + constantPool.size() // constant pool
         + 2 // access flag
         + 2 // this class
@@ -219,7 +231,28 @@ public class RawClass {
         + fields.size();
   }
 
+  public int offsetToField(RawField rawField) {
+    return getFields().offsetToFieldBytes(rawField);
+  }
+
   public int offsetBytesToStaticArea() {
     return getClassfileBytes();
   }
+
+  public int offsetBytesToStaticField(RawField rawField) {
+    int result = offsetBytesToStaticArea();
+
+    for (RawField staticField : fields.getStaticFields()) {
+       if(staticField.equals(rawField)) break;
+
+       result += staticField.getJvmType().wordSize() * Word.BYTES_SIZE;
+    }
+
+    return result;
+  }
+
+  public static final String CLINIT_METHOD_NAME = "<clinit>";
+  public static final String CLINIT_METHOD_DESC = "()V";
+  public static final String INIT_METHOD_NAME = "<init>";
+  public static final String INIT_METHOD_DESC = "()V";
 }

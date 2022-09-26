@@ -6,7 +6,10 @@ import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrSourceFile;
 import dev.ishikawa.lovejvm.rawclass.attr.Attrs;
 import dev.ishikawa.lovejvm.rawclass.constantpool.*;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantBlank;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantDouble;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantLong;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPoolEntry;
 import dev.ishikawa.lovejvm.rawclass.field.Fields;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
@@ -19,6 +22,7 @@ import dev.ishikawa.lovejvm.util.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 public class RawClassParser {
@@ -43,8 +47,8 @@ public class RawClassParser {
     this.constantPool = parseConstantPool();
 
     int accessFlag = parseAccessFlag();
-    var thisClass = parseClassField();
-    var superClass = parseClassField();
+    var thisClass = parseThisClassField();
+    var superClass = parseSuperClassField(Objects.requireNonNull(thisClass).getName().getLabel());
 
     var interfaces = parseInterface();
     var fields = parseFields();
@@ -102,14 +106,27 @@ public class RawClassParser {
     var entrySize = ByteUtil.concat(bytecode[8], bytecode[9]);
     pointer = 10;
     List<ConstantPoolEntry> entries = new ArrayList<>(entrySize);
+    // initial slot is not used
+    // because JVM books the entry#0
+    entries.add(new ConstantBlank());
 
-    // entrySize = actual num of entries - 1
-    // 1-index
-    // TODO: research why
     for (int i = 0; i < entrySize - 1; i++) {
       var result = ConstantPoolEntryParser.parse(pointer, bytecode);
+
+      /**
+       * All 8-byte constants take up two entries in the constant_pool table of the class file. If a
+       * CONSTANT_Long_info or CONSTANT_Double_info structure is the item in the constant_pool table
+       * at index n, then the next usable item in the pool is located at index n+2. The
+       * constant_pool index n+1 must be valid but is considered unusable.
+       */
+      ConstantPoolEntry entry = result.getRight();
+      if (entry instanceof ConstantLong || entry instanceof ConstantDouble) {
+        entries.add(new ConstantBlank());
+        i++;
+      }
+
       pointer = result.getLeft();
-      entries.add(result.getRight());
+      entries.add(entry);
     }
 
     return new ConstantPool(entrySize, entries);
@@ -121,16 +138,24 @@ public class RawClassParser {
     return accessFlag;
   }
 
-  private ConstantClass parseClassField() {
+  private @Nullable ConstantClass parseThisClassField() {
     var index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     var entry = constantPool.findByIndex(index);
 
     if (!(entry instanceof ConstantClass)) {
-      throw new RuntimeException("unexpected entry is returned. ");
+      throw new RuntimeException("unexpected entry is returned.");
     }
 
     return (ConstantClass) entry;
+  }
+
+  private @Nullable ConstantClass parseSuperClassField(String thisClassBinaryName) {
+    if (thisClassBinaryName.equals(OBJECT_CLASS_BINARY_NAME)) {
+      pointer += 2;
+      return null;
+    }
+    return parseThisClassField();
   }
 
   private Interfaces parseInterface() {
@@ -139,8 +164,12 @@ public class RawClassParser {
     List<RawInterface> entries = new ArrayList<>(entrySize);
 
     for (int i = 0; i < entrySize; i++) {
-      var result = new RawInterface(parseClassField());
+      int index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+      ;
+      var classEntry = (ConstantClass) constantPool.findByIndex(index);
+      var result = new RawInterface(classEntry);
       entries.add(result);
+      pointer += 2;
     }
 
     return new Interfaces(entrySize, entries);
@@ -206,4 +235,6 @@ public class RawClassParser {
   public @Nullable String getLoaderName() {
     return loaderName;
   }
+
+  public static final String OBJECT_CLASS_BINARY_NAME = "java/lang/Object";
 }

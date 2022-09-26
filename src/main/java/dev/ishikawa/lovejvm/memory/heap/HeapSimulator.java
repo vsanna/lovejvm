@@ -1,19 +1,14 @@
 package dev.ishikawa.lovejvm.memory.heap;
 
 
-import dev.ishikawa.lovejvm.rawclass.RawClass;
-import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.Word;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 /**
- * HeapSimulator simulate Heap by utilizing host java's features.
- * This doesn't manage native memory at all.
+ * HeapSimulator simulate Heap by utilizing host java's features. This doesn't manage native memory
+ * at all.
  *
- * NOTE: At this mement, no free, no GC!
+ * <p>NOTE: At this mement, no free, no GC!
  */
 class HeapSimulator implements Heap {
   private byte[] memory = new byte[100000];
@@ -28,12 +23,15 @@ class HeapSimulator implements Heap {
   }
 
   @Override
-  public void setValue(int address, List<Word> value) {
-    int head = address;
-    for (Word word : value) {
-      System.arraycopy(word.getBytes(), 0, memory, head, word.getBytes().length);
-      head += word.getBytes().length;
-    }
+  public byte[] retrieve(int startingAddress, int size) {
+    byte[] result = new byte[size];
+    System.arraycopy(memory, startingAddress, result, 0, size);
+    return result;
+  }
+
+  @Override
+  public void save(int startingAddress, byte[] bytes) {
+    System.arraycopy(bytes, 0, memory, startingAddress, bytes.length);
   }
 
   @Override

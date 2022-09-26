@@ -2,6 +2,12 @@ package dev.ishikawa.lovejvm.rawclass.parser;
 
 
 import dev.ishikawa.lovejvm.rawclass.attr.*;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMethodsBody;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMethodsBody.LAttrBootstrapMethod;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrExceptions.LAttrExceptionsBody;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrInnerClass.AttrInnerClassBody.LAttrInnerClassEntry;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrNestMembers.LAttrNestMembersBody;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrRuntimeVisibleAnnotations.LAttrAnnotation;
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.*;
 import dev.ishikawa.lovejvm.rawclass.method.exceptionhandler.ExceptionHandlers;
@@ -10,7 +16,8 @@ import dev.ishikawa.lovejvm.util.Pair;
 import java.util.ArrayList;
 
 public class AttrParser {
-  public static Pair<Integer, Attr> parse(int pointer, byte[] bytecode, ConstantPool constantPool) {
+  public static Pair<Integer, Attr> parseAttrData(
+      int pointer, byte[] bytecode, ConstantPool constantPool) {
     // attrName
     var index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
     var attrName = (ConstantUtf8) constantPool.findByIndex(index);
@@ -23,12 +30,12 @@ public class AttrParser {
     pointer += 4;
 
     // parse attrBody according to attrName
-    var attr = parse(attrName, dataLength, pointer, bytecode, constantPool);
+    var attr = parseAttrData(attrName, dataLength, pointer, bytecode, constantPool);
 
     return Pair.of(pointer + dataLength, attr);
   }
 
-  private static Attr parse(
+  private static Attr parseAttrData(
       ConstantUtf8 attrName,
       int dataLength,
       int pointer,
@@ -79,28 +86,23 @@ public class AttrParser {
               exceptionHandlers,
               attrs);
         }
-      case STACK_MAP_TABLE:
-        return new AttrDummy(attrName, dataLength, "STACK_MAP_TABLE");
-        //            case BOOTSTRAP_METHODS:
-        //                break;
-        //            case NEST_HOST:
-        //                break;
-        //            case NEST_MEMBERS:
-        //                break;
-        //            case PERMITTED_SUBCLASSES:
-        //                break;
-        //            case EXCEPTIONS:
-        //                break;
-        //            case INNER_CLASSES:
-        //                break;
-        //            case ENCLOSING_METHOD:
-        //                break;
-        //            case SYNTHETIC:
-        //                break;
-        //            case SIGNATURE:
-        //                break;
-        //            case RECORD:
-        //                break;
+      case EXCEPTIONS:
+        {
+          var numberOfExceptions = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          pointer += 2;
+          var exceptionIndexTable = new ArrayList<ConstantClass>(numberOfExceptions);
+
+          for (int i = 0; i < numberOfExceptions; ++i) {
+            var idx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            pointer += 2;
+            exceptionIndexTable.add((ConstantClass) constantPool.findByIndex(idx));
+          }
+
+          return new AttrExceptions(
+              attrName,
+              dataLength,
+              new LAttrExceptionsBody(numberOfExceptions, exceptionIndexTable));
+        }
       case SOURCE_FILE:
         {
           var index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
@@ -122,34 +124,158 @@ public class AttrParser {
 
           return new AttrLineNumberTable(attrName, dataLength, entries);
         }
-        //            case LOCAL_VARIABLE_TABLE:
-        //                break;
-        //            case LOCAL_VARIABLE_TYPE_TABLE:
-        //                break;
-        //            case SOURCE_DEBUG_EXTENSION:
-        //                break;
-        //            case RUNTIME_VISIBLE_ANNOTATIONS:
-        //                break;
-        //            case RUNTIME_INVISIBLE_ANNOTATIONS:
-        //                break;
-        //            case RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS:
-        //                break;
-        //            case RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS:
-        //                break;
-        //            case RUNTIME_VISIBLE_TYPE_ANNOTATIONS:
-        //                break;
-        //            case RUNTIME_INVISIBLE_TYPE_ANNOTATIONS:
-        //                break;
-        //            case ANNOTATION_DEFAULT:
-        //                break;
-        //            case METHOD_PARAMETERS:
-        //                break;
-        //            case MODULE:
-        //                break;
-        //            case MODULE_PACKAGES:
-        //                break;
-        //            case MODULE_MAIN_CLASS:
-        //                break;
+        //      case LOCAL_VARIABLE_TABLE:
+        //        break;
+      case INNER_CLASSES:
+        {
+          var numberOfClasses = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          pointer += 2;
+
+          var classes = new ArrayList<LAttrInnerClassEntry>(numberOfClasses);
+          for (int i = 0; i < numberOfClasses; i++) {
+            var innerClassInfoIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            ConstantClass innerClassInfo = (ConstantClass) constantPool.findByIndex(innerClassInfoIdx);
+            pointer += 2;
+
+            var outerClassInfoIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            ConstantClass outerClassInfo = null;
+            if(outerClassInfoIdx > 0) {
+              outerClassInfo = (ConstantClass) constantPool.findByIndex(outerClassInfoIdx);
+            }
+            pointer += 2;
+
+            var innerNameIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            ConstantUtf8 innerName = null;
+            if(innerNameIdx > 0) {
+              innerName = (ConstantUtf8) constantPool.findByIndex(innerNameIdx);
+            }
+            pointer += 2;
+
+            var accessFlags = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            pointer += 2;
+
+            classes.add(
+                new LAttrInnerClassEntry(innerClassInfo, outerClassInfo, innerName, accessFlags));
+          }
+
+          return new AttrInnerClass(
+              attrName,
+              dataLength,
+              new AttrInnerClass.AttrInnerClassBody(numberOfClasses, classes));
+        }
+        //      case SYNTHETIC:
+        //        break;
+      case DEPRECATED:
+        {
+          return new AttrDeprecated(attrName, dataLength);
+        }
+        //      case ENCLOSING_METHOD:
+        //        break;
+      case SIGNATURE:
+        {
+          var signatureIndex = bytecode[pointer];
+          return new AttrSignature(attrName, dataLength, signatureIndex);
+        }
+        //      case SOURCE_DEBUG_EXTENSION:
+        //        break;
+        //      case LOCAL_VARIABLE_TYPE_TABLE:
+        //        break;
+      case RUNTIME_VISIBLE_ANNOTATIONS:
+        {
+          var annotationSize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          pointer += 2;
+
+          var entries =
+              new ArrayList<AttrRuntimeVisibleAnnotations.LAttrAnnotation>(annotationSize);
+          for (int i = 0; i < annotationSize; i++) {
+            Pair<Integer, LAttrAnnotation> result =
+                AnnotationParser.parse(pointer, bytecode, constantPool);
+            pointer = result.getLeft();
+            entries.add(result.getRight());
+          }
+
+          return new AttrRuntimeVisibleAnnotations(attrName, dataLength, entries);
+        }
+        //      case RUNTIME_INVISIBLE_ANNOTATIONS:
+        //        break;
+        //      case RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS:
+        //        break;
+        //      case RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS:
+        //        break;
+        //      case ANNOTATION_DEFAULT:
+        //        break;
+      case STACK_MAP_TABLE:
+        {
+          return new AttrDummy(attrName, dataLength, "STACK_MAP_TABLE");
+        }
+      case BOOTSTRAP_METHODS:
+        {
+          var numBootstrapMethods = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          pointer += 2;
+
+          var bootstrapMethods = new ArrayList<LAttrBootstrapMethod>(numBootstrapMethods);
+          for (int i = 0; i < numBootstrapMethods; i++) {
+            var idx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            ConstantMethodHandle bootstrapMethodRef =
+                (ConstantMethodHandle) constantPool.findByIndex(idx);
+            pointer += 2;
+
+            var numBootstrapArguments = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            pointer += 2;
+
+            var bootstrapArguments = new ArrayList<ConstantPoolEntry>(numBootstrapArguments);
+            for (int j = 0; j < numBootstrapArguments; j++) {
+              var argumentIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+              pointer += 2;
+              var bootstrapArgument = constantPool.findByIndex(argumentIdx);
+              bootstrapArguments.add(bootstrapArgument);
+            }
+
+            bootstrapMethods.add(
+                new LAttrBootstrapMethod(
+                    bootstrapMethodRef, numBootstrapArguments, bootstrapArguments));
+          }
+
+          return new AttrBootstrapMethods(
+              attrName,
+              dataLength,
+              new LAttrBootstrapMethodsBody(numBootstrapMethods, bootstrapMethods));
+        }
+        //      case RUNTIME_VISIBLE_TYPE_ANNOTATIONS:
+        //        break;
+        //      case RUNTIME_INVISIBLE_TYPE_ANNOTATIONS:
+        //        break;
+        //      case METHOD_PARAMETERS:
+        //        break;
+        //      case MODULE:
+        //        break;
+        //      case MODULE_PACKAGES:
+        //        break;
+        //      case MODULE_MAIN_CLASS:
+        //        break;
+        //      case NEST_HOST:
+        //        break;
+              case NEST_MEMBERS:
+              {
+                var numberOfClasses = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+                pointer += 2;
+
+                var classes = new ArrayList<ConstantClass>(numberOfClasses);
+                for (int i = 0; i < numberOfClasses; i++) {
+                  var classIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+                  pointer += 2;
+                  var classInfo = (ConstantClass) constantPool.findByIndex(classIdx);
+                  classes.add(classInfo);
+                }
+
+                return new AttrNestMembers(attrName, dataLength, new LAttrNestMembersBody(
+                    numberOfClasses, classes
+                ));
+              }
+        //      case RECORD:
+        //        break;
+        //      case PERMITTED_SUBCLASSES:
+        //        break;
       default:
         throw new RuntimeException(String.format("unsupported attr is passed: %s", attrNameEnum));
     }

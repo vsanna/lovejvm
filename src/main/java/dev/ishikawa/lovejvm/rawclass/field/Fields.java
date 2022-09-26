@@ -2,9 +2,10 @@ package dev.ishikawa.lovejvm.rawclass.field;
 
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
+import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.rawclass.type.JvmType;
+import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -78,5 +79,26 @@ public class Fields {
 
   public void setRawClass(RawClass rawClass) {
     this.rawClass = rawClass;
+  }
+
+  /**
+   * offsetToField returns offset in HEAP area (Not MethodArea)
+   *
+   * @return num of bytes
+   */
+  public int offsetToFieldBytes(RawField field) {
+    if (!fields.contains(field)) return 0;
+
+    int result = 2;
+
+    for (RawField rawField : fields) {
+      if (rawField != field) {
+        result += rawField.getJvmType().wordSize() * Word.BYTES_SIZE;
+      } else {
+        break;
+      }
+    }
+
+    return result;
   }
 }

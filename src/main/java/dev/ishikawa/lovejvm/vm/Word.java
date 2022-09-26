@@ -2,6 +2,7 @@ package dev.ishikawa.lovejvm.vm;
 
 
 import dev.ishikawa.lovejvm.util.ByteUtil;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Word {
@@ -62,6 +63,29 @@ public class Word {
               (byte) ((a >> 8) & 0b11111111),
               (byte) (a & 0b11111111)
             }));
+  }
+
+  public static List<Word> of(byte[] bytes) {
+    assert (bytes.length % 4) == 0;
+
+    var words = new ArrayList<Word>();
+    int idx = 0;
+
+    while(bytes.length > idx) {
+      words.add(Word.of(bytes[idx], bytes[idx + 1], bytes[idx + 2], bytes[idx + 3]));
+      idx += Word.BYTES_SIZE;
+    }
+
+    return words;
+  }
+
+  public static byte[] toByteArray(List<Word> words) {
+    byte[] bytes = new byte[words.size() * Word.BYTES_SIZE];
+    for (int i = 0; i < words.size(); i++) {
+      var bytearr = words.get(i).getBytes();
+      System.arraycopy(bytearr, 0, bytes, i * 4, bytearr.length);
+    }
+    return bytes;
   }
 
   // copy factory

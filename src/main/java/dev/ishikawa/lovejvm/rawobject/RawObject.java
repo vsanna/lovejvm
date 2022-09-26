@@ -2,7 +2,6 @@ package dev.ishikawa.lovejvm.rawobject;
 
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
-import dev.ishikawa.lovejvm.vm.RawSystem;
 
 /**
  * RawObject is a container of metadata of one object. It has info about how the object is located
@@ -34,5 +33,9 @@ public class RawObject {
 
   public int getAddress() {
     return address;
+  }
+
+  public RawClass getRawClass() {
+    return rawClass;
   }
 }

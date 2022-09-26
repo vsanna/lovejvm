@@ -13,10 +13,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * RawMethod is an internal representation of one method.
- * the actual data(i.g. code section) are stored in MethodArea.
- * (Java's Method object is wrapper of this internal representation)
- * */
+ * RawMethod is an internal representation of one method. the actual data(i.g. code section) are
+ * stored in MethodArea. (Java's Method object is wrapper of this internal representation)
+ */
 public class RawMethod {
   private Methods methods;
 

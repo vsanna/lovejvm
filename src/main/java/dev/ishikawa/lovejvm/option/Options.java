@@ -43,9 +43,10 @@ public class Options {
 //          Optional.ofNullable(entryClass).orElse("guest/out/Add.class"),
 //          Optional.ofNullable(entryClass).orElse("guest/out/ForLoop.class"),
 //          Optional.ofNullable(entryClass).orElse("guest/out/Recursive.class"),
-          Optional.ofNullable(entryClass).orElse("guest/out/Recursive2.class"),
-//          Optional.ofNullable(entryClass).orElse("guest/out/dev/ishikawa/test/RichClass.class"),
-//          Optional.ofNullable(entryClass).orElse("guest/out/dev/ishikawa/test/InstanceNew.class"),
+//          Optional.ofNullable(entryClass).orElse("guest/out/Recursive2.class"),
+//          Optional.ofNullable(entryClass).orElse("guest/out/RichClass.class"),
+//          Optional.ofNullable(entryClass).orElse("guest/out/RichClass2.class"),
+          Optional.ofNullable(entryClass).orElse("guest/out/dev/ishikawa/test/InstanceNew.class"),
 //          Optional.ofNullable(entryClass).orElse("guest/out/dev/ishikawa/test/InstanceNew2.class"),
 //          Optional.ofNullable(entryClass).orElse("guest/out/dev/ishikawa/test/SystemOut.class"),
           Optional.ofNullable(logLevel).orElse(LogLevel.INFO));

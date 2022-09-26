@@ -17,7 +17,7 @@ public class AttrsParser {
     List<Attr> entries = new ArrayList<>(entrySize);
 
     for (int i = 0; i < entrySize; i++) {
-      var result = AttrParser.parse(pointer, bytecode, constantPool);
+      var result = AttrParser.parseAttrData(pointer, bytecode, constantPool);
       pointer = result.getLeft();
       entries.add(result.getRight());
     }

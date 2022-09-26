@@ -13,4 +13,8 @@ public class RawInterface {
   public int size() {
     return 2; // 2 byte as index in constant pool
   }
+
+  public ConstantClass getConstantClassRef() {
+    return constantClassRef;
+  }
 }

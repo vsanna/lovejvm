@@ -10,12 +10,12 @@ public class OptionsParser {
    * : optional
    */
   public static Options parse(String[] args) {
-//    if (args.length == 0) {
-//      throw new RuntimeException("No entry point is given.");
-//    }
+    //    if (args.length == 0) {
+    //      throw new RuntimeException("No entry point is given.");
+    //    }
 
     Options.Builder builder = Options.builder();
-//    builder.setEntryClass(args[0]);
+    //    builder.setEntryClass(args[0]);
 
     if (args.length > 1) {
       List<String> remainingOptions = List.of(Arrays.copyOfRange(args, 1, args.length - 1));

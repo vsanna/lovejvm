@@ -11,15 +11,16 @@ import java.util.stream.Collectors;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * @see <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.3">Primitive Types and Values</a>
- * */
+ * @see <a href="https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-2.html#jvms-2.3">Primitive
+ *     Types and Values</a>
+ */
 public enum JvmType {
   // Primitive Types
-  BYTE(32, "B", DefaultValue.of(0)),  // 1 byte
+  BYTE(32, "B", DefaultValue.of(0)), // 1 byte
   SHORT(32, "S", DefaultValue.of(0)), // 2 byte
-  CHAR(32, "C", DefaultValue.of(0)),  // 2 byte
-  INT(32, "I", DefaultValue.of(0)),   // 4 byte
-  LONG(64, "J", DefaultValue.of(0)),  // 8 byte
+  CHAR(32, "C", DefaultValue.of(0)), // 2 byte
+  INT(32, "I", DefaultValue.of(0)), // 4 byte
+  LONG(64, "J", DefaultValue.of(0)), // 8 byte
   FLOAT(32, "F", DefaultValue.of(0.0F)),
   DOUBLE(64, "D", DefaultValue.of(0.0D)),
   BOOLEAN(32, "Z", DefaultValue.of(false)),
@@ -34,6 +35,7 @@ public enum JvmType {
    * multiplied words (4, 8, 12, ...)
    */
   private int size;
+
   private DefaultValue defaultValue;
 
   private @Nullable String jvmSignature;
