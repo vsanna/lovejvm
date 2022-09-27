@@ -1,15 +1,13 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-
-import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
-
-public class ConstantMethodHandle implements ConstantPoolEntry {
+public class ConstantMethodHandle extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
   private boolean isResolved = false;
 
   private final int referenceKind; // 1byte
 
   private final int referenceIndex; // 2byte
   private ConstantPoolEntry reference;
+  // resolve to what?
 
   public ConstantMethodHandle(int referenceKind, int referenceIndex) {
     assert (referenceKind >= 1 && referenceKind <= 9);
@@ -36,17 +34,16 @@ public class ConstantMethodHandle implements ConstantPoolEntry {
     return reference;
   }
 
-  @Override
-  public void resolve(ConstantPool constantPool) {
-    //    this.constantClassRef = (ConstantClass) constantPool.findByIndex(referenceKind);
-    //    this.nameAndType = (ConstantNameAndType) constantPool.findByIndex(referenceIndex);
-    this.reference = constantPool.findByIndex(referenceIndex);
-    isResolved = true;
+  public int getReferenceKind() {
+    return referenceKind;
   }
 
-  @Override
-  public boolean isResolved() {
-    return isResolved;
+  public int getReferenceIndex() {
+    return referenceIndex;
+  }
+
+  public void setReference(ConstantPoolEntry reference) {
+    this.reference = reference;
   }
 
   @Override

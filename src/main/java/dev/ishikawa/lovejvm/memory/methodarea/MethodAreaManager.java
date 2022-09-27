@@ -35,18 +35,18 @@ public interface MethodAreaManager {
   RawField lookupField(ConstantFieldref constantFieldref);
 
   /**
-   * getStaticFieldValue calculates offset to the field space in MethodArea(static area)
-   * and then get the value
+   * getStaticFieldValue calculates offset to the field space in MethodArea(static area) and then
+   * get the value
+   *
    * @return one word or two word(when the value is long or double)
-   * */
+   */
   List<Word> getStaticFieldValue(RawClass rawClass, RawField rawField);
 
   /**
-   * putStaticFieldValue calculates offset to the field space in MethodArea(static area)
-   * and then store the value
-   * */
+   * putStaticFieldValue calculates offset to the field space in MethodArea(static area) and then
+   * store the value
+   */
   void putStaticFieldValue(RawClass rawClass, RawField rawField, List<Word> value);
-
 
   RawClass lookupOrLoadClass(String binaryName);
 

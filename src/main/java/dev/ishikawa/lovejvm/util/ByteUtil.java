@@ -58,6 +58,15 @@ public class ByteUtil {
         | (0b0000000000000000000000000000000000000000000000000000000011111111L & ((long) h));
   }
 
+  public static byte[] split(int value) {
+    return new byte[] {
+      ((byte) (0b11111111 & (value >> 24))),
+      ((byte) (0b11111111 & (value >> 16))),
+      ((byte) (0b11111111 & (value >> 8))),
+      ((byte) (0b11111111 & value))
+    };
+  }
+
   /**
    * readBytesFromFilePath read binary from a file located in the given filePath
    *

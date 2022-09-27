@@ -3,11 +3,13 @@ package dev.ishikawa.lovejvm.memory.heap;
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
+import dev.ishikawa.lovejvm.rawclass.type.JvmType;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 public class HeapManagerImpl implements HeapManager {
@@ -47,13 +49,6 @@ public class HeapManagerImpl implements HeapManager {
   }
 
   @Override
-  public RawObject lookupObject(int objectId) {
-    return Optional.ofNullable(objectIdBasedObjectMap.get(objectId))
-        .map(it -> it.rawObject)
-        .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
-  }
-
-  @Override
   public void setValue(RawObject rawObject, RawField rawField, List<Word> value) {
     int objectAddress = objectIdBasedObjectMap.get(rawObject.getObjectId()).address;
     int offsetToField = rawObject.getRawClass().offsetToField(rawField);
@@ -72,10 +67,62 @@ public class HeapManagerImpl implements HeapManager {
     return Word.of(heap.retrieve(startingAddress, size));
   }
 
+  @Override
+  public int registerArray(JvmType elementType, int arrSize) {
+    byte[] bytes = new byte[elementType.wordSize() * Word.BYTES_SIZE * arrSize];
+    heap.allocate(bytes);
+
+    int startingAddress = heap.headAddress();
+
+    RawObject rawObject = createRawArrayObject(startingAddress, elementType);
+    ObjectEntry objectEntry = new ObjectEntry(startingAddress, rawObject);
+
+    addressBasedObjectMap.put(startingAddress, objectEntry);
+    objectIdBasedObjectMap.put(rawObject.getObjectId(), objectEntry);
+
+    return rawObject.getObjectId();
+  }
+
+  @Override
+  public void setElement(RawObject rawObject, int position, List<Word> value) {
+    int objectAddress = objectIdBasedObjectMap.get(rawObject.getObjectId()).address;
+    int offsetToField =
+        (Objects.requireNonNull(rawObject.getElementType()).wordSize() * Word.BYTES_SIZE)
+            * position;
+    int startingAddress = objectAddress + offsetToField;
+    byte[] bytes = Word.toByteArray(value);
+
+    heap.save(startingAddress, bytes);
+  }
+
+  @Override
+  public List<Word> getElement(RawObject rawObject, int position) {
+    int objectAddress = objectIdBasedObjectMap.get(rawObject.getObjectId()).address;
+    int elementBytesSize =
+        Objects.requireNonNull(rawObject.getElementType()).wordSize() * Word.BYTES_SIZE;
+    int offsetToField = elementBytesSize * position;
+    int startingAddress = objectAddress + offsetToField;
+
+    return Word.of(heap.retrieve(startingAddress, elementBytesSize));
+  }
+
+  @Override
+  public RawObject lookupObject(int objectId) {
+    return Optional.ofNullable(objectIdBasedObjectMap.get(objectId))
+        .map(it -> it.rawObject)
+        .orElseThrow(() -> new RuntimeException("Non existing object is tried to load"));
+  }
+
   private RawObject createRawObject(int address, RawClass rawClass) {
     int objectId = nextObjectId;
     nextObjectId += 1;
-    return new RawObject(objectId, address, rawClass);
+    return new RawObject(objectId, address, rawClass, null);
+  }
+
+  private RawObject createRawArrayObject(int address, JvmType elementType) {
+    int objectId = nextObjectId;
+    nextObjectId += 1;
+    return new RawObject(objectId, address, null, elementType);
   }
 
   public static final HeapManager INSTANCE = new HeapManagerImpl();

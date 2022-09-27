@@ -1,10 +1,7 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-
-import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
-
-public class ConstantInteger implements ConstantPoolEntry {
-  private int intValue; // 4bytes
+public class ConstantInteger extends ConstantPoolUnresolvableEntry implements ConstantPoolEntry {
+  private final int intValue; // 4bytes
 
   public ConstantInteger(int value) {
     this.intValue = value;
@@ -12,16 +9,6 @@ public class ConstantInteger implements ConstantPoolEntry {
 
   public int getIntValue() {
     return intValue;
-  }
-
-  @Override
-  public void resolve(ConstantPool constantPool) {
-    // noop
-  }
-
-  @Override
-  public boolean isResolved() {
-    return true;
   }
 
   @Override

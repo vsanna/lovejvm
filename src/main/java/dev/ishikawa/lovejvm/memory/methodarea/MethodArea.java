@@ -8,14 +8,10 @@ interface MethodArea {
   /** @return a byte located in the given address */
   byte lookupByte(int address);
 
-  /**
-   * @return byte arrays specified by the args
-   * */
+  /** @return byte arrays specified by the args */
   byte[] retrieve(int startingAddress, int size);
 
-  /**
-   * save the given bytes in the area specified by startingAddress
-   * */
+  /** save the given bytes in the area specified by startingAddress */
   void save(int startingAddress, byte[] bytes);
 
   /** @return head head address of available space */

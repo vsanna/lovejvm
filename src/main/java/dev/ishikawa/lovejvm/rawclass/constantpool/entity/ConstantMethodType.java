@@ -1,13 +1,9 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-
-import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
-
-public class ConstantMethodType implements ConstantPoolEntry {
-  private boolean isResolved = false;
-
-  private int descriptorIndex; // 2bytes
+public class ConstantMethodType extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
+  private final int descriptorIndex; // 2bytes
   private ConstantUtf8 label;
+  private int stringObjectId;
 
   public ConstantMethodType(int descriptorIndex) {
     this.descriptorIndex = descriptorIndex;
@@ -18,15 +14,21 @@ public class ConstantMethodType implements ConstantPoolEntry {
     return label;
   }
 
-  @Override
-  public void resolve(ConstantPool constantPool) {
-    this.label = (ConstantUtf8) constantPool.findByIndex(descriptorIndex);
-    isResolved = true;
+  public int getStringObjectId() {
+    if (!isResolved()) throw new RuntimeException("not resolved yet");
+    return stringObjectId;
   }
 
-  @Override
-  public boolean isResolved() {
-    return isResolved;
+  public void setStringObjectId(int stringObjectId) {
+    this.stringObjectId = stringObjectId;
+  }
+
+  public int getDescriptorIndex() {
+    return descriptorIndex;
+  }
+
+  public void setLabel(ConstantUtf8 label) {
+    this.label = label;
   }
 
   @Override

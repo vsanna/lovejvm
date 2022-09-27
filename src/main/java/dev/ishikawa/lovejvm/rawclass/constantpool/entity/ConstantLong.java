@@ -1,11 +1,8 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-
-import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
-
 /** ConstantLong entry takes up TWO entries. */
-public class ConstantLong implements ConstantPoolEntry {
-  private long longValue; // 8bytes
+public class ConstantLong extends ConstantPoolUnresolvableEntry implements ConstantPoolEntry {
+  private final long longValue; // 8bytes
 
   public ConstantLong(long value) {
     this.longValue = value;
@@ -13,16 +10,6 @@ public class ConstantLong implements ConstantPoolEntry {
 
   public long getLongValue() {
     return longValue;
-  }
-
-  @Override
-  public void resolve(ConstantPool constantPool) {
-    // noop
-  }
-
-  @Override
-  public boolean isResolved() {
-    return true;
   }
 
   @Override

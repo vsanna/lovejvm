@@ -1,16 +1,16 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-
-import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
-
-public class ConstantString implements ConstantPoolEntry {
-  private boolean isResolved = false;
-
+public class ConstantString extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
   private int stringIndex; // 2bytes
   private ConstantUtf8 label;
+  private int objectId;
 
   public ConstantString(int nameIndex) {
     this.stringIndex = nameIndex;
+  }
+
+  public int getStringIndex() {
+    return stringIndex;
   }
 
   public ConstantUtf8 getLabel() {
@@ -18,15 +18,16 @@ public class ConstantString implements ConstantPoolEntry {
     return label;
   }
 
-  @Override
-  public void resolve(ConstantPool constantPool) {
-    this.label = (ConstantUtf8) constantPool.findByIndex(stringIndex);
-    isResolved = true;
+  public void setLabel(ConstantUtf8 label) {
+    this.label = label;
   }
 
-  @Override
-  public boolean isResolved() {
-    return isResolved;
+  public int getObjectId() {
+    return objectId;
+  }
+
+  public void setObjectId(int objectId) {
+    this.objectId = objectId;
   }
 
   @Override

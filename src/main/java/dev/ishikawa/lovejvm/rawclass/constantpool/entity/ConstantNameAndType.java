@@ -1,20 +1,21 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-
-import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
-
-public class ConstantNameAndType implements ConstantPoolEntry {
-  private boolean isResolved = false;
-
-  private int nameIndex; // 2bytes
+public class ConstantNameAndType extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
+  private final int nameIndex; // 2bytes
   private ConstantUtf8 name;
+  private int nameStringObjectId;
 
-  private int descriptorIndex; // 2bytes
+  private final int descriptorIndex; // 2bytes
   private ConstantUtf8 descriptor;
+  private int descriptorStringObjectId;
 
   public ConstantNameAndType(int nameIndex, int descriptorIndex) {
     this.nameIndex = nameIndex;
     this.descriptorIndex = descriptorIndex;
+  }
+
+  public int getNameIndex() {
+    return nameIndex;
   }
 
   public ConstantUtf8 getName() {
@@ -22,21 +23,39 @@ public class ConstantNameAndType implements ConstantPoolEntry {
     return name;
   }
 
+  public void setName(ConstantUtf8 name) {
+    this.name = name;
+  }
+
+  public int getDescriptorIndex() {
+    return descriptorIndex;
+  }
+
   public ConstantUtf8 getDescriptor() {
     if (!isResolved()) throw new RuntimeException("not resolved yet");
     return descriptor;
   }
 
-  @Override
-  public void resolve(ConstantPool constantPool) {
-    this.name = (ConstantUtf8) constantPool.findByIndex(nameIndex);
-    this.descriptor = (ConstantUtf8) constantPool.findByIndex(descriptorIndex);
-    isResolved = true;
+  public int getNameStringObjectId() {
+    if (!isResolved()) throw new RuntimeException("not resolved yet");
+    return nameStringObjectId;
   }
 
-  @Override
-  public boolean isResolved() {
-    return isResolved;
+  public void setNameStringObjectId(int nameStringObjectId) {
+    this.nameStringObjectId = nameStringObjectId;
+  }
+
+  public void setDescriptor(ConstantUtf8 descriptor) {
+    this.descriptor = descriptor;
+  }
+
+  public int getDescriptorStringObjectId() {
+    if (!isResolved()) throw new RuntimeException("not resolved yet");
+    return descriptorStringObjectId;
+  }
+
+  public void setDescriptorStringObjectId(int descriptorStringObjectId) {
+    this.descriptorStringObjectId = descriptorStringObjectId;
   }
 
   @Override

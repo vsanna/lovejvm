@@ -7,7 +7,6 @@ import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMet
 import dev.ishikawa.lovejvm.rawclass.attr.AttrExceptions.LAttrExceptionsBody;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrInnerClass.AttrInnerClassBody.LAttrInnerClassEntry;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrNestMembers.LAttrNestMembersBody;
-import dev.ishikawa.lovejvm.rawclass.attr.AttrRuntimeVisibleAnnotations.LAttrAnnotation;
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.*;
 import dev.ishikawa.lovejvm.rawclass.method.exceptionhandler.ExceptionHandlers;
@@ -134,19 +133,20 @@ public class AttrParser {
           var classes = new ArrayList<LAttrInnerClassEntry>(numberOfClasses);
           for (int i = 0; i < numberOfClasses; i++) {
             var innerClassInfoIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
-            ConstantClass innerClassInfo = (ConstantClass) constantPool.findByIndex(innerClassInfoIdx);
+            ConstantClass innerClassInfo =
+                (ConstantClass) constantPool.findByIndex(innerClassInfoIdx);
             pointer += 2;
 
             var outerClassInfoIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
             ConstantClass outerClassInfo = null;
-            if(outerClassInfoIdx > 0) {
+            if (outerClassInfoIdx > 0) {
               outerClassInfo = (ConstantClass) constantPool.findByIndex(outerClassInfoIdx);
             }
             pointer += 2;
 
             var innerNameIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
             ConstantUtf8 innerName = null;
-            if(innerNameIdx > 0) {
+            if (innerNameIdx > 0) {
               innerName = (ConstantUtf8) constantPool.findByIndex(innerNameIdx);
             }
             pointer += 2;
@@ -182,22 +182,16 @@ public class AttrParser {
         //        break;
       case RUNTIME_VISIBLE_ANNOTATIONS:
         {
-          var annotationSize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
-          pointer += 2;
-
-          var entries =
-              new ArrayList<AttrRuntimeVisibleAnnotations.LAttrAnnotation>(annotationSize);
-          for (int i = 0; i < annotationSize; i++) {
-            Pair<Integer, LAttrAnnotation> result =
-                AnnotationParser.parse(pointer, bytecode, constantPool);
-            pointer = result.getLeft();
-            entries.add(result.getRight());
-          }
-
+          var result = AnnotationParser.parseList(pointer, bytecode, constantPool);
+          var entries = result.getRight();
           return new AttrRuntimeVisibleAnnotations(attrName, dataLength, entries);
         }
-        //      case RUNTIME_INVISIBLE_ANNOTATIONS:
-        //        break;
+      case RUNTIME_INVISIBLE_ANNOTATIONS:
+        {
+          var result = AnnotationParser.parseList(pointer, bytecode, constantPool);
+          var entries = result.getRight();
+          return new AttrRuntimeInvisibleAnnotations(attrName, dataLength, entries);
+        }
         //      case RUNTIME_VISIBLE_PARAMETER_ANNOTATIONS:
         //        break;
         //      case RUNTIME_INVISIBLE_PARAMETER_ANNOTATIONS:
@@ -253,25 +247,28 @@ public class AttrParser {
         //        break;
         //      case MODULE_MAIN_CLASS:
         //        break;
-        //      case NEST_HOST:
-        //        break;
-              case NEST_MEMBERS:
-              {
-                var numberOfClasses = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
-                pointer += 2;
+      case NEST_HOST:
+        {
+          var idx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var constantClass = (ConstantClass) constantPool.findByIndex(idx);
+          return new AttrNestHost(attrName, dataLength, constantClass);
+        }
+      case NEST_MEMBERS:
+        {
+          var numberOfClasses = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          pointer += 2;
 
-                var classes = new ArrayList<ConstantClass>(numberOfClasses);
-                for (int i = 0; i < numberOfClasses; i++) {
-                  var classIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
-                  pointer += 2;
-                  var classInfo = (ConstantClass) constantPool.findByIndex(classIdx);
-                  classes.add(classInfo);
-                }
+          var classes = new ArrayList<ConstantClass>(numberOfClasses);
+          for (int i = 0; i < numberOfClasses; i++) {
+            var classIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            pointer += 2;
+            var classInfo = (ConstantClass) constantPool.findByIndex(classIdx);
+            classes.add(classInfo);
+          }
 
-                return new AttrNestMembers(attrName, dataLength, new LAttrNestMembersBody(
-                    numberOfClasses, classes
-                ));
-              }
+          return new AttrNestMembers(
+              attrName, dataLength, new LAttrNestMembersBody(numberOfClasses, classes));
+        }
         //      case RECORD:
         //        break;
         //      case PERMITTED_SUBCLASSES:

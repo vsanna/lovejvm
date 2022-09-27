@@ -85,4 +85,7 @@ public enum JvmType {
       return new DefaultValue<S>(value);
     }
   }
+
+  // when reference value(32bit) is 0, it is considered as null
+  public static int NULL = 0;
 }

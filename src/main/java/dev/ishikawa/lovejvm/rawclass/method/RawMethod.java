@@ -1,11 +1,14 @@
 package dev.ishikawa.lovejvm.rawclass.method;
 
+import static dev.ishikawa.lovejvm.rawclass.RawClass.CLINIT_METHOD_NAME;
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrCode;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
 import dev.ishikawa.lovejvm.rawclass.attr.Attrs;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantUtf8;
+import dev.ishikawa.lovejvm.rawclass.type.JvmType;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -49,6 +52,65 @@ public class RawMethod {
     return getCode().map(AttrCode::getLocalsSize).orElse(0);
   }
 
+  /** @return num of words to transfer when invoking a new method */
+  public int getTransitWordSize(boolean hasReceiver) {
+    // TODO: is it possible to know hasReceiver in this method?
+    int argumentsWordSize = getArgumentsWordSize();
+    if (hasReceiver) {
+      return argumentsWordSize + JvmType.OBJECT_REFERENCE.wordSize();
+    }
+    return argumentsWordSize;
+  }
+
+  /** TODO: this should be fully tested */
+  private int getArgumentsWordSize() {
+    // ex: ([Ljava/lang/String;[[IDLjava/lang/String;II)V -> [, [, D, L, I, I
+    // [ -> L ~ ;まで飛ばす or 次の1文字飛ばす
+    // L -> ~; まで飛ばす
+    // 他 -> なにもしない
+    var argumentString = this.descriptor.getLabel().split("\\(")[1].split("\\)")[0];
+    var argumentCharArray = argumentString.toCharArray();
+    List<JvmType> argumentTypes = new ArrayList<>();
+
+    for (int i = 0; i < argumentCharArray.length; i++) {
+      char c = argumentCharArray[i];
+
+      switch (c) {
+        case '[':
+          i++;
+        case 'L':
+          {
+            int j = 1;
+            while (true) {
+              char c2 = argumentCharArray[i + j];
+              if (c2 == ';') break;
+              j++;
+            }
+            i = i + j;
+            break;
+          }
+        default:
+          break;
+      }
+
+      argumentTypes.add(JvmType.findByJvmSignature(String.valueOf(c)));
+    }
+
+    int a = argumentTypes.stream().map(JvmType::wordSize).reduce(0, Integer::sum);
+
+    var argumentLabels = this.descriptor.getLabel().split("\\(")[1].split("\\)")[0].split(";");
+
+    int b =
+        Arrays.stream(argumentLabels)
+            .filter(argumentLabel -> !argumentLabel.isBlank())
+            .map(
+                (argumentLabel) ->
+                    JvmType.findByJvmSignature(argumentLabel.substring(0, 1)).wordSize())
+            .reduce(0, Integer::sum);
+
+    return a;
+  }
+
   public Attrs getAttrs() {
     return attrs;
   }
@@ -65,6 +127,18 @@ public class RawMethod {
 
   public boolean isStatic() {
     return (AccessFlag.STATIC.getBits() & accessFlag) > 0;
+  }
+
+  public boolean isAbstract() {
+    return (AccessFlag.ABSTRACT.getBits() & accessFlag) > 0;
+  }
+
+  public boolean isNative() {
+    return (AccessFlag.NATIVE.getBits() & accessFlag) > 0;
+  }
+
+  public boolean isClinit() {
+    return isStatic() && name.equals(CLINIT_METHOD_NAME);
   }
 
   public int size() {
@@ -101,21 +175,19 @@ public class RawMethod {
   }
 
   public enum AccessFlag {
-    PUBLIC((short) 0x0001),
-    PRIVATE((short) 0x0002),
-    PROTECTED((short) 0x0004),
-    STATIC((short) 0x0008),
-    FINAL((short) 0x0010),
-    SYNCHRONIZED((short) 0x0020),
-    BRIDGE((short) 0x0040),
-    VARARGS((short) 0x0080),
-    NATIVE((short) 0x0100),
-    ABSTRACT((short) 0x0400),
-    STRICT(
-        (short)
-            0x0800), // In a class file whose major version number is at least 46 and at most 60:
-    // Declared strictfp.
-    SYNTHETIC((short) 0x1000);
+    PUBLIC((short) 0x0001), // 0b00000000 00000001
+    PRIVATE((short) 0x0002), // 0b00000000 00000010
+    PROTECTED((short) 0x0004), // 0b00000000 00000100
+    STATIC((short) 0x0008), // 0b00000000 00001000
+    FINAL((short) 0x0010), // 0b00000000 00010000
+    SYNCHRONIZED((short) 0x0020), // 0b00000000 00100000
+    BRIDGE((short) 0x0040), // 0b00000000 01000000
+    VARARGS((short) 0x0080), // 0b00000000 10000000
+    NATIVE((short) 0x0100), // 0b00000001 00000000
+    ABSTRACT((short) 0x0400), // 0b00000100 00000000
+    STRICT((short) 0x0800), // 0b00001000 00000000
+    // In a class file whose major version number is at least 46 and at most 60: Declared strictfp.
+    SYNTHETIC((short) 0x1000); // 0b00010000 00000000
 
     private final short bits;
 

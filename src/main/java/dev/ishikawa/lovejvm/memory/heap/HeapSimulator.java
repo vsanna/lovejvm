@@ -1,9 +1,5 @@
 package dev.ishikawa.lovejvm.memory.heap;
 
-
-import dev.ishikawa.lovejvm.vm.Word;
-import java.util.List;
-
 /**
  * HeapSimulator simulate Heap by utilizing host java's features. This doesn't manage native memory
  * at all.
@@ -11,7 +7,7 @@ import java.util.List;
  * <p>NOTE: At this mement, no free, no GC!
  */
 class HeapSimulator implements Heap {
-  private byte[] memory = new byte[100000];
+  private byte[] memory = new byte[10 * 1000 * 1000]; // 10MB
   private int size = 0;
 
   private HeapSimulator() {}

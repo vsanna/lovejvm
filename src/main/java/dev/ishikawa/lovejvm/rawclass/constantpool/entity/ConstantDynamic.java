@@ -1,19 +1,19 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
+public class ConstantDynamic extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
+  private final int bootstrapMethodAttrIndex; // 2bytes
 
-import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
-
-public class ConstantDynamic implements ConstantPoolEntry {
-  private boolean isResolved = false;
-
-  private int bootstrapMethodAttrIndex; // 2bytes
-
-  private int nameAndTypeIndex; // 2byte
+  private final int nameAndTypeIndex; // 2byte
   private ConstantNameAndType nameAndType;
+  // resolve to what?
 
   public ConstantDynamic(int bootstrapMethodAttrIndex, int nameAndTypeIndex) {
     this.bootstrapMethodAttrIndex = bootstrapMethodAttrIndex;
     this.nameAndTypeIndex = nameAndTypeIndex;
+  }
+
+  public int getNameAndTypeIndex() {
+    return nameAndTypeIndex;
   }
 
   public ConstantNameAndType getNameAndType() {
@@ -21,15 +21,12 @@ public class ConstantDynamic implements ConstantPoolEntry {
     return nameAndType;
   }
 
-  @Override
-  public void resolve(ConstantPool constantPool) {
-    this.nameAndType = (ConstantNameAndType) constantPool.findByIndex(nameAndTypeIndex);
-    isResolved = true;
+  public void setNameAndType(ConstantNameAndType nameAndType) {
+    this.nameAndType = nameAndType;
   }
 
-  @Override
-  public boolean isResolved() {
-    return isResolved;
+  public int getBootstrapMethodAttrIndex() {
+    return bootstrapMethodAttrIndex;
   }
 
   @Override

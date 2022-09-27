@@ -9,6 +9,7 @@ import dev.ishikawa.lovejvm.memory.methodarea.MethodAreaManager;
 import dev.ishikawa.lovejvm.memory.methodarea.MethodAreaManagerImpl;
 import dev.ishikawa.lovejvm.memory.stringpool.StringPool;
 import dev.ishikawa.lovejvm.memory.stringpool.StringPoolSimulator;
+import dev.ishikawa.lovejvm.rawclass.constantpool.resolver.ResolverService;
 
 public class RawSystem {
   public static RawThread mainThread;
@@ -16,6 +17,7 @@ public class RawSystem {
   public static final HeapManager heapManager = HeapManagerImpl.INSTANCE;
   public static final StringPool stringPool = StringPoolSimulator.INSTANCE;
   public static final BootstrapLoader bootstrapLoader = BootstrapLoaderImpl.INSTANCE;
+  public static final ResolverService resolverService = ResolverService.INSTANCE;
 
   public static void setMainThread(RawThread mainThread) {
     RawSystem.mainThread = mainThread;

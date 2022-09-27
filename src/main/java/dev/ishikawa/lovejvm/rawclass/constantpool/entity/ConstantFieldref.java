@@ -1,16 +1,13 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-
-import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
-
-public class ConstantFieldref implements ConstantPoolEntry {
-  private boolean isResolved = false;
-
-  private int classIndex; // 2bytes
+public class ConstantFieldref extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
+  private final int classIndex; // 2bytes
   private ConstantClass constantClassRef;
+  private int classObjectId;
 
-  private int nameAndTypeIndex; // 2byte
+  private final int nameAndTypeIndex; // 2byte
   private ConstantNameAndType nameAndType;
+  private int fieldObjectId;
 
   public ConstantFieldref(int classIndex, int nameAndTypeIndex) {
     this.classIndex = classIndex;
@@ -22,21 +19,43 @@ public class ConstantFieldref implements ConstantPoolEntry {
     return nameAndType;
   }
 
+  public int getClassIndex() {
+    return classIndex;
+  }
+
+  public void setConstantClassRef(ConstantClass constantClassRef) {
+    this.constantClassRef = constantClassRef;
+  }
+
   public ConstantClass getConstantClassRef() {
     if (!isResolved()) throw new RuntimeException("not resolved yet");
     return constantClassRef;
   }
 
-  @Override
-  public void resolve(ConstantPool constantPool) {
-    this.constantClassRef = (ConstantClass) constantPool.findByIndex(classIndex);
-    this.nameAndType = (ConstantNameAndType) constantPool.findByIndex(nameAndTypeIndex);
-    isResolved = true;
+  public int getClassObjectId() {
+    if (!isResolved()) throw new RuntimeException("not resolved yet");
+    return classObjectId;
   }
 
-  @Override
-  public boolean isResolved() {
-    return isResolved;
+  public void setClassObjectId(int classObjectId) {
+    this.classObjectId = classObjectId;
+  }
+
+  public int getNameAndTypeIndex() {
+    return nameAndTypeIndex;
+  }
+
+  public void setNameAndType(ConstantNameAndType nameAndType) {
+    this.nameAndType = nameAndType;
+  }
+
+  public int getFieldObjectId() {
+    if (!isResolved()) throw new RuntimeException("not resolved yet");
+    return fieldObjectId;
+  }
+
+  public void setFieldObjectId(int fieldObjectId) {
+    this.fieldObjectId = fieldObjectId;
   }
 
   @Override

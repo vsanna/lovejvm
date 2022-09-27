@@ -80,10 +80,13 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
 
   private void initialize(RawClass rawClass) {
     // 1. run <clinit> to set static values
-    rawClass.findClinit().ifPresent((clinit) -> {
-      // TODO: stop all the other thread.
-      new RawThread("system").init(clinit).run();
-    });
+    rawClass
+        .findClinit()
+        .ifPresent(
+            (clinit) -> {
+              // TODO: stop all the other thread.
+              new RawThread("system:" + rawClass.getBinaryName()).init(clinit).run();
+            });
 
     // 2. make Class object, and store it in heap
   }

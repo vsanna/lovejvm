@@ -35,7 +35,8 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
     // REFACTOR: According to the reference, The same name class can be loaded under different
     classMap.put(rawClass.getBinaryName(), new ClassEntry(startingAddress, rawClass));
 
-    byte[] bytes = new byte[rawClass.getClassfileBytes() + rawClass.getStaticAreaWords() * Word.BYTES_SIZE];
+    byte[] bytes =
+        new byte[rawClass.getClassfileBytes() + rawClass.getStaticAreaWords() * Word.BYTES_SIZE];
     System.arraycopy(classfile, 0, bytes, 0, classfile.length);
 
     methodArea.allocate(bytes);
@@ -43,6 +44,15 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
 
   @Override
   public int lookupCodeSectionAddress(RawMethod method) {
+    /*
+     * If the method is either native or abstract,
+     *     and is not a class or interface initialization method,
+     * then its method_info structure must not have a Code attribute in its attributes table.
+     * */
+    if ((method.isAbstract() || method.isNative()) && !method.isClinit()) {
+      return -1;
+    }
+
     RawClass rawClass = method.getKlass();
     var classAddr =
         Optional.ofNullable(classMap.get(rawClass.getBinaryName()))
@@ -71,7 +81,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   @Override
   public RawMethod lookupMethod(ConstantMethodref constantMethodref) {
     ConstantClass constantClassRef = constantMethodref.getConstantClassRef();
-    RawClass lClass = lookupClass(constantClassRef);
+    RawClass lClass = lookupOrLoadClass(constantClassRef.getName().getLabel());
     ConstantNameAndType nameAndTypeRef = constantMethodref.getNameAndType();
     return lClass
         .findMethodBy(nameAndTypeRef)
@@ -81,7 +91,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   @Override
   public RawField lookupField(ConstantFieldref constantFieldref) {
     ConstantClass constantClassRef = constantFieldref.getConstantClassRef();
-    RawClass lClass = lookupClass(constantClassRef);
+    RawClass lClass = lookupOrLoadClass(constantClassRef.getName().getLabel());
     ConstantNameAndType nameAndTypeRef = constantFieldref.getNameAndType();
     return lClass
         .findFieldBy(nameAndTypeRef)
@@ -90,8 +100,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
 
   @Override
   public List<Word> getStaticFieldValue(RawClass rawClass, RawField rawField) {
-    var startingAddress = getClassAddress(rawClass)
-        + rawClass.offsetBytesToStaticField(rawField);
+    var startingAddress = getClassAddress(rawClass) + rawClass.offsetBytesToStaticField(rawField);
 
     var fieldByteSize = rawField.getJvmType().wordSize() * Word.BYTES_SIZE;
     var bytes = methodArea.retrieve(startingAddress, fieldByteSize);
@@ -100,8 +109,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
 
   @Override
   public void putStaticFieldValue(RawClass rawClass, RawField rawField, List<Word> words) {
-    var startingAddress = getClassAddress(rawClass)
-        + rawClass.offsetBytesToStaticField(rawField);
+    var startingAddress = getClassAddress(rawClass) + rawClass.offsetBytesToStaticField(rawField);
 
     methodArea.save(startingAddress, Word.toByteArray(words));
   }

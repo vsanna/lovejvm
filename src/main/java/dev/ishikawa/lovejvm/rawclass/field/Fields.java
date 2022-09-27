@@ -2,7 +2,6 @@ package dev.ishikawa.lovejvm.rawclass.field;
 
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
-import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.rawclass.type.JvmType;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;

@@ -1,8 +1,8 @@
 package dev.ishikawa.test;
 
 class InstanceNew2 {
-    private final String name;
-    private final long age;
+    final String name;
+    final long age;
 
     public InstanceNew2(String name, long age) {
         this.name = name;
@@ -10,7 +10,9 @@ class InstanceNew2 {
     }
 
     static public void main() {
-        InstanceNew2 instance = new InstanceNew2("world", -100L);
+        InstanceNew2 instance = new InstanceNew2("world", -123L);
+        long a = instance.age;
+        String b = instance.name;
     }
 }
 

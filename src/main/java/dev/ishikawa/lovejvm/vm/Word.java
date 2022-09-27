@@ -6,19 +6,24 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Word {
-  private byte[] bytes;
+  // 32 bits per one word
+  private int value;
 
   public Word(byte[] bytes) {
     assert bytes.length == BYTES_SIZE;
-    this.bytes = bytes;
+    this.value = ByteUtil.concat(bytes[0], bytes[1], bytes[2], bytes[3]);
+  }
+
+  public Word(int value) {
+    this.value = value;
   }
 
   public int getValue() {
-    return ByteUtil.concat(bytes[0], bytes[1], bytes[2], bytes[3]);
+    return value;
   }
 
   public byte[] getBytes() {
-    return bytes;
+    return ByteUtil.split(value);
   }
 
   static Word of(byte b) {
@@ -38,13 +43,7 @@ public class Word {
   }
 
   static Word of(int a) {
-    return new Word(
-        new byte[] {
-          (byte) ((a >> 8 >> 8 >> 8) & 0b11111111),
-          (byte) ((a >> 8 >> 8) & 0b11111111),
-          (byte) ((a >> 8) & 0b11111111),
-          (byte) (a & 0b11111111)
-        });
+    return new Word(a);
   }
 
   static List<Word> of(long a) {
@@ -71,7 +70,7 @@ public class Word {
     var words = new ArrayList<Word>();
     int idx = 0;
 
-    while(bytes.length > idx) {
+    while (bytes.length > idx) {
       words.add(Word.of(bytes[idx], bytes[idx + 1], bytes[idx + 2], bytes[idx + 3]));
       idx += Word.BYTES_SIZE;
     }
@@ -95,6 +94,7 @@ public class Word {
 
   @Override
   public String toString() {
+    var bytes = this.getBytes();
     return String.format(
         "Word(%x,%x,%x,%x: %d)", bytes[0], bytes[1], bytes[2], bytes[3], this.getValue());
   }

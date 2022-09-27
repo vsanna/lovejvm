@@ -243,9 +243,9 @@ public class RawClass {
     int result = offsetBytesToStaticArea();
 
     for (RawField staticField : fields.getStaticFields()) {
-       if(staticField.equals(rawField)) break;
+      if (staticField.equals(rawField)) break;
 
-       result += staticField.getJvmType().wordSize() * Word.BYTES_SIZE;
+      result += staticField.getJvmType().wordSize() * Word.BYTES_SIZE;
     }
 
     return result;

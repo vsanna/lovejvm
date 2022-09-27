@@ -12,10 +12,7 @@ import java.util.List;
 
 public class ExceptionHandlersParser {
   public static Pair<Integer, ExceptionHandlers> parse(
-      int pointer,
-      byte[] bytecode,
-      ConstantPool constantPool
-  ) {
+      int pointer, byte[] bytecode, ConstantPool constantPool) {
     var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     List<RawExceptionHandler> entries = new ArrayList<>(entrySize);
@@ -31,8 +28,8 @@ public class ExceptionHandlersParser {
       pointer += 2;
       // when catchTypeIndex is zero, it means this exceptionHandler catches all exceptions.
       ConstantClass catchType = null;
-      if(catchTypeIndex > 0) {
-        catchType = (ConstantClass)constantPool.findByIndex(catchTypeIndex);
+      if (catchTypeIndex > 0) {
+        catchType = (ConstantClass) constantPool.findByIndex(catchTypeIndex);
       }
       entries.add(new RawExceptionHandler(startPc, endPc, handlerPc, catchType));
     }

@@ -1,9 +1,14 @@
 package dev.ishikawa.lovejvm.rawclass.parser;
 
 
-import dev.ishikawa.lovejvm.rawclass.attr.AttrRuntimeVisibleAnnotations;
-import dev.ishikawa.lovejvm.rawclass.attr.AttrRuntimeVisibleAnnotations.LAttrAnnotation;
-import dev.ishikawa.lovejvm.rawclass.attr.AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation;
+import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.AnnotationElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.ArrayValue;
+import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.ArrayValueElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.ClassInfoIndexElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.EnumConstValue;
+import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.EnumConstValueElementValue;
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.util.Pair;
@@ -15,8 +20,7 @@ public class AnnotationElementValueParser {
       int pointer, byte[] bytecode, ConstantPool constantPool) {
     // ElementValue
 
-    AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue<?>
-        value;
+    LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue<?> value;
 
     String tag = String.valueOf((char) bytecode[pointer]);
     pointer += 1;
@@ -33,22 +37,17 @@ public class AnnotationElementValueParser {
       case "s":
         // const
         value =
-            new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                .ElementValue<>(
-                new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                    .ConstValueIndexElementValue(
+            new LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue<>(
+                new LAttrAnnotation.LAttrAnnotationElementValuePair.ConstValueIndexElementValue(
                     ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1])));
         pointer += 2;
         break;
       case "e":
         // enum
         value =
-            new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                .ElementValue<>(
-                new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                    .EnumConstValueElementValue(
-                    new AttrRuntimeVisibleAnnotations.LAttrAnnotation
-                        .LAttrAnnotationElementValuePair.EnumConstValue(
+            new ElementValue<>(
+                new EnumConstValueElementValue(
+                    new EnumConstValue(
                         ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]),
                         ByteUtil.concat(bytecode[pointer + 2], bytecode[pointer + 3]))));
         pointer += 4;
@@ -56,10 +55,8 @@ public class AnnotationElementValueParser {
       case "c":
         // class
         value =
-            new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                .ElementValue<>(
-                new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                    .ClassInfoIndexElementValue(
+            new ElementValue<>(
+                new ClassInfoIndexElementValue(
                     ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1])));
         pointer += 2;
         break;
@@ -68,11 +65,7 @@ public class AnnotationElementValueParser {
         Pair<Integer, LAttrAnnotation> result =
             AnnotationParser.parse(pointer, bytecode, constantPool);
         LAttrAnnotation innerAnnotation = result.getRight();
-        value =
-            new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                .ElementValue<>(
-                new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                    .AnnotationElementValue(innerAnnotation));
+        value = new ElementValue<>(new AnnotationElementValue(innerAnnotation));
         pointer = result.getLeft();
         break;
       case "[":
@@ -88,14 +81,8 @@ public class AnnotationElementValueParser {
           pointer = parseResult.getLeft();
         }
 
-        var arrayValue =
-            new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                .ArrayValue(numValues, values);
-        value =
-            new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                .ElementValue<>(
-                new AttrRuntimeVisibleAnnotations.LAttrAnnotation.LAttrAnnotationElementValuePair
-                    .ArrayValueElementValue(arrayValue));
+        var arrayValue = new ArrayValue(numValues, values);
+        value = new ElementValue<>(new ArrayValueElementValue(arrayValue));
         break;
       default:
         throw new RuntimeException(

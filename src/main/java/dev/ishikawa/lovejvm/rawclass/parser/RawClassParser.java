@@ -120,13 +120,12 @@ public class RawClassParser {
        * constant_pool index n+1 must be valid but is considered unusable.
        */
       ConstantPoolEntry entry = result.getRight();
+      pointer = result.getLeft();
+      entries.add(entry);
       if (entry instanceof ConstantLong || entry instanceof ConstantDouble) {
         entries.add(new ConstantBlank());
         i++;
       }
-
-      pointer = result.getLeft();
-      entries.add(entry);
     }
 
     return new ConstantPool(entrySize, entries);
