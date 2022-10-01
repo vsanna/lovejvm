@@ -19,14 +19,6 @@ public class Methods {
     this.methods.forEach(it -> it.setMethods(this));
   }
 
-  // TODO: if we can use the same signature for static/member methods in a class, this is broken.
-  // What is the identifical information of one method?
-  public Optional<RawMethod> findBy(String methodName, String methodDescriptor) {
-    return methods.stream()
-        .filter((method) -> method.hasSignature(methodName, methodDescriptor))
-        .findFirst();
-  }
-
   public Optional<RawMethod> findMemberBy(String methodName, String methodDescriptor) {
     return methods.stream()
         .filter((method) -> !method.isStatic())

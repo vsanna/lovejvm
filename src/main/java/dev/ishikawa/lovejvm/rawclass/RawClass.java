@@ -5,7 +5,6 @@ import dev.ishikawa.lovejvm.LoveJVM;
 import dev.ishikawa.lovejvm.rawclass.attr.Attrs;
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
-import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantNameAndType;
 import dev.ishikawa.lovejvm.rawclass.field.Fields;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.linterface.Interfaces;
@@ -29,26 +28,33 @@ public class RawClass {
       String name,
       String filename,
       String binaryName,
-      String classLoaderName,
+      @Nullable String classLoaderName,
       int minorVersion,
       int majorVersion,
       ConstantPool constantPool,
       int accessFlag,
       ConstantClass thisClass,
-      ConstantClass superClass,
+      @Nullable ConstantClass superClass,
       Interfaces interfaces,
       Fields fields,
       Methods methods,
       Attrs attrs) {
     this.raw = raw;
+
     this.fullyQualifiedName = fullyQualifiedName;
     this.name = name;
     this.filename = filename;
     this.binaryName = binaryName;
     this.classLoaderName = classLoaderName;
+
     this.minorVersion = minorVersion;
     this.majorVersion = majorVersion;
+
+    // REFACTOR: make here better style
     this.constantPool = constantPool;
+    this.constantPool.setRawClass(this);
+    this.constantPool.shakeOut();
+
     this.accessFlag = accessFlag;
     this.thisClass = thisClass;
 
@@ -58,6 +64,7 @@ public class RawClass {
       throw new RuntimeException("super class is missing");
     }
     this.superClass = superClass;
+
     this.interfaces = interfaces;
 
     this.fields = fields;
@@ -74,6 +81,36 @@ public class RawClass {
    * MethodArea. This is redundant. The raw field is just for debugging.
    */
   private final byte[] raw;
+
+  private boolean isLinked = false;
+
+  public boolean isLinked() {
+    return isLinked;
+  }
+
+  public void setLinked(boolean linked) {
+    isLinked = linked;
+  }
+
+  private ClassObjectStatus classObjectStatus = ClassObjectStatus.VERIFIED;
+
+  public ClassObjectStatus getClassObjectStatus() {
+    return classObjectStatus;
+  }
+
+  public void setClassObjectStatus(ClassObjectStatus classObjectStatus) {
+    this.classObjectStatus = classObjectStatus;
+  }
+
+  public enum ClassObjectStatus {
+    VERIFIED,
+    BEING_INITIALIZED,
+    INITIALIZED,
+    ERROR
+  }
+
+  // reference to a Class object. this is used by ConstClassRef
+  private int classObjectId;
 
   private final String fullyQualifiedName;
   private final String name;
@@ -102,6 +139,14 @@ public class RawClass {
 
   public byte[] getRaw() {
     return raw;
+  }
+
+  public void setClassObjectId(int classObjectId) {
+    this.classObjectId = classObjectId;
+  }
+
+  public int getClassObjectId() {
+    return classObjectId;
   }
 
   // ex: org.some.SomeApp
@@ -168,24 +213,36 @@ public class RawClass {
 
   ///////////
 
-  public Optional<RawMethod> findMethodBy(ConstantNameAndType nameAndType) {
-    return methods.findBy(nameAndType.getName().getLabel(), nameAndType.getDescriptor().getLabel());
+  public Optional<RawMethod> findMemberMethodBy(String methodName, String methodDescriptor) {
+    return getMethods().findMemberBy(methodName, methodDescriptor);
+  }
+
+  public Optional<RawMethod> findStaticMethodBy(String methodName, String methodDescriptor) {
+    return getMethods().findStaticBy(methodName, methodDescriptor);
+  }
+
+  public Optional<RawField> findMemberFieldBy(String fieldName) {
+    return getFields().findMemberBy(fieldName);
+  }
+
+  public Optional<RawField> findStaticFieldBy(String fieldName) {
+    return getFields().findStaticBy(fieldName);
   }
 
   public Optional<RawMethod> findClinit() {
-    return methods.findBy("<clinit>", "()V");
+    return findStaticMethodBy(CLINIT_METHOD_NAME, CLINIT_METHOD_DESC);
+  }
+
+  public Optional<RawMethod> findInit(String descriptor) {
+    return findMemberMethodBy(INIT_METHOD_NAME, descriptor);
   }
 
   public Optional<RawMethod> findEntryPoint() {
-    return methods.findStaticBy(LoveJVM.ENTRY_METHOD_NAME, LoveJVM.ENTRY_METHOD_DESC);
+    return findStaticMethodBy(LoveJVM.ENTRY_METHOD_NAME, LoveJVM.ENTRY_METHOD_DESC);
   }
 
-  public Optional<RawField> findFieldBy(ConstantNameAndType nameAndType) {
-    return fields.findBy(nameAndType.getName().getLabel());
-  }
-
-  public List<RawField> getStaticFields() {
-    return fields.getStaticFields();
+  public List<RawField> getMemberFields() {
+    return fields.getMemberFields();
   }
 
   /**
@@ -195,14 +252,14 @@ public class RawClass {
   public int getClassfileBytes() {
     return 4 // magic number
         + (2 + 2) // versions
-        + constantPool.size() // constant pool
+        + getConstantPool().size() // constant pool
         + 2 // access flag
         + 2 // this class
         + 2 // super class
-        + interfaces.size()
-        + fields.size()
-        + methods.size()
-        + attrs.size();
+        + getInterfaces().size()
+        + getFields().size()
+        + getMethods().size()
+        + getAttrs().size();
   }
 
   /** @return size(words) of mem space for static area of this class */
@@ -223,16 +280,16 @@ public class RawClass {
   public int offsetBytesToMethods() {
     return 4 // magic number
         + (2 + 2) // versions
-        + constantPool.size() // constant pool
+        + getConstantPool().size() // constant pool
         + 2 // access flag
         + 2 // this class
         + 2 // super class
-        + interfaces.size()
-        + fields.size();
+        + getInterfaces().size()
+        + getFields().size();
   }
 
-  public int offsetToField(RawField rawField) {
-    return getFields().offsetToFieldBytes(rawField);
+  public int offsetToMemberFieldBytes(RawField rawField) {
+    return getFields().offsetToMemberFieldBytes(rawField);
   }
 
   public int offsetBytesToStaticArea() {

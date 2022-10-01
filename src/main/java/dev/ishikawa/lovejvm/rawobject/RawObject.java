@@ -17,24 +17,30 @@ import org.jetbrains.annotations.Nullable;
  */
 public class RawObject {
   private final int objectId;
+  // the head address of this object located in heap area.
+  private final int address;
 
   // RawClass returns the size of necessary binary
+  // TODO: not nullable
   @Nullable private final RawClass rawClass;
 
   // Element class
   @Nullable private final JvmType elementType;
-
-  // the head address of this object located in heap area.
-  private final int address;
+  private final int arrSize;
 
   public RawObject(
-      int objectId, int address, @Nullable RawClass rawClass, @Nullable JvmType elementType) {
+      int objectId,
+      int address,
+      @Nullable RawClass rawClass,
+      @Nullable JvmType elementType,
+      int arrSize) {
     assert (Objects.isNull(rawClass) ^ Objects.isNull(elementType));
 
     this.objectId = objectId;
     this.address = address;
     this.rawClass = rawClass;
     this.elementType = elementType;
+    this.arrSize = arrSize;
   }
 
   public int getObjectId() {
@@ -43,6 +49,10 @@ public class RawObject {
 
   public int getAddress() {
     return address;
+  }
+
+  public int getArrSize() {
+    return arrSize;
   }
 
   public @Nullable RawClass getRawClass() {

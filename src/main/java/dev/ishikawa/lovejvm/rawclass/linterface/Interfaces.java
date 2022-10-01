@@ -5,14 +5,14 @@ import java.util.List;
 
 public class Interfaces {
   private final int entrySize;
-  private List<RawInterface> interfaces;
+  private final List<RawInterface> interfaces;
 
-  public Interfaces(int entrySize, List<RawInterface> entries) {
-    if (entrySize != entries.size())
+  public Interfaces(int entrySize, List<RawInterface> interfaces) {
+    if (entrySize != interfaces.size())
       throw new RuntimeException(
           "invalid Interfaces. the entrySize doesn't match with num of entries");
     this.entrySize = entrySize;
-    this.interfaces = entries;
+    this.interfaces = interfaces;
   }
 
   public int getEntrySize() {

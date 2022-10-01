@@ -9,13 +9,13 @@ public class Word {
   // 32 bits per one word
   private int value;
 
-  public Word(byte[] bytes) {
-    assert bytes.length == BYTES_SIZE;
-    this.value = ByteUtil.concat(bytes[0], bytes[1], bytes[2], bytes[3]);
-  }
-
   public Word(int value) {
     this.value = value;
+  }
+
+  private Word(byte[] bytes) {
+    assert bytes.length == BYTES_SIZE;
+    this.value = ByteUtil.concatToInt(bytes[0], bytes[1], bytes[2], bytes[3]);
   }
 
   public int getValue() {
@@ -23,30 +23,42 @@ public class Word {
   }
 
   public byte[] getBytes() {
-    return ByteUtil.split(value);
+    return ByteUtil.splitToBytes(value);
   }
 
-  static Word of(byte b) {
+  public static Word of(Word word) {
+    return Word.of(word.getValue());
+  }
+
+  public static Word of(byte b) {
     return new Word(new byte[] {0x00, 0x00, 0x00, b});
   }
 
-  static Word of(byte a, byte b) {
+  public static Word of(byte a, byte b) {
     return new Word(new byte[] {0x00, 0x00, a, b});
   }
 
-  static Word of(byte a, byte b, byte c) {
+  public static Word of(byte a, byte b, byte c) {
     return new Word(new byte[] {0x00, a, b, c});
   }
 
-  static Word of(byte a, byte b, byte c, byte d) {
+  public static Word of(byte a, byte b, byte c, byte d) {
     return new Word(new byte[] {a, b, c, d});
   }
 
-  static Word of(int a) {
+  public static Word of(int a) {
     return new Word(a);
   }
 
-  static List<Word> of(long a) {
+  public static Word of(float a) {
+    return new Word(Float.floatToIntBits(a));
+  }
+
+  public static Word of(boolean a) {
+    return Word.of(a ? 1 : 0);
+  }
+
+  public static List<Word> of(long a) {
     return List.of(
         new Word(
             new byte[] {
@@ -62,6 +74,11 @@ public class Word {
               (byte) ((a >> 8) & 0b11111111),
               (byte) (a & 0b11111111)
             }));
+  }
+
+  public static List<Word> of(double a) {
+    long longbits = Double.doubleToLongBits(a);
+    return Word.of(longbits);
   }
 
   public static List<Word> of(byte[] bytes) {
@@ -85,11 +102,6 @@ public class Word {
       System.arraycopy(bytearr, 0, bytes, i * 4, bytearr.length);
     }
     return bytes;
-  }
-
-  // copy factory
-  static Word of(Word word) {
-    return Word.of(word.getValue());
   }
 
   @Override

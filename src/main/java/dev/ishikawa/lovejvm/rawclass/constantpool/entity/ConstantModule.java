@@ -1,5 +1,8 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
+
+import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
+
 public class ConstantModule extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
   private final int nameIndex; // 2bytes
   private ConstantUtf8 label;
@@ -9,8 +12,12 @@ public class ConstantModule extends ConstantPoolResolvableEntry implements Const
     this.nameIndex = nameIndex;
   }
 
+  @Override
+  public void shakeOut(ConstantPool constantPool) {
+    label = (ConstantUtf8) constantPool.findByIndex(nameIndex);
+  }
+
   public ConstantUtf8 getLabel() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
     return label;
   }
 

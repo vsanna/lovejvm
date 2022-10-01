@@ -29,16 +29,16 @@ public class RawMethodParser {
 
   /** @return Pair<Integer, Short> ... pair{pointer, accessField} */
   private static Pair<Integer, Short> parseAccessFlag(int pointer, byte[] bytecode) {
-    var accessFlag = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var accessFlag = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     return Pair.of(pointer, accessFlag);
   }
 
   private static Pair<Integer, Pair<ConstantUtf8, ConstantUtf8>> parseNameAndDesc(
       int pointer, byte[] bytecode, ConstantPool constantPool) {
-    var nameIndex = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var nameIndex = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
-    var descIndex = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var descIndex = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     return Pair.of(
         pointer,

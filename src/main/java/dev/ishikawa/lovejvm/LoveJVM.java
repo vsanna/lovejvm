@@ -3,6 +3,7 @@ package dev.ishikawa.lovejvm;
 
 import dev.ishikawa.lovejvm.option.Options;
 import dev.ishikawa.lovejvm.option.OptionsParser;
+import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.RawThread;
 
@@ -13,9 +14,15 @@ import dev.ishikawa.lovejvm.vm.RawThread;
  */
 public class LoveJVM {
   public static void main(String[] args) {
-    Options options = OptionsParser.parse(args);
-    LoveJVM jvm = new LoveJVM(options);
-    jvm.run();
+    try {
+      Options options = OptionsParser.parse(args);
+      LoveJVM jvm = new LoveJVM(options);
+      jvm.run();
+    } catch (Exception ex) {
+      //      HeapManagerImpl.INSTANCE.dump();
+      //      MethodAreaManagerImpl.INSTANCE.dump();
+      throw ex;
+    }
   }
 
   private final Options options;
@@ -25,7 +32,7 @@ public class LoveJVM {
   }
 
   public void run() {
-    var entryClass = RawSystem.bootstrapLoader.loadByPath(options.getEntryClass());
+    var entryClass = prepareEntrypointClass(options);
     var entryPoint = entryClass.findEntryPoint();
 
     // start the main thread with the entry point
@@ -34,8 +41,7 @@ public class LoveJVM {
             (ep) -> {
               var thread = new RawThread("main");
               RawSystem.setMainThread(thread);
-              thread.init(ep);
-              thread.run();
+              thread.init(ep).run();
               return thread;
             })
         .orElseThrow(
@@ -44,6 +50,14 @@ public class LoveJVM {
             });
 
     // cleanup operations below
+  }
+
+  /** entrypoint class is loaded/linked/initialized at the beginning of the JVM process. */
+  private RawClass prepareEntrypointClass(Options options) {
+    var entryClass = RawSystem.bootstrapLoader.load(options.getEntryClass());
+    RawSystem.classLinker.link(entryClass);
+    RawSystem.classInitializer.initialize(entryClass);
+    return entryClass;
   }
 
   public static final String ENTRY_METHOD_NAME = "main";

@@ -9,7 +9,7 @@ import dev.ishikawa.lovejvm.rawclass.attr.AttrInnerClass.AttrInnerClassBody.LAtt
 import dev.ishikawa.lovejvm.rawclass.attr.AttrNestMembers.LAttrNestMembersBody;
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.*;
-import dev.ishikawa.lovejvm.rawclass.method.exceptionhandler.ExceptionHandlers;
+import dev.ishikawa.lovejvm.rawclass.method.exceptionhandler.ExceptionInfoTable;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.util.Pair;
 import java.util.ArrayList;
@@ -18,13 +18,13 @@ public class AttrParser {
   public static Pair<Integer, Attr> parseAttrData(
       int pointer, byte[] bytecode, ConstantPool constantPool) {
     // attrName
-    var index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var index = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     var attrName = (ConstantUtf8) constantPool.findByIndex(index);
     pointer += 2;
 
     // attrSize
     var dataLength =
-        ByteUtil.concat(
+        ByteUtil.concatToInt(
             bytecode[pointer], bytecode[pointer + 1], bytecode[pointer + 2], bytecode[pointer + 3]);
     pointer += 4;
 
@@ -44,19 +44,19 @@ public class AttrParser {
     switch (attrNameEnum) {
       case CONSTANT_VALUE:
         {
-          var index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var index = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           return new AttrConstantValue(attrName, dataLength, constantPool.findByIndex(index));
         }
       case CODE:
         {
-          var operandStackSize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var operandStackSize = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
 
-          var localsSize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var localsSize = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
 
           var instructionLength =
-              ByteUtil.concat(
+              ByteUtil.concatToInt(
                   bytecode[pointer],
                   bytecode[pointer + 1],
                   bytecode[pointer + 2],
@@ -70,7 +70,7 @@ public class AttrParser {
           var parseExceptionHandlersResult =
               ExceptionHandlersParser.parse(pointer, bytecode, constantPool);
           pointer = parseExceptionHandlersResult.getLeft();
-          ExceptionHandlers exceptionHandlers = parseExceptionHandlersResult.getRight();
+          ExceptionInfoTable exceptionInfoTable = parseExceptionHandlersResult.getRight();
 
           var parseAttrsResult = AttrsParser.parse(pointer, bytecode, constantPool);
           pointer = parseAttrsResult.getLeft();
@@ -82,17 +82,17 @@ public class AttrParser {
               operandStackSize,
               localsSize,
               instructionLength,
-              exceptionHandlers,
+              exceptionInfoTable,
               attrs);
         }
       case EXCEPTIONS:
         {
-          var numberOfExceptions = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var numberOfExceptions = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
           var exceptionIndexTable = new ArrayList<ConstantClass>(numberOfExceptions);
 
           for (int i = 0; i < numberOfExceptions; ++i) {
-            var idx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var idx = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             pointer += 2;
             exceptionIndexTable.add((ConstantClass) constantPool.findByIndex(idx));
           }
@@ -104,18 +104,18 @@ public class AttrParser {
         }
       case SOURCE_FILE:
         {
-          var index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var index = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           return new AttrSourceFile(attrName, dataLength, constantPool.findByIndex(index));
         }
       case LINE_NUMBER_TABLE:
         {
-          var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var entrySize = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
           var entries = new ArrayList<AttrLineNumberTable.LAttrLineNumberTableEntry>(entrySize);
           for (int i = 0; i < entrySize; i++) {
-            var instructionLine = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var instructionLine = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             pointer += 2;
-            var originalLine = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var originalLine = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             pointer += 2;
             entries.add(
                 new AttrLineNumberTable.LAttrLineNumberTableEntry(instructionLine, originalLine));
@@ -127,31 +127,33 @@ public class AttrParser {
         //        break;
       case INNER_CLASSES:
         {
-          var numberOfClasses = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var numberOfClasses = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
 
           var classes = new ArrayList<LAttrInnerClassEntry>(numberOfClasses);
           for (int i = 0; i < numberOfClasses; i++) {
-            var innerClassInfoIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var innerClassInfoIdx =
+                ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             ConstantClass innerClassInfo =
                 (ConstantClass) constantPool.findByIndex(innerClassInfoIdx);
             pointer += 2;
 
-            var outerClassInfoIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var outerClassInfoIdx =
+                ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             ConstantClass outerClassInfo = null;
             if (outerClassInfoIdx > 0) {
               outerClassInfo = (ConstantClass) constantPool.findByIndex(outerClassInfoIdx);
             }
             pointer += 2;
 
-            var innerNameIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var innerNameIdx = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             ConstantUtf8 innerName = null;
             if (innerNameIdx > 0) {
               innerName = (ConstantUtf8) constantPool.findByIndex(innerNameIdx);
             }
             pointer += 2;
 
-            var accessFlags = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var accessFlags = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             pointer += 2;
 
             classes.add(
@@ -204,22 +206,24 @@ public class AttrParser {
         }
       case BOOTSTRAP_METHODS:
         {
-          var numBootstrapMethods = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var numBootstrapMethods =
+              ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
 
           var bootstrapMethods = new ArrayList<LAttrBootstrapMethod>(numBootstrapMethods);
           for (int i = 0; i < numBootstrapMethods; i++) {
-            var idx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var idx = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             ConstantMethodHandle bootstrapMethodRef =
                 (ConstantMethodHandle) constantPool.findByIndex(idx);
             pointer += 2;
 
-            var numBootstrapArguments = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var numBootstrapArguments =
+                ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             pointer += 2;
 
             var bootstrapArguments = new ArrayList<ConstantPoolEntry>(numBootstrapArguments);
             for (int j = 0; j < numBootstrapArguments; j++) {
-              var argumentIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+              var argumentIdx = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
               pointer += 2;
               var bootstrapArgument = constantPool.findByIndex(argumentIdx);
               bootstrapArguments.add(bootstrapArgument);
@@ -249,18 +253,18 @@ public class AttrParser {
         //        break;
       case NEST_HOST:
         {
-          var idx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var idx = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           var constantClass = (ConstantClass) constantPool.findByIndex(idx);
           return new AttrNestHost(attrName, dataLength, constantClass);
         }
       case NEST_MEMBERS:
         {
-          var numberOfClasses = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+          var numberOfClasses = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
 
           var classes = new ArrayList<ConstantClass>(numberOfClasses);
           for (int i = 0; i < numberOfClasses; i++) {
-            var classIdx = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+            var classIdx = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             pointer += 2;
             var classInfo = (ConstantClass) constantPool.findByIndex(classIdx);
             classes.add(classInfo);

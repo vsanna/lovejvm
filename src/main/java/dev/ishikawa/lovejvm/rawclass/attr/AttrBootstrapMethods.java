@@ -15,8 +15,8 @@ public class AttrBootstrapMethods extends Attr<LAttrBootstrapMethodsBody> {
   }
 
   public static class LAttrBootstrapMethodsBody {
-    private short numBootstrapMethods;
-    private List<LAttrBootstrapMethod> bootstrapMethods;
+    private final short numBootstrapMethods;
+    private final List<LAttrBootstrapMethod> bootstrapMethods;
 
     public LAttrBootstrapMethodsBody(
         short numBootstrapMethods, List<LAttrBootstrapMethod> bootstrapMethods) {
@@ -24,10 +24,14 @@ public class AttrBootstrapMethods extends Attr<LAttrBootstrapMethodsBody> {
       this.bootstrapMethods = bootstrapMethods;
     }
 
+    public LAttrBootstrapMethod findBy(int index) {
+      return this.bootstrapMethods.get(index);
+    }
+
     public static class LAttrBootstrapMethod {
-      private ConstantMethodHandle bootstrapMethodRef;
-      private short numBootstrapArguments;
-      private List<ConstantPoolEntry> bootstrapArguments;
+      private final ConstantMethodHandle bootstrapMethodRef;
+      private final short numBootstrapArguments;
+      private final List<ConstantPoolEntry> bootstrapArguments;
 
       public LAttrBootstrapMethod(
           ConstantMethodHandle bootstrapMethodRef,
@@ -36,6 +40,14 @@ public class AttrBootstrapMethods extends Attr<LAttrBootstrapMethodsBody> {
         this.bootstrapMethodRef = bootstrapMethodRef;
         this.numBootstrapArguments = numBootstrapArguments;
         this.bootstrapArguments = bootstrapArguments;
+      }
+
+      public ConstantMethodHandle getBootstrapMethodRef() {
+        return bootstrapMethodRef;
+      }
+
+      public List<ConstantPoolEntry> getBootstrapArguments() {
+        return bootstrapArguments;
       }
     }
   }

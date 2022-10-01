@@ -1,5 +1,8 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
+
+import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
+
 public class ConstantFieldref extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
   private final int classIndex; // 2bytes
   private ConstantClass constantClassRef;
@@ -14,8 +17,13 @@ public class ConstantFieldref extends ConstantPoolResolvableEntry implements Con
     this.nameAndTypeIndex = nameAndTypeIndex;
   }
 
+  @Override
+  public void shakeOut(ConstantPool constantPool) {
+    nameAndType = (ConstantNameAndType) constantPool.findByIndex(nameAndTypeIndex);
+    constantClassRef = (ConstantClass) constantPool.findByIndex(classIndex);
+  }
+
   public ConstantNameAndType getNameAndType() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
     return nameAndType;
   }
 
@@ -28,7 +36,6 @@ public class ConstantFieldref extends ConstantPoolResolvableEntry implements Con
   }
 
   public ConstantClass getConstantClassRef() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
     return constantClassRef;
   }
 

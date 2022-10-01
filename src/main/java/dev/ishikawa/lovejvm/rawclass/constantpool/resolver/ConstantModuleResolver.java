@@ -10,8 +10,7 @@ public class ConstantModuleResolver implements Resolver<ConstantModule> {
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantModule entry) {
-    ConstantUtf8 label = (ConstantUtf8) constantPool.findByIndex(entry.getNameIndex());
-    entry.setLabel(label);
+    ConstantUtf8 label = entry.getLabel();
     entry.setStringObjectId(RawSystem.stringPool.getOrCreate(label.getLabel()));
     entry.setResolved(true);
   }

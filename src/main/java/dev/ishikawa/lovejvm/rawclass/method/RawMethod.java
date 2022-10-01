@@ -78,6 +78,9 @@ public class RawMethod {
       switch (c) {
         case '[':
           i++;
+          if (argumentCharArray[i] != 'L') {
+            break;
+          }
         case 'L':
           {
             int j = 1;
@@ -96,19 +99,12 @@ public class RawMethod {
       argumentTypes.add(JvmType.findByJvmSignature(String.valueOf(c)));
     }
 
-    int a = argumentTypes.stream().map(JvmType::wordSize).reduce(0, Integer::sum);
+    return argumentTypes.stream().map(JvmType::wordSize).reduce(0, Integer::sum);
+  }
 
-    var argumentLabels = this.descriptor.getLabel().split("\\(")[1].split("\\)")[0].split(";");
-
-    int b =
-        Arrays.stream(argumentLabels)
-            .filter(argumentLabel -> !argumentLabel.isBlank())
-            .map(
-                (argumentLabel) ->
-                    JvmType.findByJvmSignature(argumentLabel.substring(0, 1)).wordSize())
-            .reduce(0, Integer::sum);
-
-    return a;
+  public JvmType getReturningType() {
+    var returningValueType = this.descriptor.getLabel().split("\\(")[1].split("\\)")[1];
+    return JvmType.findByJvmSignature(returningValueType);
   }
 
   public Attrs getAttrs() {
@@ -172,6 +168,10 @@ public class RawMethod {
               .collect(Collectors.toList());
     }
     return accessFlagList;
+  }
+
+  public String getClassBinaryName() {
+    return methods.getRawClass().getBinaryName();
   }
 
   public enum AccessFlag {

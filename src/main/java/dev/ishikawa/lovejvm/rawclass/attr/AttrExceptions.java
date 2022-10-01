@@ -5,6 +5,7 @@ import dev.ishikawa.lovejvm.rawclass.attr.AttrExceptions.LAttrExceptionsBody;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantUtf8;
 import java.util.List;
+import java.util.Optional;
 
 /** only method can have this attr */
 public class AttrExceptions extends Attr<LAttrExceptionsBody> {
@@ -13,12 +14,22 @@ public class AttrExceptions extends Attr<LAttrExceptionsBody> {
   }
 
   public static class LAttrExceptionsBody {
-    private short numberOfExceptions;
-    private List<ConstantClass> exceptionIndexTable;
+    private final short numberOfExceptions;
+    private final List<ConstantClass> exceptionClasses;
 
-    public LAttrExceptionsBody(short numberOfExceptions, List<ConstantClass> exceptionIndexTable) {
+    public List<ConstantClass> getExceptionClasses() {
+      return exceptionClasses;
+    }
+
+    public Optional<ConstantClass> findBy(String binaryName) {
+      return getExceptionClasses().stream()
+          .filter(it -> it.getName().getLabel().equals(binaryName))
+          .findFirst();
+    }
+
+    public LAttrExceptionsBody(short numberOfExceptions, List<ConstantClass> exceptionClasses) {
       this.numberOfExceptions = numberOfExceptions;
-      this.exceptionIndexTable = exceptionIndexTable;
+      this.exceptionClasses = exceptionClasses;
     }
   }
 }

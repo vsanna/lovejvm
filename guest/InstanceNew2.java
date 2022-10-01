@@ -1,18 +1,21 @@
-package dev.ishikawa.test;
+class InstanceNew3 {
+    static private String ss = "helloworld";
+    static private int ii = 10000;
 
-class InstanceNew2 {
-    final String name;
-    final long age;
+    private String s;
+    private int i;
 
-    public InstanceNew2(String name, long age) {
-        this.name = name;
-        this.age = age;
+    public InstanceNew3(String s, int i) {
+        this.s = s;
+        this.i = i;
     }
 
     static public void main() {
-        InstanceNew2 instance = new InstanceNew2("world", -123L);
-        long a = instance.age;
-        String b = instance.name;
+        InstanceNew3 in3 = new InstanceNew3(
+            "!",
+            1000
+        );
+        //      10000            1000                            10                 1
+        int a = InstanceNew3.ii + in3.i + 100 + InstanceNew3.ss.length() + in3.s.length();
     }
 }
-

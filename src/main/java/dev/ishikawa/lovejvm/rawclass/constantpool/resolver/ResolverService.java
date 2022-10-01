@@ -5,6 +5,7 @@ import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantDynamic;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantFieldref;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantInterfaceMethodref;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantInvokeDynamic;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodHandle;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodType;
@@ -27,8 +28,7 @@ public class ResolverService implements Resolver<ConstantPoolEntry> {
           Map.entry(ConstantClass.class, new ConstClassResolver()),
           Map.entry(ConstantDynamic.class, new ConstantDynamicResolver()),
           Map.entry(ConstantFieldref.class, new ConstantFieldrefResolver()),
-          Map.entry(
-              ConstantInterfaceMethodrefResolver.class, new ConstantInterfaceMethodrefResolver()),
+          Map.entry(ConstantInterfaceMethodref.class, new ConstantInterfaceMethodrefResolver()),
           Map.entry(ConstantInvokeDynamic.class, new ConstantInvokeDynamicResolver()),
           Map.entry(ConstantMethodHandle.class, new ConstantMethodHandlefResolver()),
           Map.entry(ConstantMethodref.class, new ConstantMethodrefResolver()),

@@ -4,7 +4,7 @@ package dev.ishikawa.lovejvm.rawclass.linterface;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
 
 public class RawInterface {
-  private ConstantClass constantClassRef;
+  private final ConstantClass constantClassRef;
 
   public RawInterface(ConstantClass constantClassRef) {
     this.constantClassRef = constantClassRef;

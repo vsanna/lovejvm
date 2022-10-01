@@ -1,5 +1,8 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
+
+import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
+
 public class ConstantNameAndType extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
   private final int nameIndex; // 2bytes
   private ConstantUtf8 name;
@@ -14,12 +17,17 @@ public class ConstantNameAndType extends ConstantPoolResolvableEntry implements 
     this.descriptorIndex = descriptorIndex;
   }
 
+  @Override
+  public void shakeOut(ConstantPool constantPool) {
+    name = (ConstantUtf8) constantPool.findByIndex(nameIndex);
+    descriptor = (ConstantUtf8) constantPool.findByIndex(descriptorIndex);
+  }
+
   public int getNameIndex() {
     return nameIndex;
   }
 
   public ConstantUtf8 getName() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
     return name;
   }
 
@@ -32,7 +40,6 @@ public class ConstantNameAndType extends ConstantPoolResolvableEntry implements 
   }
 
   public ConstantUtf8 getDescriptor() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
     return descriptor;
   }
 

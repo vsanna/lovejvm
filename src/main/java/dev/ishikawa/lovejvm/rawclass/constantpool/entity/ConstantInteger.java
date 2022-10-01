@@ -1,6 +1,11 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-public class ConstantInteger extends ConstantPoolUnresolvableEntry implements ConstantPoolEntry {
+
+import dev.ishikawa.lovejvm.vm.Word;
+import java.util.List;
+
+public class ConstantInteger extends ConstantPoolUnresolvableEntry
+    implements ConstantPoolEntry, ConstantPoolLoadableEntry {
   private final int intValue; // 4bytes
 
   public ConstantInteger(int value) {
@@ -9,6 +14,11 @@ public class ConstantInteger extends ConstantPoolUnresolvableEntry implements Co
 
   public int getIntValue() {
     return intValue;
+  }
+
+  @Override
+  public List<Word> loadableValue() {
+    return List.of(Word.of(intValue));
   }
 
   @Override

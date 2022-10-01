@@ -31,4 +31,8 @@ public interface HeapManager {
 
   /** retrieve RawObject stored in the heap by the given objectId */
   RawObject lookupObject(int objectId);
+
+  RawObject createClassObject(RawClass targetClass);
+
+  void dump();
 }

@@ -10,11 +10,11 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class RawField {
-  private int accessFlag;
+  private final int accessFlag;
   private List<AccessFlag> accessFlagList = null;
-  private ConstantUtf8 name;
-  private ConstantUtf8 descriptor;
-  private Attrs attrs;
+  private final ConstantUtf8 name;
+  private final ConstantUtf8 descriptor;
+  private final Attrs attrs;
 
   public RawField(int accessFlag, ConstantUtf8 name, ConstantUtf8 descriptor, Attrs attrs) {
     this.accessFlag = accessFlag;
@@ -44,6 +44,10 @@ public class RawField {
     return accessFlagList;
   }
 
+  public int getRawAccessFlag() {
+    return accessFlag;
+  }
+
   public JvmType getJvmType() {
     return JvmType.findByJvmSignature(getDescriptor().getLabel());
   }
@@ -52,8 +56,16 @@ public class RawField {
     return descriptor;
   }
 
+  public ConstantUtf8 getName() {
+    return name;
+  }
+
   public boolean isStatic() {
     return (RawField.AccessFlag.STATIC.getBits() & accessFlag) > 0;
+  }
+
+  public Attrs getAttrs() {
+    return attrs;
   }
 
   public enum AccessFlag {

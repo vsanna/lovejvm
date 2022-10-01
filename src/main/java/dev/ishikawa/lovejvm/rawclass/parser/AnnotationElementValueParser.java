@@ -39,7 +39,7 @@ public class AnnotationElementValueParser {
         value =
             new LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue<>(
                 new LAttrAnnotation.LAttrAnnotationElementValuePair.ConstValueIndexElementValue(
-                    ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1])));
+                    ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1])));
         pointer += 2;
         break;
       case "e":
@@ -48,8 +48,8 @@ public class AnnotationElementValueParser {
             new ElementValue<>(
                 new EnumConstValueElementValue(
                     new EnumConstValue(
-                        ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]),
-                        ByteUtil.concat(bytecode[pointer + 2], bytecode[pointer + 3]))));
+                        ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]),
+                        ByteUtil.concatToShort(bytecode[pointer + 2], bytecode[pointer + 3]))));
         pointer += 4;
         break;
       case "c":
@@ -57,7 +57,7 @@ public class AnnotationElementValueParser {
         value =
             new ElementValue<>(
                 new ClassInfoIndexElementValue(
-                    ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1])));
+                    ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1])));
         pointer += 2;
         break;
       case "@":
@@ -70,7 +70,7 @@ public class AnnotationElementValueParser {
         break;
       case "[":
         // array
-        short numValues = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+        short numValues = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
         pointer += 2;
 
         List<ElementValue> values = new ArrayList<>(numValues);

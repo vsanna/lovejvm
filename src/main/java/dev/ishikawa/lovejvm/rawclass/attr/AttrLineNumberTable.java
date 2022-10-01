@@ -12,8 +12,8 @@ public class AttrLineNumberTable extends Attr<List<AttrLineNumberTable.LAttrLine
   }
 
   public static class LAttrLineNumberTableEntry {
-    private int instructionLine;
-    private int originalLine;
+    private final int instructionLine;
+    private final int originalLine;
 
     public LAttrLineNumberTableEntry(int instructionLine, int originalLine) {
       this.instructionLine = instructionLine;

@@ -1,6 +1,6 @@
 plugins {
     id("java")
-    id("com.diffplug.gradle.spotless") version "4.5.1"
+    id("com.diffplug.spotless") version "6.11.0"
 }
 
 group "dev.ishikawa"
@@ -32,5 +32,6 @@ spotless {
         importOrder()
         trimTrailingWhitespace()
         endWithNewline()
+        toggleOffOn("/*", "*/")
     }
 }

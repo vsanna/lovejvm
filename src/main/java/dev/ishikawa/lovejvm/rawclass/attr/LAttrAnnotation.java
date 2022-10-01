@@ -4,9 +4,9 @@ package dev.ishikawa.lovejvm.rawclass.attr;
 import java.util.List;
 
 public class LAttrAnnotation {
-  private short typeIndex;
-  private short numElementValuePairs;
-  private List<LAttrAnnotationElementValuePair> elementValuePairs;
+  private final short typeIndex;
+  private final short numElementValuePairs;
+  private final List<LAttrAnnotationElementValuePair> elementValuePairs;
 
   public LAttrAnnotation(
       short typeIndex,
@@ -18,8 +18,8 @@ public class LAttrAnnotation {
   }
 
   public static class LAttrAnnotationElementValuePair {
-    private short elementNameIndex; // index of constantpool
-    private ElementValue value;
+    private final short elementNameIndex; // index of constantpool
+    private final ElementValue value;
 
     public LAttrAnnotationElementValuePair(short elementNameIndex, ElementValue value) {
       this.elementNameIndex = elementNameIndex;
@@ -27,7 +27,7 @@ public class LAttrAnnotation {
     }
 
     public static class ElementValue<T> {
-      private T value;
+      private final T value;
 
       public ElementValue(T value) {
         this.value = value;
@@ -47,8 +47,8 @@ public class LAttrAnnotation {
     }
 
     public static class EnumConstValue {
-      private short typeNameIndex;
-      private short constNameIndex;
+      private final short typeNameIndex;
+      private final short constNameIndex;
 
       public EnumConstValue(short typeNameIndex, short constNameIndex) {
         this.typeNameIndex = typeNameIndex;
@@ -75,8 +75,8 @@ public class LAttrAnnotation {
     }
 
     public static class ArrayValue {
-      private short numValues;
-      private List<ElementValue> values;
+      private final short numValues;
+      private final List<ElementValue> values;
 
       public ArrayValue(short numValues, List<ElementValue> values) {
         this.numValues = numValues;

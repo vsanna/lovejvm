@@ -28,7 +28,9 @@ public enum JvmType {
 
   // Reference Types
   ARRAY(32, "[", DefaultValue.of(null)),
-  OBJECT_REFERENCE(32, "L", DefaultValue.of(null));
+  OBJECT_REFERENCE(32, "L", DefaultValue.of(null)),
+
+  VOID(32, "V", DefaultValue.of(null));
 
   /**
    * size means how many bytes is need to store the value in mem. size should be a number of

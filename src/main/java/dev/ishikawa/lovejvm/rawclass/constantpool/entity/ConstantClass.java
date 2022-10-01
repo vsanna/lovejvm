@@ -1,6 +1,12 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-public class ConstantClass extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
+
+import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
+import dev.ishikawa.lovejvm.vm.Word;
+import java.util.List;
+
+public class ConstantClass extends ConstantPoolResolvableEntry
+    implements ConstantPoolEntry, ConstantPoolLoadableEntry {
   private final int nameIndex; // 2bytes
   private ConstantUtf8 name;
   private int objectId; // reference to Class object
@@ -13,8 +19,12 @@ public class ConstantClass extends ConstantPoolResolvableEntry implements Consta
     return nameIndex;
   }
 
+  @Override
+  public void shakeOut(ConstantPool constantPool) {
+    name = (ConstantUtf8) constantPool.findByIndex(nameIndex);
+  }
+
   public ConstantUtf8 getName() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
     return name;
   }
 
@@ -29,6 +39,11 @@ public class ConstantClass extends ConstantPoolResolvableEntry implements Consta
 
   public void setObjectId(int objectId) {
     this.objectId = objectId;
+  }
+
+  @Override
+  public List<Word> loadableValue() {
+    return List.of(Word.of(getObjectId()));
   }
 
   @Override

@@ -13,14 +13,6 @@ package dev.ishikawa.lovejvm.memory.stringpool;
 // -> ConstantString entryを使うときに stringMap.getorCreate(label)
 // // イメージとしては、ConstantString -> ConstantUtf8(//ここまではMethodAreaのCP) -> Heapからobject
 public interface StringPool {
-  /**
-   * allocate the specified size mem, and give the objectId.
-   *
-   * @return objectId
-   * @param label string literal
-   */
-  int register(String label);
-
   /** get objectId(=ObjectRef) of the given String literal */
   int getOrCreate(String label);
 }

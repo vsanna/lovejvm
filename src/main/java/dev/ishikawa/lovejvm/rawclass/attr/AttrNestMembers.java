@@ -13,8 +13,8 @@ public class AttrNestMembers extends Attr<LAttrNestMembersBody> {
   }
 
   public static class LAttrNestMembersBody {
-    private short numberOfClasses;
-    private List<ConstantClass> classes;
+    private final short numberOfClasses;
+    private final List<ConstantClass> classes;
 
     public LAttrNestMembersBody(short numberOfClasses, List<ConstantClass> classes) {
       this.numberOfClasses = numberOfClasses;

@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 public class Fields {
   private RawClass rawClass;
   private final int entrySize;
-  private List<RawField> fields;
+  private final List<RawField> fields;
 
   public Fields(int entrySize, List<RawField> fields) {
     if (entrySize != fields.size())
@@ -28,10 +28,18 @@ public class Fields {
     return entrySize;
   }
 
-  // TODO: if we can use the same signature for static/member fields in a class, this is broken.
-  // What is the identifical information of one field?
-  public Optional<RawField> findBy(String fieldName) {
-    return fields.stream().filter((field) -> field.hasSignature(fieldName)).findFirst();
+  public Optional<RawField> findMemberBy(String fieldName) {
+    return fields.stream()
+        .filter((f) -> !f.isStatic())
+        .filter((f) -> f.hasSignature(fieldName))
+        .findFirst();
+  }
+
+  public Optional<RawField> findStaticBy(String fieldName) {
+    return fields.stream()
+        .filter(RawField::isStatic)
+        .filter((field) -> field.hasSignature(fieldName))
+        .findFirst();
   }
 
   /** @return total size(words) of necessary binary for fields of this class's object */
@@ -50,22 +58,12 @@ public class Fields {
         .reduce(0, Integer::sum);
   }
 
-  public Optional<RawField> findMemberBy(String fieldName) {
-    return fields.stream()
-        .filter((field) -> !field.isStatic())
-        .filter((field) -> field.hasSignature(fieldName))
-        .findFirst();
-  }
-
-  public Optional<RawField> findStaticBy(String methodName) {
-    return fields.stream()
-        .filter(RawField::isStatic)
-        .filter((field) -> field.hasSignature(methodName))
-        .findFirst();
-  }
-
   public List<RawField> getStaticFields() {
     return fields.stream().filter(RawField::isStatic).collect(Collectors.toList());
+  }
+
+  public List<RawField> getMemberFields() {
+    return fields.stream().filter(it -> !it.isStatic()).collect(Collectors.toList());
   }
 
   public int size() {
@@ -85,14 +83,14 @@ public class Fields {
    *
    * @return num of bytes
    */
-  public int offsetToFieldBytes(RawField field) {
-    if (!fields.contains(field)) return 0;
+  public int offsetToMemberFieldBytes(RawField targetField) {
+    if (!getMemberFields().contains(targetField)) return 0;
 
-    int result = 2;
+    int result = 1 * Word.BYTES_SIZE; // reference to parent object
 
-    for (RawField rawField : fields) {
-      if (rawField != field) {
-        result += rawField.getJvmType().wordSize() * Word.BYTES_SIZE;
+    for (RawField memberField : getMemberFields()) {
+      if (targetField != memberField) {
+        result += memberField.getJvmType().wordSize() * Word.BYTES_SIZE;
       } else {
         break;
       }

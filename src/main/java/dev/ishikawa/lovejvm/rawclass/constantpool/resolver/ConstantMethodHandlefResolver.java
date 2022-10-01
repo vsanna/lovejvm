@@ -8,9 +8,8 @@ public class ConstantMethodHandlefResolver implements Resolver<ConstantMethodHan
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantMethodHandle entry) {
-    entry.setReference(constantPool.findByIndex(entry.getReferenceIndex()));
-
-    // TODO:
+    // TODO: java.lang.invoke.MethodHandle
+    entry.setObjectId(0);
 
     entry.setResolved(true);
   }

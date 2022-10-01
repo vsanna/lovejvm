@@ -1,9 +1,9 @@
 package dev.ishikawa.lovejvm.memory.heap;
 
 /**
- * heap - bytearray ... 隙間なく並べられたbytes - どこからどのclass(=どの長さ)のobjectがあるかの管理 -
- * bytearray[address:address+size-1]への参照を保持し、fieldを取り出せるもの=RawObject - addressをもとにrawObjectを取り出して返す
- * -
+ * Heap is a thin wrapper of real memory space.
+ * RawObject is a object that contains a reference to bytearray[address:address+size-1].
+ * We retrieve fields data via rawObject from the heap
  */
 interface Heap {
   /** store the bytes in heap area. */

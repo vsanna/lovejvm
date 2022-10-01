@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 public class Attrs {
   private final int entrySize;
-  private List<Attr> attrs;
+  private final List<Attr> attrs;
 
   public Attrs(int entrySize, List<Attr> attrs) {
     if (entrySize != attrs.size())

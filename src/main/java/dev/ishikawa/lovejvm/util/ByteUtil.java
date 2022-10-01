@@ -14,7 +14,7 @@ public class ByteUtil {
    * @param b a byte located in a lower position
    * @return concatinated 16 bits as a short value
    */
-  public static short concat(byte a, byte b) {
+  public static short concatToShort(byte a, byte b) {
     return (short) ((0b1111111100000000 & (a << 8)) | (0b0000000011111111 & b));
   }
 
@@ -27,7 +27,7 @@ public class ByteUtil {
    * @param d a byte located in the forth position
    * @return concatinated 32 bits as a short value
    */
-  public static int concat(byte a, byte b, byte c, byte d) {
+  public static int concatToInt(byte a, byte b, byte c, byte d) {
     return (0b11111111000000000000000000000000 & (a << 24))
         | (0b00000000111111110000000000000000 & (b << 16))
         | (0b00000000000000001111111100000000 & (c << 8))
@@ -47,7 +47,7 @@ public class ByteUtil {
    * @param h a byte located in the eighth position
    * @return concatinated 64 bits as a short value
    */
-  public static long concat(byte a, byte b, byte c, byte d, byte e, byte f, byte g, byte h) {
+  public static long concatToLong(byte a, byte b, byte c, byte d, byte e, byte f, byte g, byte h) {
     return (0b1111111100000000000000000000000000000000000000000000000000000000L & ((long) a << 56))
         | (0b0000000011111111000000000000000000000000000000000000000000000000L & ((long) b << 48))
         | (0b0000000000000000111111110000000000000000000000000000000000000000L & ((long) c << 40))
@@ -58,7 +58,29 @@ public class ByteUtil {
         | (0b0000000000000000000000000000000000000000000000000000000011111111L & ((long) h));
   }
 
-  public static byte[] split(int value) {
+  public static double concatToDouble(int lower, int higher) {
+    return Double.longBitsToDouble(concatToLong(lower, higher));
+  }
+
+  public static long concatToLong(int lower, int higher) {
+    var lowerBytes = splitToBytes(lower);
+    var higherBytes = splitToBytes(higher);
+    return concatToLong(
+        lowerBytes[0],
+        lowerBytes[1],
+        lowerBytes[2],
+        lowerBytes[3],
+        higherBytes[0],
+        higherBytes[1],
+        higherBytes[2],
+        higherBytes[3]);
+  }
+
+  public static float convertToFloat(int a) {
+    return Float.intBitsToFloat(a);
+  }
+
+  public static byte[] splitToBytes(int value) {
     return new byte[] {
       ((byte) (0b11111111 & (value >> 24))),
       ((byte) (0b11111111 & (value >> 16))),

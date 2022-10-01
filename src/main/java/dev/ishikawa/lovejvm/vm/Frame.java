@@ -28,13 +28,20 @@ public class Frame {
     return locals;
   }
 
+  public void setLocals(Word[] words) {
+    this.locals = words;
+  }
+
   public RawMethod getMethod() {
     return method;
   }
 
   @Override
   public String toString() {
+    String className = getMethod().getClassBinaryName();
+    String methodName = getMethod().getName().getLabel();
     return String.format(
-        "LFrame{locals=%s, operandStack=%s}", Arrays.toString(locals), operandStack);
+        "[%s#%s]{locals=%s, operandStack=%s}",
+        className, methodName, Arrays.toString(locals), operandStack);
   }
 }

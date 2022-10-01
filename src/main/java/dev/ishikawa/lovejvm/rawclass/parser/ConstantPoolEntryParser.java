@@ -15,36 +15,39 @@ public class ConstantPoolEntryParser {
     switch (tag) {
       case CLASS:
         {
-          var nameIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameIndex = ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
           return Pair.of(pointer + 3, new ConstantClass(nameIndex));
         }
       case FIELD_REF:
         {
-          var classIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
-          var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          var classIndex = ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameAndTypeIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 3], bytecode[pointer + 4]);
           return Pair.of(pointer + 5, new ConstantFieldref(classIndex, nameAndTypeIndex));
         }
       case METHOD_REF:
         {
-          var classIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
-          var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          var classIndex = ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameAndTypeIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 3], bytecode[pointer + 4]);
           return Pair.of(pointer + 5, new ConstantMethodref(classIndex, nameAndTypeIndex));
         }
       case INTERFACE_METHOD_REF:
         {
-          var classIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
-          var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          var classIndex = ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameAndTypeIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 3], bytecode[pointer + 4]);
           return Pair.of(pointer + 5, new ConstantInterfaceMethodref(classIndex, nameAndTypeIndex));
         }
       case STRING:
         {
-          var stringIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var stringIndex = ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
           return Pair.of(pointer + 3, new ConstantString(stringIndex));
         }
       case INTEGER:
         {
           int intValue =
-              ByteUtil.concat(
+              ByteUtil.concatToInt(
                   bytecode[pointer + 1],
                   bytecode[pointer + 2],
                   bytecode[pointer + 3],
@@ -54,7 +57,7 @@ public class ConstantPoolEntryParser {
       case FLOAT:
         {
           int bits =
-              ByteUtil.concat(
+              ByteUtil.concatToInt(
                   bytecode[pointer + 1],
                   bytecode[pointer + 2],
                   bytecode[pointer + 3],
@@ -65,7 +68,7 @@ public class ConstantPoolEntryParser {
       case LONG:
         {
           long longValue =
-              ByteUtil.concat(
+              ByteUtil.concatToLong(
                   bytecode[pointer + 1],
                   bytecode[pointer + 2],
                   bytecode[pointer + 3],
@@ -79,7 +82,7 @@ public class ConstantPoolEntryParser {
       case DOUBLE:
         {
           long bits =
-              ByteUtil.concat(
+              ByteUtil.concatToLong(
                   bytecode[pointer + 1],
                   bytecode[pointer + 2],
                   bytecode[pointer + 3],
@@ -93,13 +96,14 @@ public class ConstantPoolEntryParser {
         }
       case NAME_AND_TYPE:
         {
-          var nameIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
-          var descriptorIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          var nameIndex = ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var descriptorIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 3], bytecode[pointer + 4]);
           return Pair.of(pointer + 5, new ConstantNameAndType(nameIndex, descriptorIndex));
         }
       case UTF8:
         {
-          var labelLength = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var labelLength = ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
           pointer += 3;
           byte[] bytes = new byte[labelLength];
           System.arraycopy(bytecode, pointer, bytes, 0, labelLength);
@@ -110,34 +114,39 @@ public class ConstantPoolEntryParser {
         {
           /* u1: tag, u1: reference_kind, u2: reference_index */
           var referenceKind = bytecode[pointer + 1];
-          var referenceIndex = ByteUtil.concat(bytecode[pointer + 2], bytecode[pointer + 3]);
+          var referenceIndex = ByteUtil.concatToShort(bytecode[pointer + 2], bytecode[pointer + 3]);
           return Pair.of(pointer + 4, new ConstantMethodHandle(referenceKind, referenceIndex));
         }
       case METHOD_TYPE:
         {
           /* u1: tag, u2: descriptor_index */
-          var describtorIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var describtorIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
           return Pair.of(pointer + 3, new ConstantMethodType(describtorIndex));
         }
       case DYNAMIC:
         {
           /* u1: tag, u2: bootstrap_method_attr_index, u2: name_and_type_index */
-          var bootstrapMethodIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
-          var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          var bootstrapMethodIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameAndTypeIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 3], bytecode[pointer + 4]);
           return Pair.of(pointer + 5, new ConstantDynamic(bootstrapMethodIndex, nameAndTypeIndex));
         }
       case INVOKE_DYNAMIC:
         {
           /* u1: tag, u2: bootstrap_method_attr_index, u2: name_and_type_index */
-          var bootstrapMethodIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
-          var nameAndTypeIndex = ByteUtil.concat(bytecode[pointer + 3], bytecode[pointer + 4]);
+          var bootstrapMethodIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameAndTypeIndex =
+              ByteUtil.concatToShort(bytecode[pointer + 3], bytecode[pointer + 4]);
           return Pair.of(
               pointer + 5, new ConstantInvokeDynamic(bootstrapMethodIndex, nameAndTypeIndex));
         }
       case MODULE:
         {
           /* u1: tag, u1: name_index */
-          var nameIndex = ByteUtil.concat(bytecode[pointer + 1], bytecode[pointer + 2]);
+          var nameIndex = ByteUtil.concatToShort(bytecode[pointer + 1], bytecode[pointer + 2]);
           return Pair.of(pointer + 3, new ConstantModule(nameIndex));
         }
       case PACKAGE:

@@ -7,7 +7,7 @@ package dev.ishikawa.lovejvm.memory.heap;
  * <p>NOTE: At this mement, no free, no GC!
  */
 class HeapSimulator implements Heap {
-  private byte[] memory = new byte[10 * 1000 * 1000]; // 10MB
+  private final byte[] memory = new byte[10 * 1000 * 1000]; // 10MB
   private int size = 0;
 
   private HeapSimulator() {}

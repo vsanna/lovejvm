@@ -4,13 +4,12 @@ package dev.ishikawa.lovejvm.memory.methodarea;
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
-import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantFieldref;
-import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodref;
-import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantNameAndType;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
+import dev.ishikawa.lovejvm.rawclass.linterface.RawInterface;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,7 +17,7 @@ import java.util.Optional;
 
 public class MethodAreaManagerImpl implements MethodAreaManager {
   // Map<String binaryName(ex: java/lang/String) to ClassEntry>
-  private Map<String, ClassEntry> classMap = new HashMap<>();
+  private final Map<String, ClassEntry> classMap = new HashMap<>();
   private final MethodArea methodArea = MethodAreaSimulator.INSTANCE;
 
   public MethodAreaManagerImpl() {}
@@ -30,9 +29,11 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
 
   @Override
   public void register(RawClass rawClass, byte[] classfile) {
+    if (classMap.containsKey(rawClass.getBinaryName())) return;
+
     int startingAddress = methodArea.headAddress();
 
-    // REFACTOR: According to the reference, The same name class can be loaded under different
+    // REFACTOR: According to the jvm spec, The same name class can be loaded under different
     classMap.put(rawClass.getBinaryName(), new ClassEntry(startingAddress, rawClass));
 
     byte[] bytes =
@@ -73,29 +74,153 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   }
 
   @Override
+  public int lookupCodeSectionRelativeAddress(RawMethod method, int pc) {
+    if ((method.isAbstract() || method.isNative()) && !method.isClinit()) {
+      return -1;
+    }
+
+    return pc - lookupCodeSectionAddress(method);
+  }
+
+  @Override
   public int lookupStaticAreaAddress(RawClass rawClass) {
     var classAddr = getClassAddress(rawClass);
     return classAddr + rawClass.offsetBytesToStaticArea();
   }
 
   @Override
-  public RawMethod lookupMethod(ConstantMethodref constantMethodref) {
-    ConstantClass constantClassRef = constantMethodref.getConstantClassRef();
-    RawClass lClass = lookupOrLoadClass(constantClassRef.getName().getLabel());
-    ConstantNameAndType nameAndTypeRef = constantMethodref.getNameAndType();
+  public RawMethod lookupAllMethod(String binaryName, String methodName, String methodDescriptor) {
+    RawClass lClass = lookupOrLoadClass(binaryName);
+
     return lClass
-        .findMethodBy(nameAndTypeRef)
-        .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
+        .findStaticMethodBy(methodName, methodDescriptor)
+        .or(() -> lClass.findMemberMethodBy(methodName, methodDescriptor))
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format("Non existing method is looked up: %s", methodName)));
   }
 
   @Override
-  public RawField lookupField(ConstantFieldref constantFieldref) {
-    ConstantClass constantClassRef = constantFieldref.getConstantClassRef();
-    RawClass lClass = lookupOrLoadClass(constantClassRef.getName().getLabel());
-    ConstantNameAndType nameAndTypeRef = constantFieldref.getNameAndType();
+  public RawMethod lookupAllMethodRecursively(
+      String binaryName, String methodName, String methodDescriptor) {
+    return helper(binaryName, methodName, methodDescriptor)
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format("Non existing method is looked up: %s", methodName)));
+  }
+
+  public Optional<RawMethod> helper(String binaryName, String methodName, String methodDescriptor) {
+    RawClass rawClass = lookupOrLoadClass(binaryName);
+
+    Optional<RawMethod> rawMethodOptional =
+        rawClass
+            .findStaticMethodBy(methodName, methodDescriptor)
+            .or(() -> rawClass.findMemberMethodBy(methodName, methodDescriptor));
+
+    if (rawMethodOptional.isPresent()) {
+      return rawMethodOptional;
+    } else {
+      // if rawClass is Object -> NotFound
+      if (binaryName.equals("java/lang/Object")) {
+        return Optional.empty();
+      }
+
+      // if superInterfaces.size == 0 -> superclass
+      List<RawInterface> superInterfaces = rawClass.getInterfaces().getInterfaces();
+      if (superInterfaces.size() == 0) {
+        int a = 1;
+        return helper("java/lang/Object", methodName, methodDescriptor);
+      }
+
+      for (RawInterface rawInterface : rawClass.getInterfaces().getInterfaces()) {
+        // TODO: broad search instead of depth search
+        var result =
+            helper(
+                rawInterface.getConstantClassRef().getName().getLabel(),
+                methodName,
+                methodDescriptor);
+        if (result.isPresent()) {
+          return result;
+        }
+      }
+
+      return Optional.empty();
+    }
+  }
+
+  @Override
+  public RawMethod lookupStaticMethod(
+      String binaryName, String methodName, String methodDescriptor) {
+    RawClass lClass = lookupOrLoadClass(binaryName);
+    // TODO: lookup recursively
+
     return lClass
-        .findFieldBy(nameAndTypeRef)
-        .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
+        .findStaticMethodBy(methodName, methodDescriptor)
+        .orElseThrow(
+            () -> {
+              String c = binaryName;
+              String a = methodName;
+              String b = methodDescriptor;
+              int d = 1;
+              return new RuntimeException(
+                  String.format("Non existing method is looked up: %s", methodName));
+            });
+  }
+
+  @Override
+  public RawMethod lookupMemberMethod(
+      String binaryName, String methodName, String methodDescriptor) {
+    RawClass lClass = lookupOrLoadClass(binaryName);
+    // TODO: lookup recursively
+
+    return lClass
+        .findMemberMethodBy(methodName, methodDescriptor)
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format("Non existing method is looked up: %s", methodName)));
+  }
+
+  @Override
+  public RawField lookupAllField(String binaryName, String fieldName) {
+    RawClass lClass = lookupOrLoadClass(binaryName);
+    // TODO: lookup recursively.
+
+    return lClass
+        .findStaticFieldBy(fieldName)
+        .or(() -> lClass.findMemberFieldBy(fieldName))
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format("Non existing field is looked up: %s", fieldName)));
+  }
+
+  @Override
+  public RawField lookupStaticField(String binaryName, String fieldName) {
+    RawClass lClass = lookupOrLoadClass(binaryName);
+    // TODO: lookup recursively.
+
+    return lClass
+        .findStaticFieldBy(fieldName)
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format("Non existing field is looked up: %s", fieldName)));
+  }
+
+  @Override
+  public RawField lookupMemberField(String binaryName, String fieldName) {
+    RawClass lClass = lookupOrLoadClass(binaryName);
+    // TODO: lookup recursively.
+
+    return lClass
+        .findMemberFieldBy(fieldName)
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format("Non existing field is looked up: %s", fieldName)));
   }
 
   @Override
@@ -110,7 +235,6 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   @Override
   public void putStaticFieldValue(RawClass rawClass, RawField rawField, List<Word> words) {
     var startingAddress = getClassAddress(rawClass) + rawClass.offsetBytesToStaticField(rawField);
-
     methodArea.save(startingAddress, Word.toByteArray(words));
   }
 
@@ -118,7 +242,12 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   public RawClass lookupClass(ConstantClass constantClassRef) {
     return Optional.ofNullable(classMap.get(constantClassRef.getName().getLabel()))
         .map(it -> it.rawClass)
-        .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format(
+                        "Non existing class is tried to load: %s",
+                        constantClassRef.getName().getLabel())));
   }
 
   @Override
@@ -129,10 +258,40 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   }
 
   @Override
+  public Optional<RawClass> lookupClass(String binaryName) {
+    return Optional.ofNullable(classMap.get(binaryName)).map(it -> it.rawClass);
+  }
+
+  @Override
   public void prepareStaticArea(RawClass rawClass) {
     int startingAddress = lookupStaticAreaAddress(rawClass);
     int staticAreaByteSize = rawClass.getStaticAreaWords() * Word.BYTES_SIZE;
     this.methodArea.clear(startingAddress, staticAreaByteSize);
+  }
+
+  @Override
+  public void dump() {
+    System.out.println("[MA DUMP] addr| className|csize|ssize|osize");
+
+    classMap.entrySet().stream()
+        .sorted(Comparator.comparingInt(a -> a.getValue().getAddress()))
+        .forEach(
+            (record) -> {
+              ClassEntry entry = record.getValue();
+              // address|RawClass name|class size|static size|object size
+              int address = entry.getAddress();
+              RawClass rawClass = entry.getRawClass();
+              int classSize = rawClass.getRaw().length;
+              int staticSize = rawClass.getStaticAreaWords() * Word.BYTES_SIZE;
+              int objectSize = rawClass.getObjectWords() * Word.BYTES_SIZE;
+              System.out.printf(
+                  "[MA DUMP]%5d|%20s|%5d|%5d|%5d\n",
+                  address,
+                  rawClass.getName().substring(0, Math.min(rawClass.getName().length(), 18)),
+                  classSize,
+                  staticSize,
+                  objectSize);
+            });
   }
 
   private int getClassAddress(RawClass rawClass) {
@@ -144,8 +303,8 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   public static final MethodAreaManager INSTANCE = new MethodAreaManagerImpl();
 
   private static class ClassEntry {
-    private int address;
-    private RawClass rawClass;
+    private final int address;
+    private final RawClass rawClass;
 
     public ClassEntry(int address, RawClass rawClass) {
       this.address = address;

@@ -1,13 +1,19 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-public class ConstantMethodHandle extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
+
+import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
+import dev.ishikawa.lovejvm.vm.Word;
+import java.util.List;
+
+public class ConstantMethodHandle extends ConstantPoolResolvableEntry
+    implements ConstantPoolEntry, ConstantPoolLoadableEntry {
   private boolean isResolved = false;
 
   private final int referenceKind; // 1byte
 
   private final int referenceIndex; // 2byte
   private ConstantPoolEntry reference;
-  // resolve to what?
+  private int objectId; // to java.lang.invoke.MethodHandle
 
   public ConstantMethodHandle(int referenceKind, int referenceIndex) {
     assert (referenceKind >= 1 && referenceKind <= 9);
@@ -29,8 +35,12 @@ public class ConstantMethodHandle extends ConstantPoolResolvableEntry implements
     //   then method name must be <init>
   }
 
+  @Override
+  public void shakeOut(ConstantPool constantPool) {
+    reference = constantPool.findByIndex(referenceIndex);
+  }
+
   public ConstantPoolEntry getReference() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
     return reference;
   }
 
@@ -44,6 +54,20 @@ public class ConstantMethodHandle extends ConstantPoolResolvableEntry implements
 
   public void setReference(ConstantPoolEntry reference) {
     this.reference = reference;
+  }
+
+  public int getObjectId() {
+    if (!isResolved()) throw new RuntimeException("not resolved yet");
+    return objectId;
+  }
+
+  public void setObjectId(int objectId) {
+    this.objectId = objectId;
+  }
+
+  @Override
+  public List<Word> loadableValue() {
+    return List.of(Word.of(getObjectId()));
   }
 
   @Override

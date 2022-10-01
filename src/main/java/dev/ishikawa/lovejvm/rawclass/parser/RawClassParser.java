@@ -22,7 +22,6 @@ import dev.ishikawa.lovejvm.util.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 public class RawClassParser {
@@ -48,7 +47,9 @@ public class RawClassParser {
 
     int accessFlag = parseAccessFlag();
     var thisClass = parseThisClassField();
-    var superClass = parseSuperClassField(Objects.requireNonNull(thisClass).getName().getLabel());
+    thisClass.shakeOut(constantPool);
+
+    var superClass = parseSuperClassField(thisClass.getName().getLabel());
 
     var interfaces = parseInterface();
     var fields = parseFields();
@@ -91,19 +92,19 @@ public class RawClassParser {
   }
 
   private int parseMinorVersion() {
-    var minorVersion = ByteUtil.concat(bytecode[4], bytecode[5]);
+    var minorVersion = ByteUtil.concatToShort(bytecode[4], bytecode[5]);
     pointer = 6;
     return minorVersion;
   }
 
   private int parseMajorVersion() {
-    var majorVersion = ByteUtil.concat(bytecode[6], bytecode[7]);
+    var majorVersion = ByteUtil.concatToShort(bytecode[6], bytecode[7]);
     pointer = 8;
     return majorVersion;
   }
 
   private ConstantPool parseConstantPool() {
-    var entrySize = ByteUtil.concat(bytecode[8], bytecode[9]);
+    var entrySize = ByteUtil.concatToShort(bytecode[8], bytecode[9]);
     pointer = 10;
     List<ConstantPoolEntry> entries = new ArrayList<>(entrySize);
     // initial slot is not used
@@ -132,13 +133,13 @@ public class RawClassParser {
   }
 
   private int parseAccessFlag() {
-    var accessFlag = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var accessFlag = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     return accessFlag;
   }
 
-  private @Nullable ConstantClass parseThisClassField() {
-    var index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+  private ConstantClass parseThisClassField() {
+    var index = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     var entry = constantPool.findByIndex(index);
 
@@ -158,12 +159,12 @@ public class RawClassParser {
   }
 
   private Interfaces parseInterface() {
-    var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var entrySize = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     List<RawInterface> entries = new ArrayList<>(entrySize);
 
     for (int i = 0; i < entrySize; i++) {
-      int index = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+      int index = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
       ;
       var classEntry = (ConstantClass) constantPool.findByIndex(index);
       var result = new RawInterface(classEntry);
@@ -175,7 +176,7 @@ public class RawClassParser {
   }
 
   private Fields parseFields() {
-    var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var entrySize = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     List<RawField> entries = new ArrayList<>(entrySize);
 
@@ -189,7 +190,7 @@ public class RawClassParser {
   }
 
   private Methods parseMethods() {
-    var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var entrySize = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     List<RawMethod> entries = new ArrayList<>(entrySize);
 

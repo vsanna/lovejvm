@@ -12,7 +12,7 @@ import java.util.List;
 public class AttrsParser {
   public static Pair<Integer, Attrs> parse(
       int pointer, byte[] bytecode, ConstantPool constantPool) {
-    var entrySize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var entrySize = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
     List<Attr> entries = new ArrayList<>(entrySize);
 

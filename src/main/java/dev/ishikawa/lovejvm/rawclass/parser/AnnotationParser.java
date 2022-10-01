@@ -12,7 +12,7 @@ import java.util.List;
 public class AnnotationParser {
   public static Pair<Integer, List<LAttrAnnotation>> parseList(
       int pointer, byte[] bytecode, ConstantPool constantPool) {
-    var annotationSize = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    var annotationSize = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
 
     var entries = new ArrayList<LAttrAnnotation>(annotationSize);
@@ -28,16 +28,16 @@ public class AnnotationParser {
   public static Pair<Integer, LAttrAnnotation> parse(
       int pointer, byte[] bytecode, ConstantPool constantPool) {
     // Annotation
-    short typeIndex = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    short typeIndex = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
-    short numElementValuePairs = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+    short numElementValuePairs = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
     pointer += 2;
 
     var elementValuePairs =
         new ArrayList<LAttrAnnotation.LAttrAnnotationElementValuePair>(numElementValuePairs);
     for (int j = 0; j < numElementValuePairs; j++) {
       // ElementValuePairs
-      short elementNameIndex = ByteUtil.concat(bytecode[pointer], bytecode[pointer + 1]);
+      short elementNameIndex = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
       pointer += 2;
 
       Pair<Integer, ElementValue> annotationElementValueParseResult =

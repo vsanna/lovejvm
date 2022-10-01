@@ -1,10 +1,12 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool;
 
 
+import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPoolEntry;
 import java.util.List;
 
 public class ConstantPool {
+  private RawClass rawClass;
   private final int entrySize;
   private List<ConstantPoolEntry> entries;
 
@@ -26,11 +28,19 @@ public class ConstantPool {
     return 2 + entries.stream().map(ConstantPoolEntry::size).reduce(0, Integer::sum);
   }
 
+  public void setRawClass(RawClass rawClass) {
+    this.rawClass = rawClass;
+  }
+
+  public RawClass getRawClass() {
+    return rawClass;
+  }
+
   public ConstantPoolEntry findByIndex(int index) {
-    var entry = entries.get(index);
-    if (!entry.isResolved()) {
-      entry.resolve(this);
-    }
-    return entry;
+    return entries.get(index);
+  }
+
+  public void shakeOut() {
+    entries.forEach(it -> it.shakeOut(this));
   }
 }

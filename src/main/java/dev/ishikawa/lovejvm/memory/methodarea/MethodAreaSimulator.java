@@ -8,7 +8,7 @@ import java.util.Arrays;
  * native memory at all.
  */
 class MethodAreaSimulator implements MethodArea {
-  private byte[] memory = new byte[10 * 1000 * 1000]; // 10MB
+  private final byte[] memory = new byte[10 * 1000 * 1000]; // 10MB
   private int size = 0;
 
   private MethodAreaSimulator() {}

@@ -1,6 +1,11 @@
 package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
-public class ConstantDouble extends ConstantPoolUnresolvableEntry implements ConstantPoolEntry {
+
+import dev.ishikawa.lovejvm.vm.Word;
+import java.util.List;
+
+public class ConstantDouble extends ConstantPoolUnresolvableEntry
+    implements ConstantPoolEntry, ConstantPoolLoadableEntry {
   private final double doubleValue; // 8bytes
 
   public ConstantDouble(double value) {
@@ -9,6 +14,11 @@ public class ConstantDouble extends ConstantPoolUnresolvableEntry implements Con
 
   public double getDoubleValue() {
     return doubleValue;
+  }
+
+  @Override
+  public List<Word> loadableValue() {
+    return Word.of(doubleValue);
   }
 
   @Override
