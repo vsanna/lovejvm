@@ -28,6 +28,10 @@ public class Fields {
     return entrySize;
   }
 
+  public Optional<RawField> findAllBy(String fieldName) {
+    return fields.stream().filter((f) -> f.hasSignature(fieldName)).findFirst();
+  }
+
   public Optional<RawField> findMemberBy(String fieldName) {
     return fields.stream()
         .filter((f) -> !f.isStatic())

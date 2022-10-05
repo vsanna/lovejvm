@@ -7,6 +7,7 @@ import dev.ishikawa.lovejvm.rawclass.attr.AttrCode;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
 import dev.ishikawa.lovejvm.rawclass.attr.Attrs;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantUtf8;
+import dev.ishikawa.lovejvm.rawclass.field.RawField.AccessFlag;
 import dev.ishikawa.lovejvm.rawclass.type.JvmType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -52,7 +53,9 @@ public class RawMethod {
     return getCode().map(AttrCode::getLocalsSize).orElse(0);
   }
 
-  /** @return num of words to transfer when invoking a new method */
+  /**
+   * TODO: why not using
+   * @return num of words to transfer when invoking a new method */
   public int getTransitWordSize(boolean hasReceiver) {
     // TODO: is it possible to know hasReceiver in this method?
     int argumentsWordSize = getArgumentsWordSize();
@@ -119,6 +122,14 @@ public class RawMethod {
    */
   private Optional<AttrCode> getCode() {
     return attrs.findAllBy(AttrName.CODE).stream().map((it) -> (AttrCode) it).findFirst();
+  }
+
+  public boolean isPublic() {
+    return (AccessFlag.PUBLIC.getBits() & accessFlag) > 0;
+  }
+
+  public boolean isPrivate() {
+    return (AccessFlag.PRIVATE.getBits() & accessFlag) > 0;
   }
 
   public boolean isStatic() {

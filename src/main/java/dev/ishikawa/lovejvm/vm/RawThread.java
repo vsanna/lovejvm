@@ -44,7 +44,10 @@ public class RawThread {
     return this;
   }
 
-  /** invoke a method forcefully. This is used for initializing Class, Field, Method object */
+  /**
+   * In order for JVM to invoke a method.
+   * This is used for initializing Class, Field, Method object, and resolivng Dynamic Const.
+   * */
   public void invoke(RawMethod method, List<Word> arguments) {
     stackUp(method, 0, 0);
 
@@ -73,6 +76,19 @@ public class RawThread {
             String.format(
                 "abstract method is called. method: %s", nextMethod.getName().getLabel()));
       } else if (nextMethod.isNative()) {
+        /**
+         * > If the method to be invoked is native and the platform-dependent code
+         * that implements it has not yet been bound (§5.6) into the Java Virtual Machine,
+         * then that is done.
+         * The nargs argument values and objectref are popped from the operand stack and are passed as parameters
+         * to the code that implements the method.
+         * The parameters are passed and the code is invoked in an implementation-dependent manner.
+         * When the platform-dependent code returns:
+         *
+         * If the native method returns a value,
+         * the return value of the platform-dependent code is converted in an implementation-dependent way
+         * to the return type of the native method and pushed onto the operand stack.
+         * */
         List<Word> result = RawSystem.nativeMethodHandler.handle(nextMethod, currentFrame());
         result.forEach(it -> currentFrame().getOperandStack().push(it));
         pc = pcToReturn;
@@ -90,7 +106,18 @@ public class RawThread {
       // REFACTOR: Ideally, Not copying the words,
       //  but use the unified global stack per one thread!!
 
-      // load locals from currentFrame into the new frame
+      /*
+       * > If the method to be invoked is not native,
+       * > the nargs argument values and objectref are popped from the operand stack.
+       * > A new frame is created on the Java Virtual Machine stack for the method being invoked.
+       * > The objectref and the argument values are consecutively made
+       * > the values of local variables of the new frame,
+       * > with objectref in local variable 0, arg1 in local variable 1
+       * > (or, if arg1 is of type long or double, in local variables 1 and 2), and so on.
+       * > The new frame is then made current,
+       * > and the Java Virtual Machine pc is set to the opcode of the first instruction
+       * > of the method to be invoked. Execution continues with the first instruction of the method.
+       * */
       var tmpQueue = new ArrayDeque<Word>(numOfWordsToTransit);
       for (int i = 0; i < numOfWordsToTransit; i++) {
         tmpQueue.add(currentFrame().getOperandStack().pop());
@@ -1273,7 +1300,53 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x99: // ifnq
+        case (byte) 0x95: // fcmpl
+          {
+            float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
+
+            Word word = Word.of(Float.compare(right, left));
+            operandStack.push(word);
+            pc += 1;
+            break;
+          }
+        case (byte) 0x96: // fcmpg
+          {
+            float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
+
+            Word word = Word.of(Float.compare(left, right));
+            operandStack.push(word);
+            pc += 1;
+            break;
+          }
+        case (byte) 0x97: // dcmpl
+          {
+            int v4 = operandStack.pop().getValue();
+            int v3 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
+            int v1 = operandStack.pop().getValue();
+            double a = ByteUtil.concatToDouble(v1, v2);
+            double b = ByteUtil.concatToDouble(v3, v4);
+            Word word = Word.of(Double.compare(b, a));
+            operandStack.push(word);
+            pc += 1;
+            break;
+          }
+        case (byte) 0x98: // dcmpg
+          {
+            int v4 = operandStack.pop().getValue();
+            int v3 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
+            int v1 = operandStack.pop().getValue();
+            double a = ByteUtil.concatToDouble(v1, v2);
+            double b = ByteUtil.concatToDouble(v3, v4);
+            Word word = Word.of(Double.compare(a, b));
+            operandStack.push(word);
+            pc += 1;
+            break;
+          }
+        case (byte) 0x99: // ifeq
           {
             // if (value == 0) then jump to jumpTo
             int value = operandStack.pop().getValue();
@@ -1351,6 +1424,20 @@ public class RawThread {
             }
             break;
           }
+        case (byte) 0x9f: // if_icmpeq
+          {
+            // if (left == right) then jump to jumpTo
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            int jumpTo = peekTwoBytes();
+
+            if (left == right) {
+              pc = pc + jumpTo;
+            } else {
+              pc = pc + 3;
+            }
+            break;
+          }
         case (byte) 0xa0: // if_icmpne
           {
             // if (left != right) then jump to jumpTo
@@ -1401,6 +1488,20 @@ public class RawThread {
             int jumpTo = peekTwoBytes();
 
             if (left > right) {
+              pc = pc + jumpTo;
+            } else {
+              pc = pc + 3;
+            }
+            break;
+          }
+        case (byte) 0xa4: // if_icmple
+          {
+            // if (left > right) then jump to jumpTo
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            int jumpTo = peekTwoBytes();
+
+            if (left <= right) {
               pc = pc + jumpTo;
             } else {
               pc = pc + 3;
@@ -1475,6 +1576,9 @@ public class RawThread {
           }
         case (byte) 0xb2: // getstatic
           {
+            if (pc == 371) {
+              int a = 1;
+            }
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
 
@@ -1483,7 +1587,7 @@ public class RawThread {
             RawSystem.classLinker.link(rawClass);
             RawSystem.classInitializer.initialize(rawClass);
 
-            RawField rawField = getRawStaticField(fieldRef);
+            RawField rawField = fieldRef.getRawField();
 
             List<Word> staticFieldValue = methodAreaManager.getStaticFieldValue(rawClass, rawField);
             staticFieldValue.forEach(operandStack::push);
@@ -1501,7 +1605,7 @@ public class RawThread {
             RawSystem.classLinker.link(rawClass);
             RawSystem.classInitializer.initialize(rawClass);
 
-            RawField rawField = getRawStaticField(fieldRef);
+            RawField rawField = fieldRef.getRawField();
 
             JvmType jvmTypeName =
                 JvmType.findByJvmSignature(fieldRef.getNameAndType().getDescriptor().getLabel());
@@ -1518,12 +1622,17 @@ public class RawThread {
              * > objectref, value →
              * > get a field value of an object objectref,
              * */
+            if (pc == 27084) {
+              int a = 1;
+            }
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
 
+            fieldRef.resolve(constantPool);
+
             int objectId = operandStack.pop().getValue();
             RawObject object = heapManager.lookupObject(objectId);
-            RawField rawField = getRawMemberField(fieldRef);
+            RawField rawField = fieldRef.getRawField();
 
             // REFACTOR: validate if the value is suitable for the field
             var words = heapManager.getValue(object, rawField);
@@ -1547,6 +1656,8 @@ public class RawThread {
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
 
+            fieldRef.resolve(constantPool);
+
             // retrieve value to set
             JvmType jvmTypeName =
                 JvmType.findByJvmSignature(fieldRef.getNameAndType().getDescriptor().getLabel());
@@ -1556,7 +1667,7 @@ public class RawThread {
             int objectId = operandStack.pop().getValue();
             var object = RawSystem.heapManager.lookupObject(objectId);
 
-            RawField rawField = getRawMemberField(fieldRef);
+            RawField rawField = fieldRef.getRawField();
 
             // set the value into field's address
             // REFACTOR: validate if the value is suitable for the field
@@ -1566,6 +1677,46 @@ public class RawThread {
             break;
           }
         case (byte) 0xb6: // invokevirtual
+          {
+            // REFACTOR
+            var index = peekTwoBytes();
+            ConstantMethodref methodRef = (ConstantMethodref) constantPool.findByIndex(index);
+
+            methodRef.resolve(constantPool);
+            RawMethod rawMethod = methodRef.getRawMethod();
+
+            // TODO: receiver objectのclassを特定
+            boolean hasReceiver = true;
+            int numOfWordsToTransit = rawMethod.getTransitWordSize(hasReceiver);
+            Deque<Word> tmp = new ArrayDeque(numOfWordsToTransit);
+            for (int i = 0; i < numOfWordsToTransit; i++) {
+              tmp.push(operandStack.pop());
+            }
+
+            int receiverObjectId = tmp.getFirst().getValue();
+            // TODO: make rawClass field non nullable
+            RawClass receiverClass = heapManager.lookupObject(receiverObjectId).getRawClass();
+            RawMethod selectedMethod = methodAreaManager.selectMethod(receiverClass, rawMethod);
+
+            for (int i = 0; i < numOfWordsToTransit; i++) {
+              operandStack.push(tmp.pop());
+            }
+
+            var nextPc = pc + 3;
+            var hasAddedFrame = this.stackUp(selectedMethod, nextPc, numOfWordsToTransit);
+
+            if (hasAddedFrame) {
+              // Since arguments are copied to the new frame in stackUp step,
+              // arguments pushed into current frame should be removed here.
+              for (int i = 0; i < numOfWordsToTransit; i++) {
+                previousFrame().getOperandStack().pop();
+              }
+            }
+
+            // no need to update pc. pc is modified in stackUp
+            break;
+          }
+
         case (byte) 0xb7: // invokespecial
         case (byte) 0xb8: // invokestatic
           {
@@ -1574,7 +1725,7 @@ public class RawThread {
             ConstantMethodref methodRef = (ConstantMethodref) constantPool.findByIndex(index);
 
             methodRef.resolve(constantPool);
-            RawMethod rawMethod = getRawMethod(methodRef);
+            RawMethod rawMethod = methodRef.getRawMethod();
 
             boolean hasReceiver =
                 (instruction == (byte) 0xb6
@@ -1599,19 +1750,35 @@ public class RawThread {
         case (byte) 0xb9: // invokeinterface
           {
             var index = peekTwoBytes();
-            var count = methodAreaManager.lookupByte(pc + 3);
+            // count = num of args. no need to be used.
+            var _count = methodAreaManager.lookupByte(pc + 3);
             var _no_used1 = methodAreaManager.lookupByte(pc + 4);
 
             ConstantInterfaceMethodref methodRef =
                 (ConstantInterfaceMethodref) constantPool.findByIndex(index);
 
             methodRef.resolve(constantPool);
-            RawMethod rawMethod = getRawMethod(methodRef);
+            RawMethod rawMethod = methodRef.getRawMethod();
 
-            boolean hasReceiver = false;
+            // TODO: receiver objectのclassを特定
+            boolean hasReceiver = true;
             int numOfWordsToTransit = rawMethod.getTransitWordSize(hasReceiver);
-            var nextPc = pc + 3;
-            var hasAddedFrame = this.stackUp(rawMethod, nextPc, numOfWordsToTransit);
+            Deque<Word> tmp = new ArrayDeque(numOfWordsToTransit);
+            for (int i = 0; i < numOfWordsToTransit; i++) {
+              tmp.push(operandStack.pop());
+            }
+
+            int receiverObjectId = tmp.getFirst().getValue();
+            // TODO: make rawClass field non nullable
+            RawClass receiverClass = heapManager.lookupObject(receiverObjectId).getRawClass();
+            RawMethod selectedMethod = methodAreaManager.selectMethod(receiverClass, rawMethod);
+
+            for (int i = 0; i < numOfWordsToTransit; i++) {
+              operandStack.push(tmp.pop());
+            }
+
+            var nextPc = pc + 5;
+            var hasAddedFrame = this.stackUp(selectedMethod, nextPc, numOfWordsToTransit);
 
             if (hasAddedFrame) {
               // Since arguments are copied to the new frame in stackUp step,
@@ -1623,7 +1790,6 @@ public class RawThread {
 
             break;
           }
-
         case (byte) 0xba: // invokedynamic
           {
             // TODO: implementation
@@ -1728,6 +1894,8 @@ public class RawThread {
             // methodAreaManager.lookupOrLoadClass(classRef.getName().getLabel());
             int arrSize = operandStack.pop().getValue();
             int objectId = RawSystem.heapManager.registerArray(JvmType.OBJECT_REFERENCE, arrSize);
+
+            // TODO: resolve what?
 
             operandStack.push(Word.of(objectId));
 
@@ -1874,25 +2042,6 @@ public class RawThread {
           throw new RuntimeException(String.format("unrecognized instruction %x", instruction));
       }
     }
-  }
-
-  private RawMethod getRawMethod(ConstantMethodref methodRef) {
-    return methodAreaManager.lookupAllMethod(
-        methodRef.getConstantClassRef().getName().getLabel(),
-        methodRef.getNameAndType().getName().getLabel(),
-        methodRef.getNameAndType().getDescriptor().getLabel());
-  }
-
-  private RawField getRawMemberField(ConstantFieldref fieldRef) {
-    return methodAreaManager.lookupMemberField(
-        fieldRef.getConstantClassRef().getName().getLabel(),
-        fieldRef.getNameAndType().getName().getLabel());
-  }
-
-  private RawField getRawStaticField(ConstantFieldref fieldRef) {
-    return methodAreaManager.lookupStaticField(
-        fieldRef.getConstantClassRef().getName().getLabel(),
-        fieldRef.getNameAndType().getName().getLabel());
   }
 
   private int peekTwoBytes() {

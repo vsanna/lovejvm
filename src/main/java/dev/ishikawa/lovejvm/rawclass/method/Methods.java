@@ -19,6 +19,12 @@ public class Methods {
     this.methods.forEach(it -> it.setMethods(this));
   }
 
+  public Optional<RawMethod> findAllBy(String methodName, String methodDescriptor) {
+    return methods.stream()
+        .filter((method) -> method.hasSignature(methodName, methodDescriptor))
+        .findFirst();
+  }
+
   public Optional<RawMethod> findMemberBy(String methodName, String methodDescriptor) {
     return methods.stream()
         .filter((method) -> !method.isStatic())

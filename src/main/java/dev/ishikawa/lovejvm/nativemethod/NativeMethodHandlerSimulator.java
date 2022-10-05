@@ -4,6 +4,7 @@ package dev.ishikawa.lovejvm.nativemethod;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.vm.Frame;
+import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 import java.util.Objects;
@@ -19,6 +20,7 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
    */
   @Override
   public List<Word> handle(RawMethod rawMethod, Frame currentFrame) {
+    String binaryName = rawMethod.getClassBinaryName();
     String methodName = rawMethod.getName().getLabel();
     String methodDesc = rawMethod.getDescriptor().getLabel();
 
@@ -48,7 +50,19 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
         && Objects.equals(
             methodDesc,
             "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;")) {
+      // TODO
       return List.of(Word.of(-100));
+    }
+
+    if (Objects.equals(binaryName, "java/lang/Object")
+        && Objects.equals(methodName, "getClass")
+        && Objects.equals(methodDesc, "()Ljava/lang/Class;")) {
+      var v1 = currentFrame.getOperandStack().pop().getValue();
+      // TODO: array should have rawClass too
+      var classObjectReference =
+          Objects.requireNonNull(RawSystem.heapManager.lookupObject(v1).getRawClass())
+              .getClassObjectId();
+      return List.of(Word.of(classObjectReference));
     }
 
     switch (rawMethod.getReturningType()) {

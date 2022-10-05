@@ -9,11 +9,13 @@ import dev.ishikawa.lovejvm.rawclass.linterface.RawInterface;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class MethodAreaManagerImpl implements MethodAreaManager {
   // Map<String binaryName(ex: java/lang/String) to ClassEntry>
@@ -89,138 +91,154 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   }
 
   @Override
-  public RawMethod lookupAllMethod(String binaryName, String methodName, String methodDescriptor) {
-    RawClass lClass = lookupOrLoadClass(binaryName);
-
-    return lClass
-        .findStaticMethodBy(methodName, methodDescriptor)
-        .or(() -> lClass.findMemberMethodBy(methodName, methodDescriptor))
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format("Non existing method is looked up: %s", methodName)));
-  }
-
-  @Override
-  public RawMethod lookupAllMethodRecursively(
-      String binaryName, String methodName, String methodDescriptor) {
-    return helper(binaryName, methodName, methodDescriptor)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format("Non existing method is looked up: %s", methodName)));
-  }
-
-  public Optional<RawMethod> helper(String binaryName, String methodName, String methodDescriptor) {
-    RawClass rawClass = lookupOrLoadClass(binaryName);
-
-    Optional<RawMethod> rawMethodOptional =
-        rawClass
-            .findStaticMethodBy(methodName, methodDescriptor)
-            .or(() -> rawClass.findMemberMethodBy(methodName, methodDescriptor));
-
-    if (rawMethodOptional.isPresent()) {
-      return rawMethodOptional;
-    } else {
-      // if rawClass is Object -> NotFound
-      if (binaryName.equals("java/lang/Object")) {
-        return Optional.empty();
-      }
-
-      // if superInterfaces.size == 0 -> superclass
-      List<RawInterface> superInterfaces = rawClass.getInterfaces().getInterfaces();
-      if (superInterfaces.size() == 0) {
-        int a = 1;
-        return helper("java/lang/Object", methodName, methodDescriptor);
-      }
-
-      for (RawInterface rawInterface : rawClass.getInterfaces().getInterfaces()) {
-        // TODO: broad search instead of depth search
-        var result =
-            helper(
-                rawInterface.getConstantClassRef().getName().getLabel(),
-                methodName,
-                methodDescriptor);
-        if (result.isPresent()) {
-          return result;
-        }
-      }
-
-      return Optional.empty();
+  public RawMethod selectMethod(RawClass startingClass, RawMethod targetMethod) {
+    if (targetMethod.isPrivate()) {
+      return targetMethod;
     }
+
+    return startingClass
+        .getMethods()
+        .findAllBy(targetMethod.getName().getLabel(), targetMethod.getDescriptor().getLabel())
+        .or(() -> aHelper(startingClass, targetMethod))
+        .or(
+            () -> {
+              List<RawMethod> mssMethods =
+                  lookupMaximallySpecificSuperinterfaceMethods(
+                          startingClass.getBinaryName(),
+                          targetMethod.getName().getLabel(),
+                          targetMethod.getDescriptor().getLabel())
+                      .stream()
+                      .filter(it -> !it.isAbstract())
+                      .collect(Collectors.toList());
+              if (mssMethods.size() == 1) {
+                return mssMethods.stream().findFirst();
+              } else {
+                return Optional.empty();
+              }
+            })
+        .orElseThrow(
+            () ->
+                new RuntimeException(
+                    String.format(
+                        "method selection failed. %s, %s, %s",
+                        startingClass.getBinaryName(),
+                        targetMethod.getName().getLabel(),
+                        targetMethod.getDescriptor().getLabel())));
   }
 
-  @Override
-  public RawMethod lookupStaticMethod(
-      String binaryName, String methodName, String methodDescriptor) {
-    RawClass lClass = lookupOrLoadClass(binaryName);
-    // TODO: lookup recursively
+  public Optional<RawMethod> aHelper(RawClass rawClass, RawMethod targetMethod) {
+    return rawClass
+        .getMethods()
+        .findAllBy(targetMethod.getName().getLabel(), targetMethod.getDescriptor().getLabel())
+        .or(
+            () ->
+                Optional.ofNullable(rawClass.getSuperClass())
+                    .flatMap(it -> lookupClass(it.getName().getLabel()))
+                    .flatMap(it -> aHelper(it, targetMethod)));
+  }
 
-    return lClass
-        .findStaticMethodBy(methodName, methodDescriptor)
-        .orElseThrow(
+  /**
+   * mainly for ConstMethodRef resolution
+   * */
+  @Override
+  public List<RawMethod> lookupMaximallySpecificSuperinterfaceMethods(
+      String binaryName, String methodName, String methodDescriptor) {
+    RawClass rawClass =
+        lookupClass(binaryName)
+            .orElseThrow(
+                () ->
+                    new RuntimeException(
+                        String.format("Non existing class is looked up methods. %s", binaryName)));
+    return rawClass.getInterfaces().getInterfaces().stream()
+        .map(
+            it ->
+                lookupMaximallySpecificSuperinterfaceMethodsHelper(
+                    it, methodName, methodDescriptor))
+        .flatMap(Collection::stream)
+        .collect(Collectors.toList());
+  }
+
+  private List<RawMethod> lookupMaximallySpecificSuperinterfaceMethodsHelper(
+      RawInterface aInterface, String methodName, String methodDescriptor) {
+    RawClass rawClass = lookupOrLoadClass(aInterface.getConstantClassRef().getName().getLabel());
+    var methods =
+        rawClass.getInterfaces().getInterfaces().stream()
+            .map(
+                aaInterface ->
+                    lookupMaximallySpecificSuperinterfaceMethodsHelper(
+                        aaInterface, methodName, methodDescriptor))
+            .flatMap(Collection::stream)
+            .filter(RawMethod::isPublic)
+            .collect(Collectors.toList());
+
+    rawClass
+        .findMemberMethodBy(methodName, methodDescriptor)
+        .filter(RawMethod::isPublic)
+        .ifPresent(methods::add);
+
+    return methods;
+  }
+
+  /**
+   * 親をたどっていく. 実際のmethodを探す工程
+   * mainly for ConstMethodRef resolution
+   * */
+  @Override
+  public Optional<RawMethod> lookupAllMethodRecursively(
+      String binaryName, String methodName, String methodDescriptor) {
+    RawClass targetClass = RawSystem.methodAreaManager.lookupOrLoadClass(binaryName);
+
+    return targetClass
+        .findPolymorphicMethod(methodName, methodDescriptor)
+        .map(
+            it -> {
+              // TODO: if polymorphic method is found,
+              //  classes in the descriptor should be resolved.
+              return it;
+            })
+        .or(() -> targetClass.findAllMethodBy(methodName, methodDescriptor))
+        .or(
+            () ->
+                Optional.ofNullable(targetClass.getSuperClass())
+                    .flatMap(
+                        superClass ->
+                            lookupAllMethodRecursively(
+                                superClass.getName().getLabel(), methodName, methodDescriptor)));
+  }
+
+  /**
+   *
+   * mainly for ConstMethodRef resolution
+   * */
+  @Override
+  public Optional<RawField> lookupAllInterfaceFieldRecursively(
+      String binaryName, String fieldName) {
+    RawClass targetClass = RawSystem.methodAreaManager.lookupOrLoadClass(binaryName);
+
+    return targetClass
+        .findAllFieldBy(fieldName)
+        .or(
             () -> {
-              String c = binaryName;
-              String a = methodName;
-              String b = methodDescriptor;
-              int d = 1;
-              return new RuntimeException(
-                  String.format("Non existing method is looked up: %s", methodName));
+              return targetClass.getInterfaces().getInterfaces().stream()
+                  .map(
+                      aInterface ->
+                          lookupAllInterfaceFieldRecursively(
+                              aInterface.getConstantClassRef().getName().getLabel(), fieldName))
+                  .flatMap(Optional::stream)
+                  .findFirst();
             });
   }
 
   @Override
-  public RawMethod lookupMemberMethod(
-      String binaryName, String methodName, String methodDescriptor) {
-    RawClass lClass = lookupOrLoadClass(binaryName);
-    // TODO: lookup recursively
+  public Optional<RawField> lookupAllFieldRecursively(String binaryName, String fieldName) {
+    RawClass rawClass = lookupOrLoadClass(binaryName);
 
-    return lClass
-        .findMemberMethodBy(methodName, methodDescriptor)
-        .orElseThrow(
+    return rawClass
+        .findAllFieldBy(fieldName)
+        .or(
             () ->
-                new RuntimeException(
-                    String.format("Non existing method is looked up: %s", methodName)));
-  }
-
-  @Override
-  public RawField lookupAllField(String binaryName, String fieldName) {
-    RawClass lClass = lookupOrLoadClass(binaryName);
-    // TODO: lookup recursively.
-
-    return lClass
-        .findStaticFieldBy(fieldName)
-        .or(() -> lClass.findMemberFieldBy(fieldName))
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format("Non existing field is looked up: %s", fieldName)));
-  }
-
-  @Override
-  public RawField lookupStaticField(String binaryName, String fieldName) {
-    RawClass lClass = lookupOrLoadClass(binaryName);
-    // TODO: lookup recursively.
-
-    return lClass
-        .findStaticFieldBy(fieldName)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format("Non existing field is looked up: %s", fieldName)));
-  }
-
-  @Override
-  public RawField lookupMemberField(String binaryName, String fieldName) {
-    RawClass lClass = lookupOrLoadClass(binaryName);
-    // TODO: lookup recursively.
-
-    return lClass
-        .findMemberFieldBy(fieldName)
-        .orElseThrow(
-            () ->
-                new RuntimeException(
-                    String.format("Non existing field is looked up: %s", fieldName)));
+                Optional.ofNullable(rawClass.getSuperClass())
+                    .flatMap(it -> lookupAllFieldRecursively(it.getName().getLabel(), fieldName)));
   }
 
   @Override

@@ -3,6 +3,6 @@ class BasicClass {
     static private int ii = 100;
 
     static public void main() {
-        int a = RichClass.ii + 1;
+        int a = BasicClass.ii + 1;
     }
 }

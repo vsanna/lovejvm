@@ -1,3 +1,5 @@
+package dev.ishikawa.test;
+
 class Recursive2 {
     static public void main() {
 //        fibonacchi(10);  // 55

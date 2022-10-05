@@ -2,6 +2,7 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
+import dev.ishikawa.lovejvm.rawclass.field.RawField;
 
 public class ConstantFieldref extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
   private final int classIndex; // 2bytes
@@ -10,7 +11,9 @@ public class ConstantFieldref extends ConstantPoolResolvableEntry implements Con
 
   private final int nameAndTypeIndex; // 2byte
   private ConstantNameAndType nameAndType;
-  private int fieldObjectId;
+
+  // as a chace of resolving
+  private RawField rawField;
 
   public ConstantFieldref(int classIndex, int nameAndTypeIndex) {
     this.classIndex = classIndex;
@@ -56,13 +59,12 @@ public class ConstantFieldref extends ConstantPoolResolvableEntry implements Con
     this.nameAndType = nameAndType;
   }
 
-  public int getFieldObjectId() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
-    return fieldObjectId;
+  public RawField getRawField() {
+    return rawField;
   }
 
-  public void setFieldObjectId(int fieldObjectId) {
-    this.fieldObjectId = fieldObjectId;
+  public void setRawField(RawField rawField) {
+    this.rawField = rawField;
   }
 
   @Override

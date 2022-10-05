@@ -1,3 +1,5 @@
+package dev.ishikawa.test;
+
 class Recursive {
     static public void main() {
         recursive(1);

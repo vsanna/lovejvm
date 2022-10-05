@@ -1,6 +1,8 @@
 package dev.ishikawa.lovejvm;
 
 
+import dev.ishikawa.lovejvm.memory.heap.HeapManagerImpl;
+import dev.ishikawa.lovejvm.memory.methodarea.MethodAreaManagerImpl;
 import dev.ishikawa.lovejvm.option.Options;
 import dev.ishikawa.lovejvm.option.OptionsParser;
 import dev.ishikawa.lovejvm.rawclass.RawClass;
@@ -19,8 +21,8 @@ public class LoveJVM {
       LoveJVM jvm = new LoveJVM(options);
       jvm.run();
     } catch (Exception ex) {
-      //      HeapManagerImpl.INSTANCE.dump();
-      //      MethodAreaManagerImpl.INSTANCE.dump();
+      HeapManagerImpl.INSTANCE.dump();
+      MethodAreaManagerImpl.INSTANCE.dump();
       throw ex;
     }
   }

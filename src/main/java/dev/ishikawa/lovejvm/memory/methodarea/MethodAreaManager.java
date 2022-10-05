@@ -32,20 +32,48 @@ public interface MethodAreaManager {
   /** @return the starting address of the give class */
   int lookupStaticAreaAddress(RawClass rawClass);
 
-  RawMethod lookupAllMethod(String binaryName, String methodName, String methodDescriptor);
+  /**
+   * 5.4.6. Method Selection During execution of an invokeinterface or invokevirtual
+   * instruction, a method is selected with respect to (i) the run-time type of the object
+   * on the stack, and (ii) a method that was previously resolved by the instruction. The
+   * rules to select a method with respect to a class or interface C and a method mR are
+   * as follows:
+   *
+   * <p>If mR is marked ACC_PRIVATE, then it is the selected method.
+   *
+   * <p>Otherwise, the selected method is determined by the following lookup procedure:
+   *
+   * <p>If C contains a declaration of an instance method m that can override mR (§5.4.5),
+   * then m is the selected method.
+   *
+   * <p>Otherwise, if C has a superclass, a search for a declaration of an instance method
+   * that can override mR is performed, starting with the direct superclass of C and
+   * continuing with the direct superclass of that class, and so forth, until a method is
+   * found or no further superclasses exist. If a method is found, it is the selected
+   * method.
+   *
+   * <p>Otherwise, the maximally-specific superinterface methods of C are determined
+   * (§5.4.3.3). If exactly one matches mR's name and descriptor and is not abstract, then
+   * it is the selected method.
+   *
+   * <p>Any maximally-specific superinterface method selected in this step can override
+   * mR; there is no need to check this explicitly.
+   *
+   * <p>While C will typically be a class, it may be an interface when these rules are
+   * applied during preparation (§5.4.2).
+   */
+  RawMethod selectMethod(RawClass startingClass, RawMethod targetMethod);
 
-  RawMethod lookupAllMethodRecursively(
+  List<RawMethod> lookupMaximallySpecificSuperinterfaceMethods(
       String binaryName, String methodName, String methodDescriptor);
 
-  RawMethod lookupStaticMethod(String binaryName, String methodName, String methodDescriptor);
+  Optional<RawMethod> lookupAllMethodRecursively(
+      String binaryName, String methodName, String methodDescriptor);
 
-  RawMethod lookupMemberMethod(String binaryName, String methodName, String methodDescriptor);
+  Optional<RawField> lookupAllInterfaceFieldRecursively(String binaryName, String methodName);
 
-  RawField lookupAllField(String binaryName, String fieldName);
+  Optional<RawField> lookupAllFieldRecursively(String binaryName, String fieldName);
 
-  RawField lookupMemberField(String binaryName, String fieldName);
-
-  RawField lookupStaticField(String binaryName, String fieldName);
   /**
    * getStaticFieldValue calculates offset to the field space in MethodArea(static area) and then
    * get the value

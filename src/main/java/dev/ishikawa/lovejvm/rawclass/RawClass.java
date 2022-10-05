@@ -213,12 +213,26 @@ public class RawClass {
 
   ///////////
 
+  public Optional<RawMethod> findPolymorphicMethod(String methodName, String methodDescriptor) {
+    // TODO: impl
+    // https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-5.html#jvms-5.4.3.3
+    return Optional.empty();
+  }
+
+  public Optional<RawMethod> findAllMethodBy(String methodName, String methodDescriptor) {
+    return getMethods().findAllBy(methodName, methodDescriptor);
+  }
+
   public Optional<RawMethod> findMemberMethodBy(String methodName, String methodDescriptor) {
     return getMethods().findMemberBy(methodName, methodDescriptor);
   }
 
   public Optional<RawMethod> findStaticMethodBy(String methodName, String methodDescriptor) {
     return getMethods().findStaticBy(methodName, methodDescriptor);
+  }
+
+  public Optional<RawField> findAllFieldBy(String fieldName) {
+    return getFields().findAllBy(fieldName);
   }
 
   public Optional<RawField> findMemberFieldBy(String fieldName) {

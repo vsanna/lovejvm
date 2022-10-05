@@ -16,3 +16,7 @@ javac --module java.base -d path/to/this/project/standardlibs --module-source-pa
   - bootstraploader
   - heapmanagerのrefactor
   - methodareaのrefactor
+
+System.outがnull
+setOutで値が入る
+ただしそれはinitPhase1で呼ばれるものの、initPhase1がどこで呼ばれるかは不明

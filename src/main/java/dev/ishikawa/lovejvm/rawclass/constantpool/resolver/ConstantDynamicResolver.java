@@ -6,6 +6,8 @@ import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMet
 import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantDynamic;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodHandle;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantNameAndType;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPoolLoadableEntry;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.RawSystem;
@@ -18,7 +20,9 @@ public class ConstantDynamicResolver implements Resolver<ConstantDynamic> {
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantDynamic entry) {
-    // TODO:
+    entry.setNameAndType(
+        (ConstantNameAndType) constantPool.findByIndex(entry.getNameAndTypeIndex()));
+
     // 1. bootstrapMethodAttrIndexをもとに、RawClassのattrsにあるBootstrapMethods からentryを取得
     LAttrBootstrapMethod bootstrapMethod =
         constantPool.getRawClass().getAttrs().findAllBy(AttrName.BOOTSTRAP_METHODS).stream()
@@ -37,8 +41,11 @@ public class ConstantDynamicResolver implements Resolver<ConstantDynamic> {
                   return ((ConstantPoolLoadableEntry) it).loadableValue();
                 })
             .collect(Collectors.toList());
-    RawObject methodRef =
-        RawSystem.heapManager.lookupObject(bootstrapMethod.getBootstrapMethodRef().getObjectId());
+
+    ConstantMethodHandle bootstrapMethodRef = bootstrapMethod.getBootstrapMethodRef();
+    bootstrapMethodRef.resolve(constantPool);
+
+    RawObject methodRef = RawSystem.heapManager.lookupObject(bootstrapMethodRef.getObjectId());
 
     // 3. execute the bootstrap method
     // java.lang.invoke.MethodRefからRawMethodを作る

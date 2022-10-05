@@ -14,6 +14,17 @@ import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * InvokeDynamic is used for lambda.
+ * Java compiler translate each lambda functions as statci methods first.
+ * And then, it invokes those lambdas by utilizing ConstantInvokeDynamicResolver
+ *
+ * once the bootstrap method completes, it returns an instance of CallSite.
+ * It contains a pointer to actual logic. This is represented as a MethodHandle
+ * It also
+ *
+ * ref: https://www.baeldung.com/java-invoke-dynamic
+ * */
 public class ConstantInvokeDynamicResolver implements Resolver<ConstantInvokeDynamic> {
   @Override
   public void resolve(ConstantPool constantPool, ConstantInvokeDynamic entry) {

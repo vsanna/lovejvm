@@ -40,6 +40,9 @@ public class ResolverService implements Resolver<ConstantPoolEntry> {
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantPoolEntry entry) {
+    if (entry.isResolved()) {
+      return;
+    }
     getResolver(entry).resolve(constantPool, entry);
   }
 

@@ -42,22 +42,15 @@ public class Options {
           // REFACTOR: this should throw exception when entry class is not given
           Optional.ofNullable(entryClass)
               .orElse(
-                  //
-                  // "guest/out/Add.class"
-                  //
-                  // "guest/out/ForLoop.class"
-                  //
-                  // "guest/out/Recursive.class"
-                  //
-                  // "guest/out/Recursive2.class"
-                  //                  "guest/out/RichClass.class"
-                  //
-                  // "guest/out/RichClass2.class"
-                  //
-                  //                   "guest/out/dev/ishikawa/test/InstanceNew.class"
-                  //
-                  // "guest/out/dev/ishikawa/test/InstanceNew2.class"
-                  "guest/out/dev/ishikawa/test/SystemOut.class"),
+//                  "guest/out/Add.class"
+//                                     "guest/out/ForLoop.class"
+//                                     "guest/out/dev/ishikawa/test/Recursive.class"
+//                                     "guest/out/dev/ishikawa/test/Recursive2.class"
+//                  "guest/out/BasicClass.class"
+//                                    "guest/out/dev/ishikawa/test/InstanceNew.class"
+//                                    "guest/out/dev/ishikawa/test/InstanceNew2.class"
+                                    "guest/out/dev/ishikawa/test/SystemOut.class"
+                  ),
           Optional.ofNullable(logLevel).orElse(LogLevel.INFO));
     }
   }

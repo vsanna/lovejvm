@@ -6,11 +6,12 @@ import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 
 /**
- * CONSTANT_Dynamic_info は動的にconstantを計算する. bootstrap methodを実行することで得られる値がそのconstantの値
- * ldcでtriggerされる nameAndTypeはそのconstantのフィールド名/型名を表現する
+ * CONSTANT_Dynamic_info
+ * While resolving this entry, JVM computes its const value dynamically.
+ * To compute the value, JVM invokes "bootstrap method.
+ * NameAndType express this value's field name and type.
  *
- * <p>LoadableEntity's type is not static, so specifying Integer = bit arrays @SEE <a
- * href="https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-4.html#jvms-4.4.10">jvm spec</a>
+ * bootstrapMethodAttrIndex specifies the item in THIS CLASS's bootstrap method.
  */
 public class ConstantDynamic extends ConstantPoolResolvableEntry
     implements ConstantPoolEntry, ConstantPoolLoadableEntry {

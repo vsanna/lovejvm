@@ -2,15 +2,26 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
+import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 
+/**
+ * ConstantMethodref is a tuple of {className, name, descriptor}
+ * ConstantMethodref itself is the key to identify what method to use.
+ *
+ * This is not loadable, so no extra value is put when resolving this entry.
+ *
+ * While resolving this entry, related other entries will be also resolved(ConstantClass)
+ * */
 public class ConstantMethodref extends ConstantPoolResolvableEntry implements ConstantPoolEntry {
   private final int classIndex; // 2bytes
   private ConstantClass constantClassRef;
-  private int classObjectId;
+  private int classObjectId; // TODO: maybe not needed
 
   private final int nameAndTypeIndex; // 2byte
-  private ConstantNameAndType nameAndType;
-  private int methodObjectId;
+  private ConstantNameAndType nameAndType; // TODO: maybe not needed
+
+  // as a cache to avoid resolving ConstaMethodref/ConstInterfaceMethodref everytime
+  private RawMethod rawMethod;
 
   public ConstantMethodref(int classIndex, int nameAndTypeIndex) {
     this.classIndex = classIndex;
@@ -36,11 +47,6 @@ public class ConstantMethodref extends ConstantPoolResolvableEntry implements Co
     return classObjectId;
   }
 
-  public int getMethodObjectId() {
-    if (!isResolved()) throw new RuntimeException("not resolved yet");
-    return methodObjectId;
-  }
-
   public int getClassIndex() {
     return classIndex;
   }
@@ -61,8 +67,12 @@ public class ConstantMethodref extends ConstantPoolResolvableEntry implements Co
     this.nameAndType = nameAndType;
   }
 
-  public void setMethodObjectId(int methodObjectId) {
-    this.methodObjectId = methodObjectId;
+  public RawMethod getRawMethod() {
+    return rawMethod;
+  }
+
+  public void setRawMethod(RawMethod rawMethod) {
+    this.rawMethod = rawMethod;
   }
 
   @Override
