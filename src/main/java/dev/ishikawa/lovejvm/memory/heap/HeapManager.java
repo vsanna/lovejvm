@@ -3,7 +3,6 @@ package dev.ishikawa.lovejvm.memory.heap;
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
-import dev.ishikawa.lovejvm.rawclass.type.JvmType;
 import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.Word;

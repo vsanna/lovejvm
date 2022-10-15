@@ -1,6 +1,5 @@
 package dev.ishikawa.lovejvm.rawclass.type;
 
-
 import static dev.ishikawa.lovejvm.rawclass.RawClass.ClassObjectStatus.INITIALIZED;
 import static dev.ishikawa.lovejvm.rawclass.type.JvmType.primaryTypes;
 
@@ -132,12 +131,14 @@ public class RawArrayClass extends RawClass {
 
   @Override
   public ConstantClass getThisClass() {
-    throw new UnsupportedOperationException("RawArrayClass doesn't have thisClass constantPool entry");
+    throw new UnsupportedOperationException(
+        "RawArrayClass doesn't have thisClass constantPool entry");
   }
 
   @Override
   public @Nullable ConstantClass getSuperClass() {
-    throw new UnsupportedOperationException("RawArrayClass doesn't have superClass constantPool entry");
+    throw new UnsupportedOperationException(
+        "RawArrayClass doesn't have superClass constantPool entry");
   }
 
   @Override
@@ -237,17 +238,20 @@ public class RawArrayClass extends RawClass {
 
   @Override
   public int offsetToMemberFieldBytes(RawField rawField) {
-    throw new UnsupportedOperationException("RawArrayClass doesn't support offsetToMemberFieldBytes");
+    throw new UnsupportedOperationException(
+        "RawArrayClass doesn't support offsetToMemberFieldBytes");
   }
 
   @Override
   public int offsetBytesToStaticArea() {
-    throw new UnsupportedOperationException("RawArrayClass doesn't support offsetBytesToStaticArea");
+    throw new UnsupportedOperationException(
+        "RawArrayClass doesn't support offsetBytesToStaticArea");
   }
 
   @Override
   public int offsetBytesToStaticField(RawField rawField) {
-    throw new UnsupportedOperationException("RawArrayClass doesn't support offsetBytesToStaticField");
+    throw new UnsupportedOperationException(
+        "RawArrayClass doesn't support offsetBytesToStaticField");
   }
 
   @Override
@@ -267,31 +271,36 @@ public class RawArrayClass extends RawClass {
 
   // TODO: this should be in MethodAreaManager
   public static RawArrayClass lookupOrCreateRawArrayClass(String binaryName) {
-    return RawSystem.methodAreaManager.lookupClass(binaryName)
-        .map(it -> (RawArrayClass)it)
-        .orElseGet(() -> {
-          // 先頭の[の個数を数える = dimension
-          // それを除いた残り = primary or complex の binaryNameのはず
-          int dimension = 0;
-          for (int i = 0; i < binaryName.toCharArray().length; i++) {
-            if(binaryName.toCharArray()[i] == '[') {
-              dimension += 1;
-            } else {
-              break;
-            }
-          }
+    return RawSystem.methodAreaManager
+        .lookupClass(binaryName)
+        .map(it -> (RawArrayClass) it)
+        .orElseGet(
+            () -> {
+              // 先頭の[の個数を数える = dimension
+              // それを除いた残り = primary or complex の binaryNameのはず
+              int dimension = 0;
+              for (int i = 0; i < binaryName.toCharArray().length; i++) {
+                if (binaryName.toCharArray()[i] == '[') {
+                  dimension += 1;
+                } else {
+                  break;
+                }
+              }
 
-          String elementTypeBinaryName = binaryName.substring(dimension);
-          // elementTypeBinaryNameの先頭がJvmTypeのprimaryを示すなら
-          JvmType jvmSignature = JvmType.findByJvmSignature(elementTypeBinaryName.substring(0, 1));
-          if (primaryTypes.contains(jvmSignature)) {
-            return lookupOrCreatePrimaryRawArrayClass(jvmSignature, dimension);
-          } else {
-            // omit the heading 'L', and trailing ';'
-            var elementRawClass = RawSystem.methodAreaManager.lookupOrLoadClass(elementTypeBinaryName.substring(1, elementTypeBinaryName.length()-1));
-            return lookupOrCreateComplexRawArrayClass(elementRawClass, dimension);
-          }
-        });
+              String elementTypeBinaryName = binaryName.substring(dimension);
+              // elementTypeBinaryNameの先頭がJvmTypeのprimaryを示すなら
+              JvmType jvmSignature =
+                  JvmType.findByJvmSignature(elementTypeBinaryName.substring(0, 1));
+              if (primaryTypes.contains(jvmSignature)) {
+                return lookupOrCreatePrimaryRawArrayClass(jvmSignature, dimension);
+              } else {
+                // omit the heading 'L', and trailing ';'
+                var elementRawClass =
+                    RawSystem.methodAreaManager.lookupOrLoadClass(
+                        elementTypeBinaryName.substring(1, elementTypeBinaryName.length() - 1));
+                return lookupOrCreateComplexRawArrayClass(elementRawClass, dimension);
+              }
+            });
   }
 
   // TODO: this should be in MethodAreaManager
@@ -300,17 +309,18 @@ public class RawArrayClass extends RawClass {
       throw new IllegalArgumentException(String.format("%s is not primary type", jvmType));
     }
     String binaryName = "[".repeat(dimension) + jvmType.getJvmSignature();
-    return RawSystem.methodAreaManager.lookupClass(binaryName)
-        .map(it -> (RawArrayClass)it)
+    return RawSystem.methodAreaManager
+        .lookupClass(binaryName)
+        .map(it -> (RawArrayClass) it)
         .orElseGet(() -> createRawArrayClass(binaryName, null, jvmType, dimension));
-
   }
 
   // TODO: this should be in MethodAreaManager
   public static RawArrayClass lookupOrCreateComplexRawArrayClass(RawClass rawClass, int dimension) {
     String binaryName = "[".repeat(dimension) + rawClass.getBinaryName();
-    return RawSystem.methodAreaManager.lookupClass(binaryName)
-        .map(it -> (RawArrayClass)it)
+    return RawSystem.methodAreaManager
+        .lookupClass(binaryName)
+        .map(it -> (RawArrayClass) it)
         .orElseGet(() -> createRawArrayClass(binaryName, rawClass, null, dimension));
   }
 
@@ -319,7 +329,14 @@ public class RawArrayClass extends RawClass {
       @Nullable RawClass componentComplexClass,
       @Nullable JvmType componentPrimaryType,
       int dimension) {
-    var rawArrayClass = new RawArrayClass(binaryName, binaryName, binaryName, componentComplexClass, componentPrimaryType, dimension);
+    var rawArrayClass =
+        new RawArrayClass(
+            binaryName,
+            binaryName,
+            binaryName,
+            componentComplexClass,
+            componentPrimaryType,
+            dimension);
     RawSystem.methodAreaManager.registerArrayClass(rawArrayClass);
     RawObject classObject = RawSystem.heapManager.createClassObject(rawArrayClass);
     rawArrayClass.setClassObjectId(classObject.getObjectId());

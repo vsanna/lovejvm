@@ -10,7 +10,6 @@ import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.linterface.Interfaces;
 import dev.ishikawa.lovejvm.rawclass.method.Methods;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
-import dev.ishikawa.lovejvm.rawclass.parser.RawClassParser;
 import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
@@ -54,7 +53,7 @@ public class RawClass {
 
     // REFACTOR: make here better style
     this.constantPool = constantPool;
-    if(!Objects.isNull(constantPool)) {
+    if (!Objects.isNull(constantPool)) {
       this.constantPool.setRawClass(this);
       this.constantPool.shakeOut();
     }
@@ -62,22 +61,22 @@ public class RawClass {
     this.accessFlag = accessFlag;
     this.thisClass = thisClass;
 
-//    if (superClass == null
-//        && !Objects.equals(
-//            thisClass.getName().getLabel(), RawClassParser.OBJECT_CLASS_BINARY_NAME)) {
-//      throw new RuntimeException("super class is missing");
-//    }
+    //    if (superClass == null
+    //        && !Objects.equals(
+    //            thisClass.getName().getLabel(), RawClassParser.OBJECT_CLASS_BINARY_NAME)) {
+    //      throw new RuntimeException("super class is missing");
+    //    }
     this.superClass = superClass;
 
     this.interfaces = interfaces;
 
     this.fields = fields;
-    if(!Objects.isNull(fields)) {
+    if (!Objects.isNull(fields)) {
       this.fields.setRawClass(this);
     }
 
     this.methods = methods;
-    if(!Objects.isNull(methods)) {
+    if (!Objects.isNull(methods)) {
       this.methods.setRawClass(this);
     }
 
@@ -336,15 +335,16 @@ public class RawClass {
   }
 
   public boolean isCastableTo(RawClass castToClass) {
-    if(this.getBinaryName().equals(castToClass.getBinaryName())) return true;
+    if (this.getBinaryName().equals(castToClass.getBinaryName())) return true;
 
-    var isCastableInSuperClasses = getRawSuperClass()
-        .map(it -> it.isCastableTo(castToClass)).orElse(false);
+    var isCastableInSuperClasses =
+        getRawSuperClass().map(it -> it.isCastableTo(castToClass)).orElse(false);
 
-    if(isCastableInSuperClasses) return true;
+    if (isCastableInSuperClasses) return true;
 
     return this.getInterfaces().getInterfaces().stream()
-            .anyMatch(it -> {
+        .anyMatch(
+            it -> {
               return RawSystem.methodAreaManager
                   .lookupClass(it.getConstantClassRef())
                   .isCastableTo(castToClass);

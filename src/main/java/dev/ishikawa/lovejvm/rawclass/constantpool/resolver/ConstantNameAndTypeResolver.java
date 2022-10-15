@@ -10,7 +10,8 @@ public class ConstantNameAndTypeResolver implements Resolver<ConstantNameAndType
   @Override
   public void resolve(ConstantPool constantPool, ConstantNameAndType entry) {
     entry.setNameStringObjectId(RawSystem.stringPool.getOrCreate(entry.getName().getLabel()));
-    entry.setDescriptorStringObjectId(RawSystem.stringPool.getOrCreate(entry.getDescriptor().getLabel()));
+    entry.setDescriptorStringObjectId(
+        RawSystem.stringPool.getOrCreate(entry.getDescriptor().getLabel()));
     entry.setResolved(true);
   }
 }

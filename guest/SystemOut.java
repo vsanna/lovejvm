@@ -1,15 +1,18 @@
 package dev.ishikawa.test;
 
-import java.io.*;
+import java.util.Properties;
+import java.io.PrintStream;
+import java.io.FileNotFoundException;
 
 class SystemOut {
     static public void main() {
         try {
-            FileOutputStream outStream = new FileOutputStream("./output.txt");
-            PrintStream printStream = new PrintStream(outStream);
-            System.setOut(printStream);
+            // 今の問題 = System.getPropertyがnull返すこと
+            System.setProperties(new Properties());
+            System.setOut(new PrintStream("dummy"));
             System.out.println("hello");
-        } catch(IOException ex) {
+        } catch (FileNotFoundException ex) {
+
         }
     }
 }

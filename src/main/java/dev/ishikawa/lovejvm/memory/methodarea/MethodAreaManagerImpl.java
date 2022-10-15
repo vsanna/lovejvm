@@ -56,7 +56,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
     classMap.put(rawArrayClass.getBinaryName(), new ClassEntry(startingAddress, rawArrayClass));
 
     // consume only 1 byte for the arrayClass
-    byte[] bytes = new byte[]{0};
+    byte[] bytes = new byte[] {0};
     methodArea.allocate(bytes);
   }
 
@@ -208,12 +208,15 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
               return it;
             })
         .or(() -> targetClass.findAllMethodBy(methodName, methodDescriptor))
-        .or(() -> {
-          return targetClass.getRawSuperClass()
-              .flatMap(superClass -> lookupAllMethodRecursively(
-                  superClass.getBinaryName(), methodName, methodDescriptor
-              ));
-        });
+        .or(
+            () -> {
+              return targetClass
+                  .getRawSuperClass()
+                  .flatMap(
+                      superClass ->
+                          lookupAllMethodRecursively(
+                              superClass.getBinaryName(), methodName, methodDescriptor));
+            });
   }
 
   /**
@@ -245,8 +248,11 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
 
     return rawClass
         .findAllFieldBy(fieldName)
-        .or(() -> rawClass.getRawSuperClass()
-            .flatMap(it -> lookupAllFieldRecursively(it.getBinaryName(), fieldName)));
+        .or(
+            () ->
+                rawClass
+                    .getRawSuperClass()
+                    .flatMap(it -> lookupAllFieldRecursively(it.getBinaryName(), fieldName)));
   }
 
   @Override
@@ -280,13 +286,14 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   public RawClass lookupOrLoadClass(String binaryName) {
     return Optional.ofNullable(classMap.get(binaryName))
         .map(it -> it.rawClass)
-        .orElseGet(() -> {
-          if(binaryName.startsWith("[")) {
-            return RawArrayClass.lookupOrCreateRawArrayClass(binaryName);
-          } else {
-            return RawSystem.bootstrapLoader.loadByBinaryName(binaryName);
-          }
-        });
+        .orElseGet(
+            () -> {
+              if (binaryName.startsWith("[")) {
+                return RawArrayClass.lookupOrCreateRawArrayClass(binaryName);
+              } else {
+                return RawSystem.bootstrapLoader.loadByBinaryName(binaryName);
+              }
+            });
   }
 
   @Override

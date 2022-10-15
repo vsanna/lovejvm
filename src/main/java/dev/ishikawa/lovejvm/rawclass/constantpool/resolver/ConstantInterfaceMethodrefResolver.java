@@ -7,7 +7,6 @@ import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantInterfaceMethod
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import java.util.ArrayList;
-import java.util.Objects;
 import java.util.Optional;
 
 /**

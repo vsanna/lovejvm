@@ -61,7 +61,7 @@ public class StringPoolSimulator implements StringPool {
     return objectId;
   }
 
-  private static final String STRING_CLASS_LABEL = "java/lang/String";
+  public static final String STRING_CLASS_LABEL = "java/lang/String";
 
   public static final StringPool INSTANCE = new StringPoolSimulator();
 }

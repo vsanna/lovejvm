@@ -166,3 +166,6 @@ gradle-app.setting
 
 # java standard libs
 standardlibs/
+libs/custom/java.base
+libs/original
+

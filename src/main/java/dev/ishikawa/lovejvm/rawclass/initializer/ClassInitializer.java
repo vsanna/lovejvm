@@ -25,7 +25,7 @@ public class ClassInitializer {
   private ClassInitializer() {}
 
   public void initialize(RawClass targetClass) {
-    if(targetClass instanceof RawArrayClass) return;
+    if (targetClass instanceof RawArrayClass) return;
 
     // 0. check class object status
     // TODO: get lock;

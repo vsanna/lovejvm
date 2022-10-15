@@ -173,12 +173,12 @@ public class AttrParser {
           return new AttrDeprecated(attrName, dataLength);
         }
       case ENCLOSING_METHOD:
-      {
-        var classIndex = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
-        var methodIndex = ByteUtil.concatToShort(bytecode[pointer + 2], bytecode[pointer + 3]);
-        return new AttrEnclosingMethod(attrName, dataLength,
-            new AttrEnclosingMethodBody(classIndex, methodIndex));
-      }
+        {
+          var classIndex = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
+          var methodIndex = ByteUtil.concatToShort(bytecode[pointer + 2], bytecode[pointer + 3]);
+          return new AttrEnclosingMethod(
+              attrName, dataLength, new AttrEnclosingMethodBody(classIndex, methodIndex));
+        }
       case SIGNATURE:
         {
           var signatureIndex = bytecode[pointer];

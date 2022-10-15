@@ -26,7 +26,7 @@ public class ClassLinker {
   private ClassLinker() {}
 
   public void link(RawClass targetClass) {
-    if(targetClass instanceof RawArrayClass) return;
+    if (targetClass instanceof RawArrayClass) return;
 
     if (RawSystem.methodAreaManager.lookupClass(targetClass.getBinaryName()).isEmpty()) {
       throw new RuntimeException(

@@ -92,5 +92,6 @@ public enum JvmType {
   // when reference value(32bit) is 0, it is considered as null
   public static int NULL = 0;
 
-  public static final Set<JvmType> primaryTypes = Set.of(BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, BOOLEAN, CHAR);
+  public static final Set<JvmType> primaryTypes =
+      Set.of(BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, BOOLEAN, CHAR);
 }

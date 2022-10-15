@@ -20,8 +20,6 @@ public class LoveJVM {
       Options options = OptionsParser.parse(args);
       LoveJVM jvm = new LoveJVM(options);
       jvm.run();
-      HeapManagerImpl.INSTANCE.dump();
-      MethodAreaManagerImpl.INSTANCE.dump();
     } catch (Exception ex) {
       HeapManagerImpl.INSTANCE.dump();
       MethodAreaManagerImpl.INSTANCE.dump();

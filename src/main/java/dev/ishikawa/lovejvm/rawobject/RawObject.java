@@ -2,10 +2,7 @@ package dev.ishikawa.lovejvm.rawobject;
 
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
-import dev.ishikawa.lovejvm.rawclass.type.JvmType;
 import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
-import java.util.Objects;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * RawObject is a container of metadata of one object. It has info about how the object is located
@@ -26,11 +23,7 @@ public class RawObject {
 
   private final int arrSize;
 
-  public RawObject(
-      int objectId,
-      int address,
-      RawClass rawClass,
-      int arrSize) {
+  public RawObject(int objectId, int address, RawClass rawClass, int arrSize) {
 
     this.objectId = objectId;
     this.address = address;
@@ -55,7 +48,7 @@ public class RawObject {
   }
 
   public int getObjectWordSize() {
-    if(getRawClass() instanceof RawArrayClass) {
+    if (getRawClass() instanceof RawArrayClass) {
       return ((RawArrayClass) getRawClass()).getComponentWordSize() * arrSize;
     } else {
       return getRawClass().getObjectWords();

@@ -88,30 +88,39 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
   private Path getPathFrom(String binaryName) {
     String binaryNamePlusExtension = binaryName + ".class";
 
-    var dirsToLookForFiles =
-        List.of(
-            /*
-             * default dirs to check
-             *   1. path/to/this/project/standardlibs.
-             *     check README.md to see how to compile standard libraries
-             *   2. TBD
-             * */
-            Path.of("standardlibs/java.base/"));
+    List<Path> dirsToLookFor = dirsToLookForClasses;
+    if (customClassBinaryNames.contains(binaryName)) {
+      dirsToLookFor = dirsToLookForCustomClasses;
+    }
 
     // traverse classpath. if not found, throw exception
-    return dirsToLookForFiles.stream()
-        .map((dirPath) -> Path.of(dirPath.toString(), binaryNamePlusExtension))
-        .filter((libPath) -> {
-          var b = libPath.toFile().exists();
-          int a = 1;
-          return libPath.toFile().exists();
-        })
-        .findFirst()
-        .orElseThrow(
-            () -> {
-              throw new RuntimeException(
-                  String.format(
-                      "The specified class doesn't exist! given binaryName: %s", binaryName));
-            });
+    var a =
+        dirsToLookFor.stream()
+            .map((dirPath) -> Path.of(dirPath.toString(), binaryNamePlusExtension))
+            .filter((libPath) -> libPath.toFile().exists())
+            .findFirst()
+            .orElseThrow(
+                () -> {
+                  throw new RuntimeException(
+                      String.format(
+                          "The specified class doesn't exist! given binaryName: %s", binaryName));
+                });
+
+    return a;
   }
+
+  private static final List<String> customClassBinaryNames = List.of("java/io/PrintStream");
+
+  private static final List<Path> dirsToLookForClasses =
+      List.of(
+          /*
+       * default dirs to check
+       *   1. path/to/project/standardlibs/java.base/
+       *     - check README.md to see how to compile standard libraries
+       *   2. user defined classpaths
+       * */
+          Path.of("standardlibs/original/java.base/"));
+
+  private static final List<Path> dirsToLookForCustomClasses =
+      List.of(Path.of("standardlibs/custom/java.base/"));
 }

@@ -1294,9 +1294,9 @@ public class RawThread {
             var v3 = operandStack.pop().getValue();
             var v2 = operandStack.pop().getValue();
             var v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word word = Word.of(Long.compare(a, b));
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            Word word = Word.of(Long.compare(left, right));
             operandStack.push(word);
             pc += 1;
             break;
@@ -1306,7 +1306,13 @@ public class RawThread {
             float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
             float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
 
-            Word word = Word.of(Float.compare(right, left));
+            if (pc == 187763) {
+              int a = 1;
+            }
+
+            int b = Float.compare(left, right);
+
+            Word word = Word.of(Float.compare(left, right));
             operandStack.push(word);
             pc += 1;
             break;
@@ -1316,7 +1322,7 @@ public class RawThread {
             float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
             float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
 
-            Word word = Word.of(Float.compare(left, right));
+            Word word = Word.of(Float.compare(right, left));
             operandStack.push(word);
             pc += 1;
             break;
@@ -1327,9 +1333,9 @@ public class RawThread {
             int v3 = operandStack.pop().getValue();
             int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            double a = ByteUtil.concatToDouble(v1, v2);
-            double b = ByteUtil.concatToDouble(v3, v4);
-            Word word = Word.of(Double.compare(b, a));
+            double left = ByteUtil.concatToDouble(v1, v2);
+            double right = ByteUtil.concatToDouble(v3, v4);
+            Word word = Word.of(Double.compare(left, right));
             operandStack.push(word);
             pc += 1;
             break;
@@ -1340,9 +1346,9 @@ public class RawThread {
             int v3 = operandStack.pop().getValue();
             int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            double a = ByteUtil.concatToDouble(v1, v2);
-            double b = ByteUtil.concatToDouble(v3, v4);
-            Word word = Word.of(Double.compare(a, b));
+            double left = ByteUtil.concatToDouble(v1, v2);
+            double right = ByteUtil.concatToDouble(v3, v4);
+            Word word = Word.of(Double.compare(right, left));
             operandStack.push(word);
             pc += 1;
             break;
@@ -1545,57 +1551,58 @@ public class RawThread {
             break;
           }
         case (byte) 0xaa: // tableswitch
-        {
-          var index = operandStack.pop().getValue();
-          var tableswitchOpAddress = pc;
+          {
+            var index = operandStack.pop().getValue();
+            var tableswitchOpAddress = pc;
 
-          // padding
-          //  0  1  2  3  4
-          //                   57 -> 2+57 = 59. it means jumping to 59 as default.
-          //       op pd  default     high      low  offset1  offset2  offset3 getstatic(next op)
-          // 2A BE AA 00 00000039 00000000 00000002 0000001A 00000020 0000002B B2
-          // 00 00 00 pc de
-          // 00 00 pc 00 de
-          // 00 pc 00 00 de
-          // pc 00 00 00 de
-          var codeSectionAddress = methodAreaManager.lookupCodeSectionAddress(currentFrame().getMethod());
-          var paddingByteNum = 3 - ((pc - codeSectionAddress) % 4);
-          pc += paddingByteNum;
+            // padding
+            //  0  1  2  3  4
+            //                   57 -> 2+57 = 59. it means jumping to 59 as default.
+            //       op pd  default     high      low  offset1  offset2  offset3 getstatic(next op)
+            // 2A BE AA 00 00000039 00000000 00000002 0000001A 00000020 0000002B B2
+            // 00 00 00 pc de
+            // 00 00 pc 00 de
+            // 00 pc 00 00 de
+            // pc 00 00 00 de
+            var codeSectionAddress =
+                methodAreaManager.lookupCodeSectionAddress(currentFrame().getMethod());
+            var paddingByteNum = 3 - ((pc - codeSectionAddress) % 4);
+            pc += paddingByteNum;
 
-          // default(32bits)
-          var defaultOffset = peekFourBytes();
-          pc += 4;
+            // default(32bits)
+            var defaultOffset = peekFourBytes();
+            pc += 4;
 
-          // lowBytes(32bits)
-          var low = peekFourBytes();
-          pc += 4;
+            // lowBytes(32bits)
+            var low = peekFourBytes();
+            pc += 4;
 
-          // highBytes(32bits)
-          var high = peekFourBytes();
-          pc += 4;
+            // highBytes(32bits)
+            var high = peekFourBytes();
+            pc += 4;
 
-          // if index is out of the range:[low, high],
-          // then jump to tableswitch's opcode address + defaultValue
-          if (index < low || index > high) {
-            pc = tableswitchOpAddress + defaultOffset;
+            // if index is out of the range:[low, high],
+            // then jump to tableswitch's opcode address + defaultValue
+            if (index < low || index > high) {
+              pc = tableswitchOpAddress + defaultOffset;
+              break;
+            }
+
+            // offset entries
+            var numOfOffsets = high - low + 1;
+            var offsetTable = new int[numOfOffsets];
+
+            for (int i = 0; i < numOfOffsets; i++) {
+              var offset = peekFourBytes();
+              pc += 4;
+              offsetTable[i] = offset;
+            }
+
+            var offset = offsetTable[index - low];
+
+            pc = tableswitchOpAddress + offset;
             break;
           }
-
-          // offset entries
-          var numOfOffsets = high - low + 1;
-          var offsetTable = new int[numOfOffsets];
-
-          for (int i = 0; i < numOfOffsets; i++) {
-            var offset = peekFourBytes();
-            pc += 4;
-            offsetTable[i] = offset;
-          }
-
-          var offset = offsetTable[index - low];
-
-          pc = tableswitchOpAddress + offset;
-          break;
-        }
         case (byte) 0xac: // ireturn
         case (byte) 0xae: // freturn
         case (byte) 0xb0: // areturn
@@ -1607,6 +1614,7 @@ public class RawThread {
             stackDown();
             break;
           }
+        case (byte) 0xad: // lreturn
         case (byte) 0xaf: // dreturn
           {
             // dreturn returns two words
@@ -1732,7 +1740,7 @@ public class RawThread {
           }
         case (byte) 0xb6: // invokevirtual
           {
-            if(pc == 244800) {
+            if (pc == 601) {
               int a = 1;
             }
             // REFACTOR
@@ -1918,7 +1926,9 @@ public class RawThread {
             }
 
             int arrSize = operandStack.pop().getValue();
-            int objectId = RawSystem.heapManager.registerArray(RawArrayClass.lookupOrCreatePrimaryRawArrayClass(arrType, 1), arrSize);
+            int objectId =
+                RawSystem.heapManager.registerArray(
+                    RawArrayClass.lookupOrCreatePrimaryRawArrayClass(arrType, 1), arrSize);
 
             operandStack.push(Word.of(objectId));
 
@@ -1929,12 +1939,13 @@ public class RawThread {
         case (byte) 0xbd: // anewarray
           {
             /** anewarray just allocates the necessary mem → objectref(=objectId) */
-
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
             classRef.resolve(constantPool);
 
-            RawClass elementRawClass = methodAreaManager.lookupOrLoadClass(classRef.getName().getLabel());
-            var rawArrayClass = RawArrayClass.lookupOrCreateComplexRawArrayClass(elementRawClass, 1);
+            RawClass elementRawClass =
+                methodAreaManager.lookupOrLoadClass(classRef.getName().getLabel());
+            var rawArrayClass =
+                RawArrayClass.lookupOrCreateComplexRawArrayClass(elementRawClass, 1);
             int arrSize = operandStack.pop().getValue();
             int objectId = RawSystem.heapManager.registerArray(rawArrayClass, arrSize);
 
@@ -1983,14 +1994,15 @@ public class RawThread {
 
             int objectId = operandStack.pop().getValue();
             if (objectId == JvmType.NULL) {
-              throw new RuntimeException("ClassCastException");
-            }
-            RawClass castFromClass = heapManager.lookupObject(objectId).getRawClass();
+              // nullは何にでもcastできる
+            } else {
+              RawClass castFromClass = heapManager.lookupObject(objectId).getRawClass();
 
-            boolean isCastable = Objects.requireNonNull(castFromClass).isCastableTo(castToClass);
+              boolean isCastable = Objects.requireNonNull(castFromClass).isCastableTo(castToClass);
 
-            if (!isCastable) {
-              throw new RuntimeException("ClassCastException");
+              if (!isCastable) {
+                throw new RuntimeException("ClassCastException");
+              }
             }
 
             operandStack.push(Word.of(objectId));
@@ -2036,24 +2048,24 @@ public class RawThread {
             break;
           }
         case (byte) 0xc5: // multianewarray
-        {
-          ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
-          classRef.resolve(constantPool);
-          RawClass rawClass = methodAreaManager.lookupClass(classRef);
-          int depth = methodAreaManager.lookupByte(pc + 3);
+          {
+            ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
+            classRef.resolve(constantPool);
+            RawClass rawClass = methodAreaManager.lookupClass(classRef);
+            int depth = methodAreaManager.lookupByte(pc + 3);
 
-          int[] sizeList = new int[depth];
-          for (int i = 0; i < depth; i++) {
-            sizeList[sizeList.length - 1 - i] = operandStack.pop().getValue();
+            int[] sizeList = new int[depth];
+            for (int i = 0; i < depth; i++) {
+              sizeList[sizeList.length - 1 - i] = operandStack.pop().getValue();
+            }
+
+            int objectId = createMultiArray(rawClass.asRawArrayClass(), depth, sizeList);
+
+            operandStack.push(Word.of(objectId));
+
+            pc += 4;
+            break;
           }
-
-          int objectId = createMultiArray(rawClass.asRawArrayClass(), depth, sizeList);
-
-          operandStack.push(Word.of(objectId));
-
-          pc += 4;
-          break;
-        }
         case (byte) 0xc6: // ifnull
           {
             // if value is not null, jump to jumpTo
@@ -2110,8 +2122,7 @@ public class RawThread {
         methodAreaManager.lookupByte(pc + 1),
         methodAreaManager.lookupByte(pc + 2),
         methodAreaManager.lookupByte(pc + 3),
-        methodAreaManager.lookupByte(pc + 4)
-    );
+        methodAreaManager.lookupByte(pc + 4));
   }
 
   /**
@@ -2168,7 +2179,6 @@ public class RawThread {
     }
   }
 
-
   /**
    * @param rawArrayClass the root array's class
    * @param depth how many layers to create this time. [1, dimension]
@@ -2177,7 +2187,8 @@ public class RawThread {
    * */
   private int createMultiArray(RawArrayClass rawArrayClass, int depth, int[] sizeList) {
     // this dimension means how many dimentions to actually create here.
-    // this should be less than tha actual dimension defiend in the type info, and more than or equal to 1.
+    // this should be less than tha actual dimension defiend in the type info, and more than or
+    // equal to 1.
     // the dimention of classRef.
     // ex:
     // bipush 3
@@ -2194,18 +2205,16 @@ public class RawThread {
     //
     // int[][] c = new int[][]; ... this is invalid.
 
-
     // top levelの要素数. dimensionの文だけpopする。少なくとも1かいはpopできる
     int size = sizeList[0];
     int objectId = RawSystem.heapManager.registerArray(rawArrayClass, size);
     RawObject rawObject = heapManager.lookupObject(objectId);
 
-
     // depthに応じて子要素を作る
     // 子要素がnon array(primitive or class)であれば完了
     // 子要素がarrayであってもdepthが1ならここまでで終了
     // ? MyObject[][] a = new MyObject[3][4];
-    if(depth > 1) {
+    if (depth > 1) {
       createMultiArrayHelper(rawObject, sizeList, 1);
     }
 
@@ -2216,11 +2225,12 @@ public class RawThread {
     String currentClassBinaryName = parentObject.getRawClass().getBinaryName().substring(1);
     int size = parentObject.getArrSize();
 
-    if(!currentClassBinaryName.startsWith("[")) {
+    if (!currentClassBinaryName.startsWith("[")) {
       // currentClassBinaryNameがarrayではない = 特に何も作る必要はない
     } else {
       // currentClassBinaryNameがarrayの場合 = そのchild array objectをsize分作ってset
-      RawArrayClass childClass = methodAreaManager.lookupOrLoadClass(currentClassBinaryName).asRawArrayClass();
+      RawArrayClass childClass =
+          methodAreaManager.lookupOrLoadClass(currentClassBinaryName).asRawArrayClass();
       int nextChildrenSize = sizeList[depth]; // operandStack.pop().getValue();
       for (int i = 0; i < size; i++) {
         int childObjectId = heapManager.registerArray(childClass, nextChildrenSize);
@@ -2228,7 +2238,7 @@ public class RawThread {
         createMultiArrayHelper(childRawObject, sizeList, depth + 1);
         heapManager.setElement(parentObject, i, List.of(Word.of(childObjectId)));
       }
-//      operandStack.push(Word.of(nextChildrenSize));
+      //      operandStack.push(Word.of(nextChildrenSize));
     }
   }
 

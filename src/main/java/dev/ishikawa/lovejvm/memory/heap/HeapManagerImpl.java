@@ -3,7 +3,6 @@ package dev.ishikawa.lovejvm.memory.heap;
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
-import dev.ishikawa.lovejvm.rawclass.type.JvmType;
 import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.RawSystem;
@@ -97,11 +96,11 @@ public class HeapManagerImpl implements HeapManager {
 
     List<Word> componentTypeFieldValue;
     if (targetClass instanceof RawArrayClass) {
-      componentTypeFieldValue = Optional
-          .ofNullable(((RawArrayClass) targetClass).getComponentComplexClass())
-          .map(RawClass::getClassObjectId)
-          .map(it -> List.of(Word.of(it)))
-          .orElseGet(Collections::emptyList);
+      componentTypeFieldValue =
+          Optional.ofNullable(((RawArrayClass) targetClass).getComponentComplexClass())
+              .map(RawClass::getClassObjectId)
+              .map(it -> List.of(Word.of(it)))
+              .orElseGet(Collections::emptyList);
     } else {
       componentTypeFieldValue = Collections.emptyList();
     }
@@ -157,7 +156,10 @@ public class HeapManagerImpl implements HeapManager {
                   "[HEAP DUMP]%5s|%5s|%20s(%5d)| %s\n",
                   object.getObjectId(),
                   object.getAddress(),
-                  object.getRawClass().getName().substring(0, Math.min(object.getRawClass().getName().length(), 18)),
+                  object
+                      .getRawClass()
+                      .getName()
+                      .substring(0, Math.min(object.getRawClass().getName().length(), 18)),
                   size,
                   builder);
             });
@@ -218,7 +220,8 @@ public class HeapManagerImpl implements HeapManager {
     public int create(RawArrayClass rawArrayClass, int arrSize) {
       int startingAddress = heapManager.heap.headAddress();
 
-      // FIXME: it's ok to secure 32bits * arrSize when the element is int, but it should do 8 bits * arrSize for bytes
+      // FIXME: it's ok to secure 32bits * arrSize when the element is int, but it should do 8 bits
+      // * arrSize for bytes
       byte[] bytes = new byte[rawArrayClass.getComponentWordSize() * Word.BYTES_SIZE * arrSize];
       heapManager.heap.allocate(bytes);
 
@@ -236,7 +239,8 @@ public class HeapManagerImpl implements HeapManager {
 
     public List<Word> getValue(RawObject rawObject, int position) {
       int startingAddress = calcStartingAddress(rawObject, position);
-      int elementBytesSize = ((RawArrayClass) rawObject.getRawClass()).getComponentWordSize() * Word.BYTES_SIZE;
+      int elementBytesSize =
+          ((RawArrayClass) rawObject.getRawClass()).getComponentWordSize() * Word.BYTES_SIZE;
       byte[] bytes = heapManager.heap.retrieve(startingAddress, elementBytesSize);
       return Word.of(bytes);
     }
@@ -250,7 +254,8 @@ public class HeapManagerImpl implements HeapManager {
     private int calcStartingAddress(RawObject rawObject, int position) {
       assert (rawObject.getRawClass() instanceof RawArrayClass);
       int objectAddress = heapManager.getAddress(rawObject);
-      int elementBytesSize = ((RawArrayClass) rawObject.getRawClass()).getComponentWordSize() * Word.BYTES_SIZE;
+      int elementBytesSize =
+          ((RawArrayClass) rawObject.getRawClass()).getComponentWordSize() * Word.BYTES_SIZE;
       int offsetToField = elementBytesSize * position;
       return objectAddress + offsetToField;
     }
