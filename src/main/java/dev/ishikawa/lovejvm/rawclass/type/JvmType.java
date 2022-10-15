@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.jetbrains.annotations.Nullable;
@@ -36,11 +37,11 @@ public enum JvmType {
    * size means how many bytes is need to store the value in mem. size should be a number of
    * multiplied words (4, 8, 12, ...)
    */
-  private int size;
+  private final int size;
 
-  private DefaultValue defaultValue;
+  private final DefaultValue defaultValue;
 
-  private @Nullable String jvmSignature;
+  @Nullable private final String jvmSignature;
 
   JvmType(int size, @Nullable String jvmSignature, DefaultValue defaultValue) {
     this.defaultValue = defaultValue;
@@ -90,4 +91,6 @@ public enum JvmType {
 
   // when reference value(32bit) is 0, it is considered as null
   public static int NULL = 0;
+
+  public static final Set<JvmType> primaryTypes = Set.of(BYTE, SHORT, INT, LONG, FLOAT, DOUBLE, BOOLEAN, CHAR);
 }

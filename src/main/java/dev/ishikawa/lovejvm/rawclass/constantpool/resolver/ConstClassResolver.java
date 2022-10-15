@@ -11,6 +11,8 @@ public class ConstClassResolver implements Resolver<ConstantClass> {
   /** when resolving a reference to other class, creation and loading of the class starts. */
   @Override
   public void resolve(ConstantPool constantPool, ConstantClass entry) {
+    // TODO: arrayもきうる. ex:  "[Ljava/util/concurrent/ConcurrentHashMap$Node;"
+    //
     RawClass rawClass = RawSystem.methodAreaManager.lookupOrLoadClass(entry.getName().getLabel());
     int objectId = rawClass.getClassObjectId();
 

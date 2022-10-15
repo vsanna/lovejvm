@@ -7,6 +7,7 @@ import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.linterface.RawInterface;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
+import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.Collection;
@@ -42,6 +43,20 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
         new byte[rawClass.getClassfileBytes() + rawClass.getStaticAreaWords() * Word.BYTES_SIZE];
     System.arraycopy(classfile, 0, bytes, 0, classfile.length);
 
+    methodArea.allocate(bytes);
+  }
+
+  @Override
+  public void registerArrayClass(RawArrayClass rawArrayClass) {
+    if (classMap.containsKey(rawArrayClass.getBinaryName())) return;
+
+    int startingAddress = methodArea.headAddress();
+
+    // REFACTOR: According to the jvm spec, The same name class can be loaded under different
+    classMap.put(rawArrayClass.getBinaryName(), new ClassEntry(startingAddress, rawArrayClass));
+
+    // consume only 1 byte for the arrayClass
+    byte[] bytes = new byte[]{0};
     methodArea.allocate(bytes);
   }
 
@@ -99,7 +114,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
     return startingClass
         .getMethods()
         .findAllBy(targetMethod.getName().getLabel(), targetMethod.getDescriptor().getLabel())
-        .or(() -> aHelper(startingClass, targetMethod))
+        .or(() -> selectMethodHelper(startingClass, targetMethod))
         .or(
             () -> {
               List<RawMethod> mssMethods =
@@ -126,15 +141,11 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
                         targetMethod.getDescriptor().getLabel())));
   }
 
-  public Optional<RawMethod> aHelper(RawClass rawClass, RawMethod targetMethod) {
+  private Optional<RawMethod> selectMethodHelper(RawClass rawClass, RawMethod targetMethod) {
     return rawClass
         .getMethods()
         .findAllBy(targetMethod.getName().getLabel(), targetMethod.getDescriptor().getLabel())
-        .or(
-            () ->
-                Optional.ofNullable(rawClass.getSuperClass())
-                    .flatMap(it -> lookupClass(it.getName().getLabel()))
-                    .flatMap(it -> aHelper(it, targetMethod)));
+        .or(() -> rawClass.getRawSuperClass().flatMap(it -> selectMethodHelper(it, targetMethod)));
   }
 
   /**
@@ -197,13 +208,12 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
               return it;
             })
         .or(() -> targetClass.findAllMethodBy(methodName, methodDescriptor))
-        .or(
-            () ->
-                Optional.ofNullable(targetClass.getSuperClass())
-                    .flatMap(
-                        superClass ->
-                            lookupAllMethodRecursively(
-                                superClass.getName().getLabel(), methodName, methodDescriptor)));
+        .or(() -> {
+          return targetClass.getRawSuperClass()
+              .flatMap(superClass -> lookupAllMethodRecursively(
+                  superClass.getBinaryName(), methodName, methodDescriptor
+              ));
+        });
   }
 
   /**
@@ -235,10 +245,8 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
 
     return rawClass
         .findAllFieldBy(fieldName)
-        .or(
-            () ->
-                Optional.ofNullable(rawClass.getSuperClass())
-                    .flatMap(it -> lookupAllFieldRecursively(it.getName().getLabel(), fieldName)));
+        .or(() -> rawClass.getRawSuperClass()
+            .flatMap(it -> lookupAllFieldRecursively(it.getBinaryName(), fieldName)));
   }
 
   @Override
@@ -272,7 +280,13 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   public RawClass lookupOrLoadClass(String binaryName) {
     return Optional.ofNullable(classMap.get(binaryName))
         .map(it -> it.rawClass)
-        .orElseGet(() -> RawSystem.bootstrapLoader.loadByBinaryName(binaryName));
+        .orElseGet(() -> {
+          if(binaryName.startsWith("[")) {
+            return RawArrayClass.lookupOrCreateRawArrayClass(binaryName);
+          } else {
+            return RawSystem.bootstrapLoader.loadByBinaryName(binaryName);
+          }
+        });
   }
 
   @Override
@@ -299,9 +313,9 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
               // address|RawClass name|class size|static size|object size
               int address = entry.getAddress();
               RawClass rawClass = entry.getRawClass();
-              int classSize = rawClass.getRaw().length;
-              int staticSize = rawClass.getStaticAreaWords() * Word.BYTES_SIZE;
-              int objectSize = rawClass.getObjectWords() * Word.BYTES_SIZE;
+              int classSize = rawClass.getClassByteSize();
+              int staticSize = rawClass.getStaticByteSize();
+              int objectSize = rawClass.getObjectByteSize();
               System.out.printf(
                   "[MA DUMP]%5d|%20s|%5d|%5d|%5d\n",
                   address,

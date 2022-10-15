@@ -3,6 +3,7 @@ package dev.ishikawa.lovejvm.memory.stringpool;
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.type.JvmType;
+import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
@@ -37,10 +38,11 @@ public class StringPoolSimulator implements StringPool {
     RawObject stringObject = RawSystem.heapManager.lookupObject(objectId);
     stringMap.put(label, stringObject);
 
-    // TODO: Stringのinitが行われていない
+    // TODO: initialize String class
 
     // set byte array of the label into value field of this String object
-    var arrayObjectId = RawSystem.heapManager.registerArray(JvmType.BYTE, label.length());
+    var byteArrayClass = RawArrayClass.lookupOrCreatePrimaryRawArrayClass(JvmType.BYTE, 1);
+    var arrayObjectId = RawSystem.heapManager.registerArray(byteArrayClass, label.length());
     var arrayObject = RawSystem.heapManager.lookupObject(arrayObjectId);
     for (int i = 0; i < label.getBytes().length; i++) {
       // TODO: 1byteに1word割り当ててしまっている. 直す

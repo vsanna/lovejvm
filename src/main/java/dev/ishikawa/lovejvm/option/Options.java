@@ -38,6 +38,7 @@ public class Options {
     }
 
     public Options build() {
+
       return new Options(
           // REFACTOR: this should throw exception when entry class is not given
           Optional.ofNullable(entryClass)
@@ -46,6 +47,7 @@ public class Options {
 //                                     "guest/out/ForLoop.class"
 //                                     "guest/out/dev/ishikawa/test/Recursive.class"
 //                                     "guest/out/dev/ishikawa/test/Recursive2.class"
+//                                     "guest/out/dev/ishikawa/test/ArraySample.class"
 //                  "guest/out/BasicClass.class"
 //                                    "guest/out/dev/ishikawa/test/InstanceNew.class"
 //                                    "guest/out/dev/ishikawa/test/InstanceNew2.class"

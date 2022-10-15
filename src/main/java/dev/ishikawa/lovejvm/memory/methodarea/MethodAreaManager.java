@@ -5,6 +5,7 @@ import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
+import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +20,8 @@ public interface MethodAreaManager {
    * with its metadata = RawClass. static area is calculated by the given rawClass
    */
   void register(RawClass rawClass, byte[] classfile);
+
+  void registerArrayClass(RawArrayClass rawArrayClass);
 
   /** @return a byte located in the given address */
   byte lookupByte(int address);

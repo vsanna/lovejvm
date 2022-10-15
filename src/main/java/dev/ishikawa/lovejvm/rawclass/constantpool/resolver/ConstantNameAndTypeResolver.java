@@ -3,15 +3,14 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.resolver;
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantNameAndType;
+import dev.ishikawa.lovejvm.vm.RawSystem;
 
 public class ConstantNameAndTypeResolver implements Resolver<ConstantNameAndType> {
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantNameAndType entry) {
-    // TODO
-    entry.setNameStringObjectId(0);
-    entry.setDescriptorStringObjectId(0);
-
+    entry.setNameStringObjectId(RawSystem.stringPool.getOrCreate(entry.getName().getLabel()));
+    entry.setDescriptorStringObjectId(RawSystem.stringPool.getOrCreate(entry.getDescriptor().getLabel()));
     entry.setResolved(true);
   }
 }

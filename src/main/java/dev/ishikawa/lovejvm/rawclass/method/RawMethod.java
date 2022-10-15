@@ -54,7 +54,6 @@ public class RawMethod {
   }
 
   /**
-   * TODO: why not using
    * @return num of words to transfer when invoking a new method */
   public int getTransitWordSize(boolean hasReceiver) {
     // TODO: is it possible to know hasReceiver in this method?

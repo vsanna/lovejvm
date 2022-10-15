@@ -11,6 +11,8 @@ import dev.ishikawa.lovejvm.rawclass.linterface.Interfaces;
 import dev.ishikawa.lovejvm.rawclass.method.Methods;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.rawclass.parser.RawClassParser;
+import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
+import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 import java.util.Objects;
@@ -52,26 +54,32 @@ public class RawClass {
 
     // REFACTOR: make here better style
     this.constantPool = constantPool;
-    this.constantPool.setRawClass(this);
-    this.constantPool.shakeOut();
+    if(!Objects.isNull(constantPool)) {
+      this.constantPool.setRawClass(this);
+      this.constantPool.shakeOut();
+    }
 
     this.accessFlag = accessFlag;
     this.thisClass = thisClass;
 
-    if (superClass == null
-        && !Objects.equals(
-            thisClass.getName().getLabel(), RawClassParser.OBJECT_CLASS_BINARY_NAME)) {
-      throw new RuntimeException("super class is missing");
-    }
+//    if (superClass == null
+//        && !Objects.equals(
+//            thisClass.getName().getLabel(), RawClassParser.OBJECT_CLASS_BINARY_NAME)) {
+//      throw new RuntimeException("super class is missing");
+//    }
     this.superClass = superClass;
 
     this.interfaces = interfaces;
 
     this.fields = fields;
-    this.fields.setRawClass(this);
+    if(!Objects.isNull(fields)) {
+      this.fields.setRawClass(this);
+    }
 
     this.methods = methods;
-    this.methods.setRawClass(this);
+    if(!Objects.isNull(methods)) {
+      this.methods.setRawClass(this);
+    }
 
     this.attrs = attrs;
   }
@@ -191,6 +199,10 @@ public class RawClass {
     return superClass;
   }
 
+  public Optional<RawClass> getRawSuperClass() {
+    return Optional.ofNullable(getSuperClass()).map(RawSystem.methodAreaManager::lookupClass);
+  }
+
   public Interfaces getInterfaces() {
     return interfaces;
   }
@@ -282,8 +294,9 @@ public class RawClass {
   }
 
   /**
-   * @return necessary binary size(words) for an object of this class 4byte ... ref to its super
-   *     class's object size(field) * num of fields. TODO: how to put Array in heap.
+   * @return necessary binary size(words) for an object of this class
+   *   4byte ... ref to its super class's object
+   *   size(field) * num of fields.
    */
   public int getObjectWords() {
     return 1 // reference to superclass's object. 1 word
@@ -320,6 +333,38 @@ public class RawClass {
     }
 
     return result;
+  }
+
+  public boolean isCastableTo(RawClass castToClass) {
+    if(this.getBinaryName().equals(castToClass.getBinaryName())) return true;
+
+    var isCastableInSuperClasses = getRawSuperClass()
+        .map(it -> it.isCastableTo(castToClass)).orElse(false);
+
+    if(isCastableInSuperClasses) return true;
+
+    return this.getInterfaces().getInterfaces().stream()
+            .anyMatch(it -> {
+              return RawSystem.methodAreaManager
+                  .lookupClass(it.getConstantClassRef())
+                  .isCastableTo(castToClass);
+            });
+  }
+
+  public RawArrayClass asRawArrayClass() {
+    return (RawArrayClass) this;
+  }
+
+  public int getClassByteSize() {
+    return getRaw().length;
+  }
+
+  public int getStaticByteSize() {
+    return getStaticAreaWords() * Word.BYTES_SIZE;
+  }
+
+  public int getObjectByteSize() {
+    return getObjectWords() * Word.BYTES_SIZE;
   }
 
   public static final String CLINIT_METHOD_NAME = "<clinit>";

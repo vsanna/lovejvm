@@ -101,7 +101,11 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
     // traverse classpath. if not found, throw exception
     return dirsToLookForFiles.stream()
         .map((dirPath) -> Path.of(dirPath.toString(), binaryNamePlusExtension))
-        .filter((libPath) -> libPath.toFile().exists())
+        .filter((libPath) -> {
+          var b = libPath.toFile().exists();
+          int a = 1;
+          return libPath.toFile().exists();
+        })
         .findFirst()
         .orElseThrow(
             () -> {

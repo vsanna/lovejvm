@@ -4,6 +4,7 @@ package dev.ishikawa.lovejvm.memory.heap;
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.type.JvmType;
+import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
@@ -23,7 +24,7 @@ public interface HeapManager {
 
   List<Word> getValue(RawObject rawObject, RawField rawField);
 
-  int registerArray(JvmType elementType, int arrSize);
+  int registerArray(RawArrayClass rawArrayClass, int arrSize);
 
   void setElement(RawObject rawObject, int position, List<Word> value);
 

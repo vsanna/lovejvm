@@ -16,6 +16,7 @@ import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.rawclass.method.exceptionhandler.ExceptionInfo;
 import dev.ishikawa.lovejvm.rawclass.type.JvmType;
+import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import java.util.ArrayDeque;
@@ -1046,6 +1047,7 @@ public class RawThread {
           }
         case (byte) 0x7a: // ishr ... int shift right
           {
+            // [b, a] -> (b >> a)
             int a = operandStack.pop().getValue();
             int b = operandStack.pop().getValue();
             operandStack.push(Word.of(b >> a));
@@ -1055,16 +1057,17 @@ public class RawThread {
         case (byte) 0x7b: // lshr ... long shift right
           {
             // [v1, v2, v3] -> a = Long(v1, v2), b = Int(v3)
-            int b = operandStack.pop().getValue();
+            int a = operandStack.pop().getValue();
             int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            operandStack.push(Word.of(b >> a));
+            long b = ByteUtil.concatToLong(v1, v2);
+            Word.of(b >> a).forEach(operandStack::push);
             pc = pc + 1;
             break;
           }
         case (byte) 0x7c: // iushr ... int logical shift right
           {
+            // [b, a] -> (b >>> a)
             int a = operandStack.pop().getValue();
             int b = operandStack.pop().getValue();
             operandStack.push(Word.of(b >>> a));
@@ -1073,12 +1076,12 @@ public class RawThread {
           }
         case (byte) 0x7d: // lushr ... long logical shift right
           {
-            // [v1, v2, v3] -> a = Long(v1, v2), b = Int(v3)
-            int b = operandStack.pop().getValue();
+            // [v1, v2, v3] -> b = Long(v1, v2), a = Int(v3) -> (b >>> a)
+            int a = operandStack.pop().getValue();
             int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            operandStack.push(Word.of(b >>> a));
+            long b = ByteUtil.concatToLong(v1, v2);
+            Word.of(b >>> a).forEach(operandStack::push);
             pc = pc + 1;
             break;
           }
@@ -1190,7 +1193,6 @@ public class RawThread {
             var v2 = operandStack.pop().getValue();
             var v1 = operandStack.pop().getValue();
             var a = ByteUtil.concatToLong(v1, v2);
-            // TODO: now borrowing host language's functionality. use original method.
             Word word = Word.of((float) a);
             operandStack.push(word);
             pc += 1;
@@ -1202,7 +1204,6 @@ public class RawThread {
             var v2 = operandStack.pop().getValue();
             var v1 = operandStack.pop().getValue();
             var a = ByteUtil.concatToLong(v1, v2);
-            // TODO: now borrowing host language's functionality. use original method.
             List<Word> words = Word.of((double) a);
             words.forEach(operandStack::push);
             pc += 1;
@@ -1543,6 +1544,58 @@ public class RawThread {
 
             break;
           }
+        case (byte) 0xaa: // tableswitch
+        {
+          var index = operandStack.pop().getValue();
+          var tableswitchOpAddress = pc;
+
+          // padding
+          //  0  1  2  3  4
+          //                   57 -> 2+57 = 59. it means jumping to 59 as default.
+          //       op pd  default     high      low  offset1  offset2  offset3 getstatic(next op)
+          // 2A BE AA 00 00000039 00000000 00000002 0000001A 00000020 0000002B B2
+          // 00 00 00 pc de
+          // 00 00 pc 00 de
+          // 00 pc 00 00 de
+          // pc 00 00 00 de
+          var codeSectionAddress = methodAreaManager.lookupCodeSectionAddress(currentFrame().getMethod());
+          var paddingByteNum = 3 - ((pc - codeSectionAddress) % 4);
+          pc += paddingByteNum;
+
+          // default(32bits)
+          var defaultOffset = peekFourBytes();
+          pc += 4;
+
+          // lowBytes(32bits)
+          var low = peekFourBytes();
+          pc += 4;
+
+          // highBytes(32bits)
+          var high = peekFourBytes();
+          pc += 4;
+
+          // if index is out of the range:[low, high],
+          // then jump to tableswitch's opcode address + defaultValue
+          if (index < low || index > high) {
+            pc = tableswitchOpAddress + defaultOffset;
+            break;
+          }
+
+          // offset entries
+          var numOfOffsets = high - low + 1;
+          var offsetTable = new int[numOfOffsets];
+
+          for (int i = 0; i < numOfOffsets; i++) {
+            var offset = peekFourBytes();
+            pc += 4;
+            offsetTable[i] = offset;
+          }
+
+          var offset = offsetTable[index - low];
+
+          pc = tableswitchOpAddress + offset;
+          break;
+        }
         case (byte) 0xac: // ireturn
         case (byte) 0xae: // freturn
         case (byte) 0xb0: // areturn
@@ -1653,6 +1706,7 @@ public class RawThread {
              * ref: JAVA virtual machine
              * it depends on the descriptor how many words to pop here
              * */
+
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
 
@@ -1678,6 +1732,9 @@ public class RawThread {
           }
         case (byte) 0xb6: // invokevirtual
           {
+            if(pc == 244800) {
+              int a = 1;
+            }
             // REFACTOR
             var index = peekTwoBytes();
             ConstantMethodref methodRef = (ConstantMethodref) constantPool.findByIndex(index);
@@ -1694,7 +1751,6 @@ public class RawThread {
             }
 
             int receiverObjectId = tmp.getFirst().getValue();
-            // TODO: make rawClass field non nullable
             RawClass receiverClass = heapManager.lookupObject(receiverObjectId).getRawClass();
             RawMethod selectedMethod = methodAreaManager.selectMethod(receiverClass, rawMethod);
 
@@ -1769,7 +1825,6 @@ public class RawThread {
             }
 
             int receiverObjectId = tmp.getFirst().getValue();
-            // TODO: make rawClass field non nullable
             RawClass receiverClass = heapManager.lookupObject(receiverObjectId).getRawClass();
             RawMethod selectedMethod = methodAreaManager.selectMethod(receiverClass, rawMethod);
 
@@ -1862,14 +1917,8 @@ public class RawThread {
                     String.format("unexpected arrTypeCode: %d", arrTypeCode));
             }
 
-            // TODO: no need to store element type info?
-            //          var index =
-            //              ByteUtil.concat(
-            //                  methodAreaManager.lookupByte(pc + 1),
-
-            // TODO: registerArray(ArrayRawClass)にする
             int arrSize = operandStack.pop().getValue();
-            int objectId = RawSystem.heapManager.registerArray(arrType, arrSize);
+            int objectId = RawSystem.heapManager.registerArray(RawArrayClass.lookupOrCreatePrimaryRawArrayClass(arrType, 1), arrSize);
 
             operandStack.push(Word.of(objectId));
 
@@ -1881,21 +1930,13 @@ public class RawThread {
           {
             /** anewarray just allocates the necessary mem → objectref(=objectId) */
 
-            // TODO: no need to store element type info?
-            //          var index =
-            //              ByteUtil.concat(
-            //                  methodAreaManager.lookupByte(pc + 1),
-            // methodAreaManager.lookupByte(pc + 2));
-            //          ConstantClass classRef =
-            //              (ConstantClass)
-            //
-            // currentFrame().getMethod().getKlass().getConstantPool().findByIndex(index);
-            //          RawClass elementRawClass =
-            // methodAreaManager.lookupOrLoadClass(classRef.getName().getLabel());
-            int arrSize = operandStack.pop().getValue();
-            int objectId = RawSystem.heapManager.registerArray(JvmType.OBJECT_REFERENCE, arrSize);
+            ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
+            classRef.resolve(constantPool);
 
-            // TODO: resolve what?
+            RawClass elementRawClass = methodAreaManager.lookupOrLoadClass(classRef.getName().getLabel());
+            var rawArrayClass = RawArrayClass.lookupOrCreateComplexRawArrayClass(elementRawClass, 1);
+            int arrSize = operandStack.pop().getValue();
+            int objectId = RawSystem.heapManager.registerArray(rawArrayClass, arrSize);
 
             operandStack.push(Word.of(objectId));
 
@@ -1937,22 +1978,18 @@ public class RawThread {
             int index = peekTwoBytes();
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(index);
             classRef.resolve(constantPool);
-            RawObject rawObject = heapManager.lookupObject(classRef.getObjectId());
             // TODO: Class objectからrawClassを引けるようにする...
+            RawClass castToClass = methodAreaManager.lookupClass(classRef);
 
             int objectId = operandStack.pop().getValue();
             if (objectId == JvmType.NULL) {
               throw new RuntimeException("ClassCastException");
             }
-            RawClass rawClass = heapManager.lookupObject(objectId).getRawClass();
+            RawClass castFromClass = heapManager.lookupObject(objectId).getRawClass();
 
-            // TODO:
-            boolean isInstanceOf =
-                classRef
-                    .getName()
-                    .getLabel()
-                    .equals(Objects.requireNonNull(rawClass).getBinaryName());
-            if (!isInstanceOf) {
+            boolean isCastable = Objects.requireNonNull(castFromClass).isCastableTo(castToClass);
+
+            if (!isCastable) {
               throw new RuntimeException("ClassCastException");
             }
 
@@ -1998,6 +2035,25 @@ public class RawThread {
             pc += 1;
             break;
           }
+        case (byte) 0xc5: // multianewarray
+        {
+          ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
+          classRef.resolve(constantPool);
+          RawClass rawClass = methodAreaManager.lookupClass(classRef);
+          int depth = methodAreaManager.lookupByte(pc + 3);
+
+          int[] sizeList = new int[depth];
+          for (int i = 0; i < depth; i++) {
+            sizeList[sizeList.length - 1 - i] = operandStack.pop().getValue();
+          }
+
+          int objectId = createMultiArray(rawClass.asRawArrayClass(), depth, sizeList);
+
+          operandStack.push(Word.of(objectId));
+
+          pc += 4;
+          break;
+        }
         case (byte) 0xc6: // ifnull
           {
             // if value is not null, jump to jumpTo
@@ -2047,6 +2103,15 @@ public class RawThread {
   private int peekTwoBytes() {
     return ByteUtil.concatToShort(
         methodAreaManager.lookupByte(pc + 1), methodAreaManager.lookupByte(pc + 2));
+  }
+
+  private int peekFourBytes() {
+    return ByteUtil.concatToInt(
+        methodAreaManager.lookupByte(pc + 1),
+        methodAreaManager.lookupByte(pc + 2),
+        methodAreaManager.lookupByte(pc + 3),
+        methodAreaManager.lookupByte(pc + 4)
+    );
   }
 
   /**
@@ -2100,6 +2165,70 @@ public class RawThread {
       // handle this exception with system exception handler
       throw new RuntimeException(
           String.format("No exception handler was found. for: %s", exceptionClass.getBinaryName()));
+    }
+  }
+
+
+  /**
+   * @param rawArrayClass the root array's class
+   * @param depth how many layers to create this time. [1, dimension]
+   * @param sizeList list of item size for each layer. ex: int[1][4][2] -> [1, 4, 2]. int[3][9][][] -> [3, 9]
+   * @return int objectId of the root array object
+   * */
+  private int createMultiArray(RawArrayClass rawArrayClass, int depth, int[] sizeList) {
+    // this dimension means how many dimentions to actually create here.
+    // this should be less than tha actual dimension defiend in the type info, and more than or equal to 1.
+    // the dimention of classRef.
+    // ex:
+    // bipush 3
+    // multianewarray [[I 1
+    // -> this will create new init [3][]
+    // int[][] a = new int[3][];  => [null, null, null]
+    //
+    // ex:
+    // bipush 3
+    // bipush 4
+    // multianewarray [[I 2
+    // -> this will create new init [3][4]
+    // int[][] b = new int[3][4]; => [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]
+    //
+    // int[][] c = new int[][]; ... this is invalid.
+
+
+    // top levelの要素数. dimensionの文だけpopする。少なくとも1かいはpopできる
+    int size = sizeList[0];
+    int objectId = RawSystem.heapManager.registerArray(rawArrayClass, size);
+    RawObject rawObject = heapManager.lookupObject(objectId);
+
+
+    // depthに応じて子要素を作る
+    // 子要素がnon array(primitive or class)であれば完了
+    // 子要素がarrayであってもdepthが1ならここまでで終了
+    // ? MyObject[][] a = new MyObject[3][4];
+    if(depth > 1) {
+      createMultiArrayHelper(rawObject, sizeList, 1);
+    }
+
+    return objectId;
+  }
+
+  private void createMultiArrayHelper(RawObject parentObject, int[] sizeList, int depth) {
+    String currentClassBinaryName = parentObject.getRawClass().getBinaryName().substring(1);
+    int size = parentObject.getArrSize();
+
+    if(!currentClassBinaryName.startsWith("[")) {
+      // currentClassBinaryNameがarrayではない = 特に何も作る必要はない
+    } else {
+      // currentClassBinaryNameがarrayの場合 = そのchild array objectをsize分作ってset
+      RawArrayClass childClass = methodAreaManager.lookupOrLoadClass(currentClassBinaryName).asRawArrayClass();
+      int nextChildrenSize = sizeList[depth]; // operandStack.pop().getValue();
+      for (int i = 0; i < size; i++) {
+        int childObjectId = heapManager.registerArray(childClass, nextChildrenSize);
+        RawObject childRawObject = heapManager.lookupObject(childObjectId);
+        createMultiArrayHelper(childRawObject, sizeList, depth + 1);
+        heapManager.setElement(parentObject, i, List.of(Word.of(childObjectId)));
+      }
+//      operandStack.push(Word.of(nextChildrenSize));
     }
   }
 

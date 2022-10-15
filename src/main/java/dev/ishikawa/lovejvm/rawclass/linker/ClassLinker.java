@@ -2,6 +2,7 @@ package dev.ishikawa.lovejvm.rawclass.linker;
 
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
+import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 
 /**
@@ -25,6 +26,8 @@ public class ClassLinker {
   private ClassLinker() {}
 
   public void link(RawClass targetClass) {
+    if(targetClass instanceof RawArrayClass) return;
+
     if (RawSystem.methodAreaManager.lookupClass(targetClass.getBinaryName()).isEmpty()) {
       throw new RuntimeException(
           String.format(

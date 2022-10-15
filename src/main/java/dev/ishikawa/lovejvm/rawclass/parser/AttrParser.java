@@ -4,6 +4,7 @@ package dev.ishikawa.lovejvm.rawclass.parser;
 import dev.ishikawa.lovejvm.rawclass.attr.*;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMethodsBody;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMethodsBody.LAttrBootstrapMethod;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrEnclosingMethod.AttrEnclosingMethodBody;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrExceptions.LAttrExceptionsBody;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrInnerClass.AttrInnerClassBody.LAttrInnerClassEntry;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrNestMembers.LAttrNestMembersBody;
@@ -171,8 +172,13 @@ public class AttrParser {
         {
           return new AttrDeprecated(attrName, dataLength);
         }
-        //      case ENCLOSING_METHOD:
-        //        break;
+      case ENCLOSING_METHOD:
+      {
+        var classIndex = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
+        var methodIndex = ByteUtil.concatToShort(bytecode[pointer + 2], bytecode[pointer + 3]);
+        return new AttrEnclosingMethod(attrName, dataLength,
+            new AttrEnclosingMethodBody(classIndex, methodIndex));
+      }
       case SIGNATURE:
         {
           var signatureIndex = bytecode[pointer];

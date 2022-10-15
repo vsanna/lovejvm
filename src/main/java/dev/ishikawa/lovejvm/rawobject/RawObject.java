@@ -3,6 +3,7 @@ package dev.ishikawa.lovejvm.rawobject;
 
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.type.JvmType;
+import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,25 +22,19 @@ public class RawObject {
   private final int address;
 
   // RawClass returns the size of necessary binary
-  // TODO: not nullable
-  @Nullable private final RawClass rawClass;
+  private final RawClass rawClass;
 
-  // Element class
-  @Nullable private final JvmType elementType;
   private final int arrSize;
 
   public RawObject(
       int objectId,
       int address,
-      @Nullable RawClass rawClass,
-      @Nullable JvmType elementType,
+      RawClass rawClass,
       int arrSize) {
-    assert (Objects.isNull(rawClass) ^ Objects.isNull(elementType));
 
     this.objectId = objectId;
     this.address = address;
     this.rawClass = rawClass;
-    this.elementType = elementType;
     this.arrSize = arrSize;
   }
 
@@ -55,11 +50,15 @@ public class RawObject {
     return arrSize;
   }
 
-  public @Nullable RawClass getRawClass() {
+  public RawClass getRawClass() {
     return rawClass;
   }
 
-  public @Nullable JvmType getElementType() {
-    return elementType;
+  public int getObjectWordSize() {
+    if(getRawClass() instanceof RawArrayClass) {
+      return ((RawArrayClass) getRawClass()).getComponentWordSize() * arrSize;
+    } else {
+      return getRawClass().getObjectWords();
+    }
   }
 }

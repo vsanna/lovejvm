@@ -41,11 +41,6 @@ public class ConstantInterfaceMethodrefResolver implements Resolver<ConstantInte
     int classObjectId = targetInterface.getClassObjectId();
     entry.setClassObjectId(classObjectId);
 
-    if (Objects.equals(
-        entry.getConstantClassRef().getName().getLabel(), "java/security/PrivilegedAction")) {
-      int a = 1;
-    }
-
     var rawMethodOptional =
         targetInterface
             .findAllMethodBy(methodName, methodDescriptor)

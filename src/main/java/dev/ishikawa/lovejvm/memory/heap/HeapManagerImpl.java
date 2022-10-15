@@ -56,8 +56,8 @@ public class HeapManagerImpl implements HeapManager {
   }
 
   @Override
-  public int registerArray(JvmType elementType, int arrSize) {
-    return arrayclassObjectHandler.create(elementType, arrSize);
+  public int registerArray(RawArrayClass rawArrayClass, int arrSize) {
+    return arrayclassObjectHandler.create(rawArrayClass, arrSize);
   }
 
   @Override
@@ -97,8 +97,11 @@ public class HeapManagerImpl implements HeapManager {
 
     List<Word> componentTypeFieldValue;
     if (targetClass instanceof RawArrayClass) {
-      // TODO: set arrayComponentType:
-      componentTypeFieldValue = Collections.emptyList();
+      componentTypeFieldValue = Optional
+          .ofNullable(((RawArrayClass) targetClass).getComponentComplexClass())
+          .map(RawClass::getClassObjectId)
+          .map(it -> List.of(Word.of(it)))
+          .orElseGet(Collections::emptyList);
     } else {
       componentTypeFieldValue = Collections.emptyList();
     }
@@ -142,15 +145,8 @@ public class HeapManagerImpl implements HeapManager {
 
               // objectId|address|RawClass name(size)|(size)bytes
               RawObject object = entry.getRawObject();
-              int size =
-                  Optional.ofNullable(object.getRawClass())
-                      .map(RawClass::getObjectWords)
-                      .or(
-                          () ->
-                              Optional.of(object.getElementType().wordSize())
-                                  .map(it -> it * object.getArrSize()))
-                      .map(it -> it * Word.BYTES_SIZE)
-                      .orElse(0);
+
+              int size = object.getObjectWordSize() * Word.BYTES_SIZE;
               byte[] bytes = heap.retrieve(object.getAddress(), size);
               StringBuilder builder = new StringBuilder();
               for (byte aByte : bytes) {
@@ -161,15 +157,7 @@ public class HeapManagerImpl implements HeapManager {
                   "[HEAP DUMP]%5s|%5s|%20s(%5d)| %s\n",
                   object.getObjectId(),
                   object.getAddress(),
-                  Optional.ofNullable(object.getRawClass())
-                      .map(RawClass::getName)
-                      .map(it -> it.substring(0, Math.min(it.length(), 18)))
-                      .or(
-                          () ->
-                              Optional.ofNullable(object.getElementType())
-                                  .map(JvmType::getJvmSignature)
-                                  .map(it -> it + "[]"))
-                      .orElse("N/A"),
+                  object.getRawClass().getName().substring(0, Math.min(object.getRawClass().getName().length(), 18)),
                   size,
                   builder);
             });
@@ -209,7 +197,7 @@ public class HeapManagerImpl implements HeapManager {
 
     private RawObject createRawObject(int address, RawClass rawClass) {
       int objectId = heapManager.requestNextObjectId();
-      return new RawObject(objectId, address, rawClass, null, 0);
+      return new RawObject(objectId, address, rawClass, 0);
     }
 
     private int calcStartingAddress(RawObject rawObject, RawField rawField) {
@@ -227,13 +215,14 @@ public class HeapManagerImpl implements HeapManager {
       this.heapManager = heapManager;
     }
 
-    public int create(JvmType elementType, int arrSize) {
+    public int create(RawArrayClass rawArrayClass, int arrSize) {
       int startingAddress = heapManager.heap.headAddress();
-      // TODO: ここは間違っている. intのarrなら32bit * arrSize分確保してよいが、byteなら8bit * arrSize分になるべき
-      byte[] bytes = new byte[elementType.wordSize() * Word.BYTES_SIZE * arrSize];
+
+      // FIXME: it's ok to secure 32bits * arrSize when the element is int, but it should do 8 bits * arrSize for bytes
+      byte[] bytes = new byte[rawArrayClass.getComponentWordSize() * Word.BYTES_SIZE * arrSize];
       heapManager.heap.allocate(bytes);
 
-      RawObject rawObject = createRawObject(startingAddress, elementType, arrSize);
+      RawObject rawObject = createRawObject(startingAddress, rawArrayClass, arrSize);
       heapManager.setNewObject(startingAddress, rawObject);
 
       return rawObject.getObjectId();
@@ -247,29 +236,29 @@ public class HeapManagerImpl implements HeapManager {
 
     public List<Word> getValue(RawObject rawObject, int position) {
       int startingAddress = calcStartingAddress(rawObject, position);
-      int elementBytesSize = rawObject.getElementType().wordSize() * Word.BYTES_SIZE;
+      int elementBytesSize = ((RawArrayClass) rawObject.getRawClass()).getComponentWordSize() * Word.BYTES_SIZE;
       byte[] bytes = heapManager.heap.retrieve(startingAddress, elementBytesSize);
       return Word.of(bytes);
     }
 
-    private RawObject createRawObject(int address, JvmType elementType, int arrSize) {
+    private RawObject createRawObject(int address, RawArrayClass rawArrayClass, int arrSize) {
       int objectId = heapManager.requestNextObjectId();
       // TODO: create ArrayClass
-      return new RawObject(objectId, address, null, elementType, arrSize);
+      return new RawObject(objectId, address, rawArrayClass, arrSize);
     }
 
     private int calcStartingAddress(RawObject rawObject, int position) {
       assert (rawObject.getRawClass() instanceof RawArrayClass);
       int objectAddress = heapManager.getAddress(rawObject);
-      int elementBytesSize = rawObject.getElementType().wordSize() * Word.BYTES_SIZE;
+      int elementBytesSize = ((RawArrayClass) rawObject.getRawClass()).getComponentWordSize() * Word.BYTES_SIZE;
       int offsetToField = elementBytesSize * position;
       return objectAddress + offsetToField;
     }
   }
 
   private static class ObjectEntry {
-    private int address;
-    private RawObject rawObject;
+    private final int address;
+    private final RawObject rawObject;
 
     public ObjectEntry(int address, RawObject rawObject) {
       this.address = address;
