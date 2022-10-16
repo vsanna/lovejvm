@@ -54,4 +54,6 @@ public class RawObject {
       return getRawClass().getObjectWords();
     }
   }
+
+  public static final int NULL = 0;
 }

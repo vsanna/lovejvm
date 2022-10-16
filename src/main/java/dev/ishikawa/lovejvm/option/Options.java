@@ -3,6 +3,7 @@ package dev.ishikawa.lovejvm.option;
 
 import dev.ishikawa.lovejvm.logging.LogLevel;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 public class Options {
   private final String ENTRY_CLASS;
@@ -29,35 +30,33 @@ public class Options {
     private String entryClass;
     private LogLevel logLevel;
 
-    public void setEntryClass(String entryClass) {
+    public Builder() {
+      setEntryClass(
+//           "guest/out/Add.class"
+//           "guest/out/ForLoop.class"
+//           "guest/out/dev/ishikawa/test/Recursive.class"
+//           "guest/out/dev/ishikawa/test/Recursive2.class"
+//           "guest/out/dev/ishikawa/test/ArraySample.class"
+//           "guest/out/dev/ishikawa/test/Math.class"
+           "guest/out/dev/ishikawa/test/TypeCast.class"
+//           "guest/out/BasicClass.class"
+//           "guest/out/dev/ishikawa/test/InstanceNew.class"
+//           "guest/out/dev/ishikawa/test/InstanceNew2.class"
+//          "guest/out/dev/ishikawa/test/SystemOut.class"
+      );
+      setLogLevel(LogLevel.DEBUG);
+    }
+
+    public void setEntryClass(@NotNull String entryClass) {
       this.entryClass = entryClass;
     }
 
-    public void setLogLevel(LogLevel logLevel) {
+    public void setLogLevel(@NotNull LogLevel logLevel) {
       this.logLevel = logLevel;
     }
 
     public Options build() {
-
-      return new Options(
-          // REFACTOR: this should throw exception when entry class is not given
-          Optional.ofNullable(entryClass)
-              .orElse(
-                  //                  "guest/out/Add.class"
-                  //                                     "guest/out/ForLoop.class"
-                  //
-                  // "guest/out/dev/ishikawa/test/Recursive.class"
-                  //
-                  // "guest/out/dev/ishikawa/test/Recursive2.class"
-                  //
-                  // "guest/out/dev/ishikawa/test/ArraySample.class"
-                  //                  "guest/out/BasicClass.class"
-                  //
-                  // "guest/out/dev/ishikawa/test/InstanceNew.class"
-                  //
-                  // "guest/out/dev/ishikawa/test/InstanceNew2.class"
-                  "guest/out/dev/ishikawa/test/SystemOut.class"),
-          Optional.ofNullable(logLevel).orElse(LogLevel.INFO));
+      return new Options(builder().entryClass, builder().logLevel);
     }
   }
 }

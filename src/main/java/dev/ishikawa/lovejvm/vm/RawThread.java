@@ -1,5 +1,6 @@
 package dev.ishikawa.lovejvm.vm;
 
+import static dev.ishikawa.lovejvm.vm.Instruction.*;
 import static dev.ishikawa.lovejvm.vm.RawSystem.heapManager;
 import static dev.ishikawa.lovejvm.vm.RawSystem.methodAreaManager;
 
@@ -20,10 +21,12 @@ import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.jetbrains.annotations.NotNull;
 
 public class RawThread {
@@ -37,8 +40,8 @@ public class RawThread {
   }
 
   /**
-   * init the thread by putting the initial frame. Note: initial frame must be a static method, and
-   * static method doesn't have a receiver.
+   * init the thread with the given method.
+   * Note: initial frame must be a static method, and static method doesn't have a receiver.
    */
   public RawThread init(RawMethod entryPoint) {
     stackUp(entryPoint, 0, entryPoint.getTransitWordSize(false));
@@ -91,7 +94,7 @@ public class RawThread {
          * to the return type of the native method and pushed onto the operand stack.
          * */
         List<Word> result = RawSystem.nativeMethodHandler.handle(nextMethod, currentFrame());
-        result.forEach(it -> currentFrame().getOperandStack().push(it));
+        pushFromTail(result, currentFrame().getOperandStack());
         pc = pcToReturn;
         return false;
       }
@@ -168,9 +171,8 @@ public class RawThread {
   }
 
   public void run() {
-    // REFACTOR: refactor. most of these logics should be in a separate place or in LFrame
     while (true) {
-      byte instruction = methodAreaManager.lookupByte(pc);
+      var instruction = Instruction.findBy(methodAreaManager.lookupByte(pc));
       dump(name, pc, instruction, this);
 
       Deque<Word> operandStack = currentFrame().getOperandStack();
@@ -178,128 +180,126 @@ public class RawThread {
       ConstantPool constantPool = currentFrame().getMethod().getKlass().getConstantPool();
 
       switch (instruction) {
-        case (byte) 0x00: // nop
+        case NOP:
           {
             pc += 1;
             break;
           }
-        case (byte) 0x01: // aconst_null
+        case ACONST_NULL:
           {
             // push "null"(objectId = 0)
-            operandStack.push(Word.of((byte) 0x00));
+            operandStack.push(Word.of(RawObject.NULL));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x02: // iconst_m1
+        case ICONST_M1:
           {
             operandStack.push(Word.of(-1));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x03: // iconst_0
+        case ICONST_0:
           {
             operandStack.push(Word.of(0));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x04: // iconst_1
+        case ICONST_1:
           {
             operandStack.push(Word.of(1));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x05: // iconst_2
+        case ICONST_2:
           {
             operandStack.push(Word.of(2));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x06: // iconst_3
+        case ICONST_3:
           {
             operandStack.push(Word.of(3));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x07: // iconst_4
+        case ICONST_4:
           {
             operandStack.push(Word.of(4));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x08: // iconst_5
+        case ICONST_5:
           {
             operandStack.push(Word.of(5));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x09: // lconst_0
+        case LCONST_0:
           {
-            Word.of(0L).forEach(operandStack::push);
+            pushFromTail(Word.of(0L), operandStack);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x0a: // lconst_1
+        case LCONST_1:
           {
-            Word.of(1L).forEach(operandStack::push);
+            pushFromTail(Word.of(1L), operandStack);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x0b: // fconst_0
+        case FCONST_0:
           {
             operandStack.push(Word.of(0.0f));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x0c: // fconst_1
+        case FCONST_1:
           {
             operandStack.push(Word.of(1.0f));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x0d: // fconst_2
+        case FCONST_2:
           {
             operandStack.push(Word.of(2.0f));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x0e: // dconst_0
+        case DCONST_0:
           {
-            Word.of(0.0D).forEach(operandStack::push);
+            pushFromTail(Word.of(0.0D), operandStack);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x0f: // dconst_1
+        case DCONST_1:
           {
-            Word.of(1.0D).forEach(operandStack::push);
+            pushFromTail(Word.of(1.0D), operandStack);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x10: // bipush
+        case BIPUSH:
           {
-            /** push a byte onto the stack as an integer */
-            operandStack.push(Word.of(methodAreaManager.lookupByte(pc + 1)));
+            // push a byte(1bit:sign, 7bit:number) onto the stack as an integer (sign expand)
+            var a = (int) methodAreaManager.lookupByte(pc + 1);
+            operandStack.push(Word.of(a));
             pc = pc + 2;
             break;
           }
-        case (byte) 0x11: // sipush
+        case SIPUSH: // sipush
           {
-            /** push a short onto the stack as an integer */
-            var word = Word.of(peekTwoBytes());
-            operandStack.push(word);
+            // push a short(2 bytes) onto the stack as an integer
+            operandStack.push(Word.of(peekTwoBytes()));
             pc = pc + 3;
             break;
           }
-        case (byte) 0x12: // ldc
+        case LDC:
           {
-            /**
-             * push a constant #index from a constant pool ( String, as objectId int, float, Class,
-             * java.lang.invoke.MethodType, as ??? java.lang.invoke.MethodHandle, as ??? or a
-             * dynamically-computed constant as ??? ) onto the stack
+            /*
+             * push a loadable constant entry(of #index) from a constant pool onto the stack.
+             * this loadable value should be 1 word with LDC instruction
              */
             var index = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
-            ConstantPoolLoadableEntry entry =
-                (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
 
+            ConstantPoolLoadableEntry entry = (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
             entry.resolve(constantPool);
 
             Word word = entry.loadableValue().get(0);
@@ -307,212 +307,181 @@ public class RawThread {
             pc = pc + 2;
             break;
           }
-        case (byte) 0x13: // ldc_w
+        case LDC_W:
           {
-            /**
-             * ldc_w works in a basically same way as ldc. the difference is the size of entry
-             * index. ldc = 1byte, ldc_w = 2bytes.
+            /*
+             * ldc_w works in a basically same way as ldc.
+             * the difference is the size of entry index. ldc = 1byte, ldc_w = 2bytes.
+             * This is for a large ConstantPool.
+             *
+             * This loadable value should be 1 word with LDC_W
              */
             var index = peekTwoBytes();
-            ConstantPoolLoadableEntry entry =
-                (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
 
+            ConstantPoolLoadableEntry entry = (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
             entry.resolve(constantPool);
 
             Word word = entry.loadableValue().get(0);
-
             operandStack.push(word);
             pc = pc + 3;
             break;
           }
-        case (byte) 0x14: // ldc2_w
+        case LDC2_W:
           {
-            /**
-             * push a constant #index from a constant pool ( double, long, or a dynamically-computed
-             * constant ) onto the stack
+            /*
+             * push a loadable constant entry(of #index) from a constant pool onto the stack.
+             * the index is 2 bytes, and the loadable value is 2 words.
              */
             var index = peekTwoBytes();
-            ConstantPoolLoadableEntry entry =
-                (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
 
+            ConstantPoolLoadableEntry entry = (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
             entry.resolve(constantPool);
 
             List<Word> words = entry.loadableValue();
-            for (Word word : words) {
-              operandStack.push(word);
-            }
-
+            pushFromTail(words, operandStack);
             pc = pc + 3;
             break;
           }
-        case (byte) 0x15: // iload
-        case (byte) 0x17: // fload
-        case (byte) 0x19: // aload
+        case ILOAD:
+        case FLOAD:
+        case ALOAD:
           {
-            var id = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
-            operandStack.push(locals[id]);
+            var index = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
+            operandStack.push(locals[index]);
             pc = pc + 2;
             break;
           }
-        case (byte) 0x16: // lload
-        case (byte) 0x18: // dload
+        case LLOAD:
+        case DLOAD:
           {
-            var id = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
-            operandStack.push(locals[id]);
-            operandStack.push(locals[id + 1]);
+            var index = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
+            operandStack.push(locals[index + 1]);
+            operandStack.push(locals[index]);
             pc = pc + 2;
             break;
           }
-        case (byte) 0x1a: // iload_0
+        case ILOAD_0:
           {
             operandStack.push(locals[0]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x1b: // iload_1
+        case ILOAD_1:
           {
             operandStack.push(locals[1]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x1c: // iload_2
+        case ILOAD_2:
           {
             operandStack.push(locals[2]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x1d: // iload_3
+        case ILOAD_3:
           {
             operandStack.push(locals[3]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x1e: // lload_0
-          {
+        case LLOAD_0:
+        case DLOAD_0: {
             operandStack.push(locals[0]);
             operandStack.push(locals[1]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x1f: // lload_1
-          {
+        case LLOAD_1:
+        case DLOAD_1: {
             operandStack.push(locals[1]);
             operandStack.push(locals[2]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x20: // lload_2
-          {
+        case LLOAD_2:
+        case DLOAD_2: {
             operandStack.push(locals[2]);
             operandStack.push(locals[3]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x21: // lload_3
-          {
+        case LLOAD_3:
+        case DLOAD_3: {
             operandStack.push(locals[3]);
             operandStack.push(locals[4]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x22: // fload_0
+        case FLOAD_0:
           {
             operandStack.push(locals[0]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x23: // fload_1
+        case FLOAD_1:
           {
             operandStack.push(locals[1]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x24: // fload_2
+        case FLOAD_2:
           {
             operandStack.push(locals[2]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x25: // fload_3
+        case FLOAD_3:
           {
             operandStack.push(locals[3]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x26: // dload_0
-          {
-            operandStack.push(locals[0]);
-            operandStack.push(locals[1]);
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x27: // dload_1
-          {
-            operandStack.push(locals[1]);
-            operandStack.push(locals[2]);
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x28: // dload_2
-          {
-            operandStack.push(locals[2]);
-            operandStack.push(locals[3]);
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x29: // dload_3
-          {
-            operandStack.push(locals[3]);
-            operandStack.push(locals[4]);
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x2a: // aload_0
+        case ALOAD_0:
           {
             operandStack.push(locals[0]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x2b: // aload_1
+        case ALOAD_1:
           {
             operandStack.push(locals[1]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x2c: // aload_2
+        case ALOAD_2:
           {
             operandStack.push(locals[2]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x2d: // aload_3
+        case ALOAD_3:
           {
             operandStack.push(locals[3]);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x2e: // iaload
-        case (byte) 0x2f: // laload
-        case (byte) 0x30: // faload
-        case (byte) 0x31: // faload
-        case (byte) 0x32: // aaload
-        case (byte) 0x33: // baload
-        case (byte) 0x34: // caload
-        case (byte) 0x35: // saload
+        case IALOAD:
+        case LALOAD:
+        case FALOAD:
+        case DALOAD:
+        case AALOAD:
+        case BALOAD:
+        case CALOAD:
+        case SALOAD:
           {
-            var index = operandStack.pop().getValue();
+            var position = operandStack.pop().getValue();
             var arrayIndex = operandStack.pop().getValue();
 
             var arrayObject = heapManager.lookupObject(arrayIndex);
-            var value = heapManager.getElement(arrayObject, index);
+            var value = heapManager.getElement(arrayObject, position);
 
-            value.forEach(operandStack::push);
+            pushFromTail(value, operandStack);
 
             pc = pc + 1;
             break;
           }
-        case (byte) 0x37: // lstore
-        case (byte) 0x39: // dstore
+        case LSTORE:
+        case DSTORE:
           {
             var index = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
             locals[index] = operandStack.pop();
@@ -520,185 +489,125 @@ public class RawThread {
             pc = pc + 2;
             break;
           }
-        case (byte) 0x36: // istore
-        case (byte) 0x38: // fstore
-        case (byte) 0x3a: // astore
+        case ISTORE:
+        case FSTORE:
+        case ASTORE:
           {
             var index = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
             locals[index] = operandStack.pop();
             pc = pc + 2;
             break;
           }
-        case (byte) 0x3b: // istore_0
-          {
+        case ISTORE_0:
+        case FSTORE_0:
+        case ASTORE_0:
+        {
             locals[0] = operandStack.pop();
             pc = pc + 1;
             break;
           }
-        case (byte) 0x3c: // istore_1
-          {
+        case ISTORE_1:
+        case FSTORE_1:
+        case ASTORE_1:
+        {
             locals[1] = operandStack.pop();
             pc = pc + 1;
             break;
           }
-        case (byte) 0x3d: // istore_2
-          {
+        case ISTORE_2:
+        case FSTORE_2:
+        case ASTORE_2:
+        {
             locals[2] = operandStack.pop();
             pc = pc + 1;
             break;
           }
-        case (byte) 0x3e: // istore_3
-          {
+        case ISTORE_3:
+        case FSTORE_3:
+        case ASTORE_3:
+        {
             locals[3] = operandStack.pop();
             pc = pc + 1;
             break;
           }
-        case (byte) 0x3f: // lstore_0
-          {
+        case LSTORE_0:
+        case DSTORE_0:
+        {
             locals[0] = operandStack.pop();
             locals[1] = operandStack.pop();
             pc = pc + 1;
             break;
           }
-        case (byte) 0x40: // lstore_1
-          {
+        case LSTORE_1:
+        case DSTORE_1:
+        {
             locals[1] = operandStack.pop();
             locals[2] = operandStack.pop();
             pc = pc + 1;
             break;
           }
-        case (byte) 0x41: // lstore_2
-          {
+        case LSTORE_2:
+        case DSTORE_2:
+        {
             locals[2] = operandStack.pop();
             locals[3] = operandStack.pop();
             pc = pc + 1;
             break;
           }
-        case (byte) 0x42: // lstore_3
-          {
+        case LSTORE_3:
+        case DSTORE_3:
+        {
             locals[3] = operandStack.pop();
             locals[4] = operandStack.pop();
             pc = pc + 1;
             break;
           }
-        case (byte) 0x43: // fstore_0
+        case LASTORE:
+        case DASTORE:
           {
-            locals[0] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x44: // fstore_1
-          {
-            locals[1] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x45: // fstore_2
-          {
-            locals[2] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x46: // fstore_3
-          {
-            locals[3] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x47: // dstore_0
-          {
-            locals[0] = operandStack.pop();
-            locals[1] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x48: // dstore_1
-          {
-            locals[1] = operandStack.pop();
-            locals[2] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x49: // dstore_2
-          {
-            locals[2] = operandStack.pop();
-            locals[3] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x4a: // dstore_3
-          {
-            locals[3] = operandStack.pop();
-            locals[4] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x4b: // astore_0
-          {
-            locals[0] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x4c: // astore_1
-          {
-            locals[1] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x4d: // astore_2
-          {
-            locals[2] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x4e: // astore_3
-          {
-            locals[3] = operandStack.pop();
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x50: // lastore
-        case (byte) 0x52: // dastore
-          {
-            var v2 = currentFrame().getOperandStack().pop();
             var v1 = currentFrame().getOperandStack().pop();
+            var v2 = currentFrame().getOperandStack().pop();
             List<Word> value = List.of(v1, v2);
+
             int position = currentFrame().getOperandStack().pop().getValue();
             int objectId = currentFrame().getOperandStack().pop().getValue();
             RawObject rawObject = heapManager.lookupObject(objectId);
+
             heapManager.setElement(rawObject, position, value);
             pc += 1;
             break;
           }
-        case (byte) 0x4f: // iastore
-        case (byte) 0x51: // fastore
-        case (byte) 0x53: // aastore
-        case (byte) 0x54: // bastore
-        case (byte) 0x55: // castore
-        case (byte) 0x56: // sastore
+        case IASTORE:
+        case FASTORE:
+        case AASTORE:
+        case BASTORE:
+        case CASTORE:
+        case SASTORE:
           {
             List<Word> value = List.of(currentFrame().getOperandStack().pop());
+
             int position = currentFrame().getOperandStack().pop().getValue();
             int objectId = currentFrame().getOperandStack().pop().getValue();
             RawObject rawObject = heapManager.lookupObject(objectId);
+
             heapManager.setElement(rawObject, position, value);
             pc += 1;
             break;
           }
-        case (byte) 0x57: // pop
+        case POP:
           {
             currentFrame().getOperandStack().pop();
             pc += 1;
             break;
           }
-        case (byte) 0x58: // pop2
+        case POP2:
           {
             currentFrame().getOperandStack().pop();
             currentFrame().getOperandStack().pop();
             pc += 1;
             break;
           }
-        case (byte) 0x59: // dup
+        case DUP:
           {
             // [v1] -> [copy(v1), v1]
             Word v1 = currentFrame().getOperandStack().pop();
@@ -707,7 +616,7 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x5a: // dup_x1
+        case DUP_X1:
           {
             // [v2, v1] -> [copy(v1), v2, v1]
             Word v1 = currentFrame().getOperandStack().pop();
@@ -718,7 +627,7 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x5b: // dup_x2
+        case DUP_X2:
           {
             // [v3, v2, v1] -> [copy(v1), v3 ,v2, v1]
             Word v1 = currentFrame().getOperandStack().pop();
@@ -731,7 +640,7 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x5c: // dup2
+        case DUP2:
           {
             // [v2, v1] -> [copy(v2), copy(v1), v2, v1]
             Word v1 = currentFrame().getOperandStack().pop();
@@ -743,7 +652,7 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x5d: // dup2_x1
+        case DUP2_X1:
           {
             // [v3, v2, v1] -> [copy(v2), copy(v1), v3, v2, v1]
             Word v1 = currentFrame().getOperandStack().pop();
@@ -757,7 +666,7 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x5e: // dup2_x2
+        case DUP2_X2:
           {
             // [v4, v3, v2, v1] -> [copy(v2), copy(v1), v4, v3, v2, v1]
             Word v1 = currentFrame().getOperandStack().pop();
@@ -773,379 +682,396 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x5f: // swap
+        case SWAP:
           {
-            // [v4, v3, v2, v1] -> [copy(v2), copy(v1), v4, v3, v2, v1]
+            // [v2, v1] -> [v1, v2]
             Word v1 = currentFrame().getOperandStack().pop();
             Word v2 = currentFrame().getOperandStack().pop();
-            Word v3 = currentFrame().getOperandStack().pop();
-            Word v4 = currentFrame().getOperandStack().pop();
-            operandStack.push(Word.of(v2));
-            operandStack.push(Word.of(v1));
-            operandStack.push(v4);
-            operandStack.push(v3);
-            operandStack.push(v2);
             operandStack.push(v1);
+            operandStack.push(v2);
             pc += 1;
             break;
           }
-        case (byte) 0x60: // iadd
+        case IADD:
           {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b + a));
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left + right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x61: // ladd
+        case LADD:
           {
-            // [v1, v2, v3, v4] -> a = Long(v1, v2), b = Long(v3, v4)
-            int v4 = operandStack.pop().getValue();
+            // [v2, v1, v4, v3] -> left = Long(v1, v2), right = Long(v3, v4)
             int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
-            int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word.of(b + a).forEach(operandStack::push);
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x62: // fadd
-          {
-            float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            float b = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            operandStack.push(Word.of(b + a));
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x63: // dadd
-          {
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            double a = ByteUtil.concatToDouble(v1, v2);
-            double b = ByteUtil.concatToDouble(v3, v4);
-            Word.of(b + a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            pushFromTail(Word.of(left + right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x64: // isub
+        case FADD:
           {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b - a));
+            float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            operandStack.push(Word.of(left + right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x65: // lsub
+        case DADD:
           {
+            // [v2, v1, v4, v3] -> left = Double(v1, v2), right = Double(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word.of(b - a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            double left = ByteUtil.concatToDouble(v1, v2);
+            double right = ByteUtil.concatToDouble(v3, v4);
+            pushFromTail(Word.of(left + right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x66: // fsub
+        case ISUB:
           {
-            float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            float b = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            operandStack.push(Word.of(b - a));
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left - right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x67: // dsub
+        case LSUB:
           {
+            // [v2, v1, v4, v3] -> left = Long(v1, v2), right = Long(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            double a = ByteUtil.concatToDouble(v1, v2);
-            double b = ByteUtil.concatToDouble(v3, v4);
-            Word.of(b - a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            pushFromTail(Word.of(left - right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x68: // imul
+        case FSUB:
           {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b * a));
+            float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            operandStack.push(Word.of(left - right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x69: // lmul
+        case DSUB:
           {
-            // [v1, v2, v3, v4] -> a = Long(v1, v2), b = Long(v3, v4)
+            // [v2, v1, v4, v3] -> left = Double(v1, v2), right = Double(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word.of(b * a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            double left = ByteUtil.concatToDouble(v1, v2);
+            double right = ByteUtil.concatToDouble(v3, v4);
+            pushFromTail(Word.of(left - right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x6a: // fmul
+        case IMUL:
           {
-            float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            float b = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            operandStack.push(Word.of(b * a));
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left * right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x6b: // dmul
+        case LMUL:
           {
-            // [v1, v2, v3, v4] -> a = Double(v1, v2), b = Double(v3, v4)
+            // [v2, v1, v4, v3] -> left = Long(v1, v2), right = Long(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            double a = ByteUtil.concatToDouble(v1, v2);
-            double b = ByteUtil.concatToDouble(v3, v4);
-            long result = Double.doubleToLongBits(b * a);
-            Word.of(result).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            pushFromTail(Word.of(left * right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x6c: // idiv
+        case FMUL:
           {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b / a));
+            float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            operandStack.push(Word.of(left * right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x6d: // ldiv
+        case DMUL:
           {
+            // [v2, v1, v4, v3] -> left = Double(v1, v2), right = Double(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word.of(b / a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            double left = ByteUtil.concatToDouble(v1, v2);
+            double right = ByteUtil.concatToDouble(v3, v4);
+            long result = Double.doubleToLongBits(left * right);
+            pushFromTail(Word.of(result), operandStack);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x6e: // fdiv
+        case IDIV:
           {
-            float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            float b = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            operandStack.push(Word.of(b / a));
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left / right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x6f: // ddiv
+        case LDIV:
           {
+            // [v2, v1, v4, v3] -> left = Long(v1, v2), right = Long(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            double a = ByteUtil.concatToDouble(v1, v2);
-            double b = ByteUtil.concatToDouble(v3, v4);
-            long result = Double.doubleToLongBits(b / a);
-            Word.of(result).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            pushFromTail(Word.of(left / right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x70: // irem
+        case FDIV:
           {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b % a));
+            float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            operandStack.push(Word.of(left / right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x71: // lrem
+        case DDIV:
           {
+            // [v2, v1, v4, v3] -> left = Double(v1, v2), right = Double(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word.of(b % a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            double left = ByteUtil.concatToDouble(v1, v2);
+            double right = ByteUtil.concatToDouble(v3, v4);
+            long result = Double.doubleToLongBits(left / right);
+            pushFromTail(Word.of(result), operandStack);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x72: // frem
+        case IREM:
           {
-            float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            float b = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            operandStack.push(Word.of(b % a));
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left % right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x73: // drem
+        case LREM:
           {
+            // [v2, v1, v4, v3] -> left = Long(v1, v2), right = Long(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            double a = ByteUtil.concatToDouble(v1, v2);
-            double b = ByteUtil.concatToDouble(v3, v4);
-            Word.of(b % a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            pushFromTail(Word.of(left % right), operandStack);
             pc = pc + 1;
             break;
           }
-        case (byte) 0x74: // ineg
+        case FREM:
+          {
+            float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            operandStack.push(Word.of(left % right));
+            pc = pc + 1;
+            break;
+          }
+        case DREM:
+          {
+            // [v2, v1, v4, v3]
+            int v3 = operandStack.pop().getValue();
+            int v4 = operandStack.pop().getValue();
+            int v1 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
+            double left = ByteUtil.concatToDouble(v1, v2);
+            double right = ByteUtil.concatToDouble(v3, v4);
+            pushFromTail(Word.of(left % right), operandStack);
+
+            pc = pc + 1;
+            break;
+          }
+        case INEG:
           {
             int a = operandStack.pop().getValue();
             operandStack.push(Word.of(-1 * a));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x75: // lneg
+        case LNEG:
           {
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
             long a = ByteUtil.concatToLong(v1, v2);
-            Word.of(-1 * a).forEach(operandStack::push);
+            pushFromTail(Word.of(-1 * a), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x76: // fneg
+        case FNEG:
           {
             float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
             operandStack.push(Word.of(-1 * a));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x77: // dneg
+        case DNEG:
           {
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
             double a = ByteUtil.concatToDouble(v1, v2);
-            Word.of(-1 * a).forEach(operandStack::push);
+            pushFromTail(Word.of(-1 * a), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x78: // ishl ... int shift left
+        case ISHL: // int shift left
           {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b << a));
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left << right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x79: // lshl ... long shift left
+        case LSHL: // long shift left
           {
-            // [v1, v2, v3] -> a = Long(v1, v2), b = Int(v3)
-            int a = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
+            // [v2, v1, v3] -> left = Long(v1, v2), right = Int(v3)
+            int right = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long b = ByteUtil.concatToLong(v1, v2);
-            Word.of(b << a).forEach(operandStack::push);
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x7a: // ishr ... int shift right
-          {
-            // [b, a] -> (b >> a)
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b >> a));
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x7b: // lshr ... long shift right
-          {
-            // [v1, v2, v3] -> a = Long(v1, v2), b = Int(v3)
-            int a = operandStack.pop().getValue();
             int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            pushFromTail(Word.of(left << right), operandStack);
+
+            pc = pc + 1;
+            break;
+          }
+        case ISHR: // int shift right
+          {
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left >> right));
+            pc = pc + 1;
+            break;
+          }
+        case LSHR: // long shift right
+          {
+            // [v2, v1, v3] -> left = Long(v1, v2), right = Int(v3)
+            int right = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long b = ByteUtil.concatToLong(v1, v2);
-            Word.of(b >> a).forEach(operandStack::push);
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x7c: // iushr ... int logical shift right
-          {
-            // [b, a] -> (b >>> a)
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b >>> a));
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x7d: // lushr ... long logical shift right
-          {
-            // [v1, v2, v3] -> b = Long(v1, v2), a = Int(v3) -> (b >>> a)
-            int a = operandStack.pop().getValue();
             int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            pushFromTail(Word.of(left >> right), operandStack);
+
+            pc = pc + 1;
+            break;
+          }
+        case IUSHR: // int logical shift right
+          {
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left >>> right));
+            pc = pc + 1;
+            break;
+          }
+        case LUSHR: // long logical shift right
+          {
+            // [v2, v1, v3] -> left = Long(v1, v2), right = Int(v3) -> (left >>> right)
+            int right = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long b = ByteUtil.concatToLong(v1, v2);
-            Word.of(b >>> a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            pushFromTail(Word.of(left >>> right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x7e: // iand
+        case IAND:
           {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b & a));
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left & right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x7f: // land
+        case LAND: // land
           {
-            int v4 = operandStack.pop().getValue();
+            // [v2, v1, v4, v3] -> left = Long(v1, v2), right = Long(v3, v4)
             int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
-            int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word.of(b & a).forEach(operandStack::push);
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x80: // ior
-          {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b | a));
-            pc = pc + 1;
-            break;
-          }
-        case (byte) 0x81: // lor
-          {
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word.of(b | a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            pushFromTail(Word.of(left & right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x82: // ixor
+        case IOR:
           {
-            int a = operandStack.pop().getValue();
-            int b = operandStack.pop().getValue();
-            operandStack.push(Word.of(b ^ a));
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left | right));
             pc = pc + 1;
             break;
           }
-        case (byte) 0x83: // lxor
+        case LOR:
           {
+            // [v2, v1, v4, v3] -> left = Long(v1, v2), right = Long(v3, v4)
+            int v3 = operandStack.pop().getValue();
             int v4 = operandStack.pop().getValue();
-            int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
-            long a = ByteUtil.concatToLong(v1, v2);
-            long b = ByteUtil.concatToLong(v3, v4);
-            Word.of(b ^ a).forEach(operandStack::push);
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            pushFromTail(Word.of(left | right), operandStack);
+
             pc = pc + 1;
             break;
           }
-        case (byte) 0x84: // iinc
+        case IXOR:
+          {
+            int right = operandStack.pop().getValue();
+            int left = operandStack.pop().getValue();
+            operandStack.push(Word.of(left ^ right));
+            pc = pc + 1;
+            break;
+          }
+        case LXOR:
+          {
+            // [v2, v1, v4, v3] -> left = Long(v1, v2), right = Long(v3, v4)
+            int v3 = operandStack.pop().getValue();
+            int v4 = operandStack.pop().getValue();
+            int v1 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
+            long left = ByteUtil.concatToLong(v1, v2);
+            long right = ByteUtil.concatToLong(v3, v4);
+            pushFromTail(Word.of(left ^ right), operandStack);
+
+            pc = pc + 1;
+            break;
+          }
+        case IINC:
           {
             int index = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
             byte incVal = methodAreaManager.lookupByte(pc + 2);
@@ -1153,15 +1079,15 @@ public class RawThread {
             pc = pc + 3;
             break;
           }
-        case (byte) 0x85: // i2l
+        case I2L:
           {
-            // convert int to long
             var a = operandStack.pop().getValue();
-            Word.of((long) a).forEach(operandStack::push);
+            pushFromTail(Word.of((long) a), operandStack);
+
             pc += 1;
             break;
           }
-        case (byte) 0x86: // i2f
+        case I2F:
           {
             // 10 -> 10.0f
             var a = operandStack.pop().getValue();
@@ -1169,155 +1095,147 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x87: // i2d
+        case I2D:
           {
             // 10 -> 10.0D
             var a = operandStack.pop().getValue();
-            Word.of((double) a).forEach(operandStack::push);
+            pushFromTail(Word.of((double) a), operandStack);
+
             pc += 1;
             break;
           }
-        case (byte) 0x88: // l2i
+        case L2I:
           {
-            // truncate long to int
+            var v1 = operandStack.pop().getValue();
             var v2 = operandStack.pop().getValue();
-            var _v1 = operandStack.pop().getValue();
-            Word word = Word.of(v2);
+            long a = ByteUtil.concatToLong(v1, v2);
+            Word word = Word.of((int) a);
             operandStack.push(word);
             pc += 1;
             break;
           }
-        case (byte) 0x89: // l2f
+        case L2F:
           {
-            // truncate long to int
-            var v2 = operandStack.pop().getValue();
             var v1 = operandStack.pop().getValue();
+            var v2 = operandStack.pop().getValue();
             var a = ByteUtil.concatToLong(v1, v2);
             Word word = Word.of((float) a);
             operandStack.push(word);
             pc += 1;
             break;
           }
-        case (byte) 0x8a: // l2d
+        case L2D:
           {
             // truncate long to int
-            var v2 = operandStack.pop().getValue();
             var v1 = operandStack.pop().getValue();
+            var v2 = operandStack.pop().getValue();
             var a = ByteUtil.concatToLong(v1, v2);
             List<Word> words = Word.of((double) a);
-            words.forEach(operandStack::push);
+            pushFromTail(words, operandStack);
+
             pc += 1;
             break;
           }
-        case (byte) 0x8b: // f2i
+        case F2I:
           {
-            // 123.45 -> 123
-            var a = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
             operandStack.push(Word.of((int) a));
             pc += 1;
             break;
           }
-        case (byte) 0x8c: // f2l
+        case F2L:
           {
-            // 123.45 -> 123
-            var a = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            Word.of((long) a).forEach(operandStack::push);
+            float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            pushFromTail(Word.of((long) a), operandStack);
+
             pc += 1;
             break;
           }
-        case (byte) 0x8d: // f2d
+        case F2D:
           {
-            // 123.45 -> 123
-            var a = ByteUtil.convertToFloat(operandStack.pop().getValue());
-            Word.of((double) a).forEach(operandStack::push);
+            float a = ByteUtil.convertToFloat(operandStack.pop().getValue());
+            pushFromTail(Word.of((double) a), operandStack);
+
             pc += 1;
             break;
           }
-        case (byte) 0x8e: // d2i
+        case D2I:
           {
-            // 123.45 -> 123
-            var v2 = operandStack.pop().getValue();
             var v1 = operandStack.pop().getValue();
-            var a = ByteUtil.concatToDouble(v1, v2);
+            var v2 = operandStack.pop().getValue();
+            double a = ByteUtil.concatToDouble(v1, v2);
             operandStack.push(Word.of((int) a));
             pc += 1;
             break;
           }
-        case (byte) 0x8f: // d2l
+        case D2L:
           {
-            // 123.45 -> 123
-            var v2 = operandStack.pop().getValue();
             var v1 = operandStack.pop().getValue();
-            var a = ByteUtil.concatToDouble(v1, v2);
-            Word.of((long) a).forEach(operandStack::push);
+            var v2 = operandStack.pop().getValue();
+            double a = ByteUtil.concatToDouble(v1, v2);
+            pushFromTail(Word.of((long) a), operandStack);
+
             pc += 1;
             break;
           }
-        case (byte) 0x90: // d2f
+        case D2F:
           {
-            var v2 = operandStack.pop().getValue();
             var v1 = operandStack.pop().getValue();
-            var a = ByteUtil.concatToDouble(v1, v2);
+            var v2 = operandStack.pop().getValue();
+            double a = ByteUtil.concatToDouble(v1, v2);
             operandStack.push(Word.of((float) a));
             pc += 1;
             break;
           }
-        case (byte) 0x91: // i2b
+        case I2B:
           {
             var a = operandStack.pop().getValue();
             operandStack.push(Word.of((byte) a));
             pc += 1;
             break;
           }
-        case (byte) 0x92: // i2c
+        case I2C:
           {
-            // truncate int into char
             Word word = Word.of(((byte) operandStack.pop().getValue()));
             operandStack.push(word);
             pc += 1;
             break;
           }
-        case (byte) 0x93: // i2s
+        case I2S:
           {
-            // truncate int into char
             Word word = Word.of(((short) operandStack.pop().getValue()));
             operandStack.push(word);
             pc += 1;
             break;
           }
-        case (byte) 0x94: // lcmp
+        case LCMP:
           {
             // if(left == right) push(0)
             // if(left > right>  push(1)
             // if(left < right>  push(-1)
-            var v4 = operandStack.pop().getValue();
-            var v3 = operandStack.pop().getValue();
-            var v2 = operandStack.pop().getValue();
-            var v1 = operandStack.pop().getValue();
+            int v3 = operandStack.pop().getValue();
+            int v4 = operandStack.pop().getValue();
+            int v1 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
             long left = ByteUtil.concatToLong(v1, v2);
             long right = ByteUtil.concatToLong(v3, v4);
+
             Word word = Word.of(Long.compare(left, right));
             operandStack.push(word);
             pc += 1;
             break;
           }
-        case (byte) 0x95: // fcmpl
+        case FCMPL:
           {
             float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
             float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
-
-            if (pc == 187763) {
-              int a = 1;
-            }
-
-            int b = Float.compare(left, right);
 
             Word word = Word.of(Float.compare(left, right));
             operandStack.push(word);
             pc += 1;
             break;
           }
-        case (byte) 0x96: // fcmpg
+        case FCMPG:
           {
             float right = ByteUtil.convertToFloat(operandStack.pop().getValue());
             float left = ByteUtil.convertToFloat(operandStack.pop().getValue());
@@ -1327,12 +1245,12 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x97: // dcmpl
+        case DCMPL:
           {
-            int v4 = operandStack.pop().getValue();
             int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
+            int v4 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
             double left = ByteUtil.concatToDouble(v1, v2);
             double right = ByteUtil.concatToDouble(v3, v4);
             Word word = Word.of(Double.compare(left, right));
@@ -1340,12 +1258,12 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x98: // dcmpg
+        case DCMPG:
           {
-            int v4 = operandStack.pop().getValue();
             int v3 = operandStack.pop().getValue();
-            int v2 = operandStack.pop().getValue();
+            int v4 = operandStack.pop().getValue();
             int v1 = operandStack.pop().getValue();
+            int v2 = operandStack.pop().getValue();
             double left = ByteUtil.concatToDouble(v1, v2);
             double right = ByteUtil.concatToDouble(v3, v4);
             Word word = Word.of(Double.compare(right, left));
@@ -1353,7 +1271,7 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0x99: // ifeq
+        case IFEQ:
           {
             // if (value == 0) then jump to jumpTo
             int value = operandStack.pop().getValue();
@@ -1366,7 +1284,7 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0x9a: // ifne
+        case IFNE:
           {
             // if (value != 0) then jump to jumpTo
             int value = operandStack.pop().getValue();
@@ -1379,7 +1297,7 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0x9b: // iflt
+        case IFLT:
           {
             // if (value < 0) then jump to jumpTo
             int value = operandStack.pop().getValue();
@@ -1392,7 +1310,7 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0x9c: // ifge
+        case IFGE:
           {
             // if (value >= 0) then jump to jumpTo
             int value = operandStack.pop().getValue();
@@ -1405,7 +1323,7 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0x9d: // ifgt
+        case IFGT:
           {
             // if (value > 0) then jump to jumpTo
             int value = operandStack.pop().getValue();
@@ -1418,7 +1336,7 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0x9e: // ifle
+        case IFLE:
           {
             // if (value <= 0) then jump to jumpTo
             int value = operandStack.pop().getValue();
@@ -1431,8 +1349,8 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0x9f: // if_icmpeq
-          {
+        case IF_ICMPEQ:
+        case IF_ACMPEQ: {
             // if (left == right) then jump to jumpTo
             int right = operandStack.pop().getValue();
             int left = operandStack.pop().getValue();
@@ -1445,8 +1363,8 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0xa0: // if_icmpne
-          {
+        case IF_ICMPNE:
+        case IF_ACMPNE: {
             // if (left != right) then jump to jumpTo
             int right = operandStack.pop().getValue();
             int left = operandStack.pop().getValue();
@@ -1459,7 +1377,7 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0xa1: // if_icmplt
+        case IF_ICMPLT:
           {
             // if (left < right) then jump to jumpTo
             int right = operandStack.pop().getValue();
@@ -1473,7 +1391,7 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0xa2: // if_icmpge
+        case IF_ICMPGE:
           {
             // if (left >= right) then jump to jumpTo
             int right = operandStack.pop().getValue();
@@ -1487,7 +1405,7 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0xa3: // if_icmpgt
+        case IF_ICMPGT:
           {
             // if (left > right) then jump to jumpTo
             int right = operandStack.pop().getValue();
@@ -1501,9 +1419,9 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0xa4: // if_icmple
+        case IF_ICMPLE:
           {
-            // if (left > right) then jump to jumpTo
+            // if (left <= right) then jump to jumpTo
             int right = operandStack.pop().getValue();
             int left = operandStack.pop().getValue();
             int jumpTo = peekTwoBytes();
@@ -1515,42 +1433,21 @@ public class RawThread {
             }
             break;
           }
-        case (byte) 0xa5: // if_acmpeq
-          {
-            // if (left == right) then jump to jumpTo
-            int right = operandStack.pop().getValue();
-            int left = operandStack.pop().getValue();
-            int jumpTo = peekTwoBytes();
-
-            if (left == right) {
-              pc = pc + jumpTo;
-            } else {
-              pc = pc + 3;
-            }
-            break;
-          }
-        case (byte) 0xa6: // if_acmpne
-          {
-            // if (left != right) then jump to jumpTo
-            int right = operandStack.pop().getValue();
-            int left = operandStack.pop().getValue();
-            int jumpTo = peekTwoBytes();
-
-            if (left != right) {
-              pc = pc + jumpTo;
-            } else {
-              pc = pc + 3;
-            }
-            break;
-          }
-        case (byte) 0xa7: // goto
+        case GOTO:
           {
             int offset = peekTwoBytes();
             pc += offset;
-
             break;
           }
-        case (byte) 0xaa: // tableswitch
+        case JSR:
+        {
+          throw new RuntimeException("JSR is not implemented yet");
+        }
+        case RET:
+        {
+          throw new RuntimeException("RET is not implemented yet");
+        }
+        case TABLESWITCH:
           {
             var index = operandStack.pop().getValue();
             var tableswitchOpAddress = pc;
@@ -1603,30 +1500,35 @@ public class RawThread {
             pc = tableswitchOpAddress + offset;
             break;
           }
-        case (byte) 0xac: // ireturn
-        case (byte) 0xae: // freturn
-        case (byte) 0xb0: // areturn
-          {
-            // ireturn/freturn/areturn/dreturn returns one word
+        case LOOKUPSWITCH:
+        {
+          throw new RuntimeException("LOOKUPSWITCH is not implemented yet");
+        }
+        case IRETURN:
+        case FRETURN:
+        case ARETURN:
+        {
+            // ireturn/freturn/areturn returns one word
             // these operand codes must be able to stackDown
             var word = currentFrame().getOperandStack().pop();
             previousFrame().getOperandStack().push(word);
             stackDown();
             break;
           }
-        case (byte) 0xad: // lreturn
-        case (byte) 0xaf: // dreturn
+        case LRETURN: // lreturn
+        case DRETURN: // dreturn
           {
-            // dreturn returns two words
+            // TODO: test here
+            // lreturn/dreturn returns two words
             // these operand codes must be able to stackDown
             var v1 = currentFrame().getOperandStack().pop();
             var v2 = currentFrame().getOperandStack().pop();
-            previousFrame().getOperandStack().push(v1);
             previousFrame().getOperandStack().push(v2);
+            previousFrame().getOperandStack().push(v1);
             stackDown();
             break;
           }
-        case (byte) 0xb1: // return
+        case RETURN:
           {
             if (canStackDown()) {
               stackDown();
@@ -1635,15 +1537,12 @@ public class RawThread {
             // this thread is finished
             return;
           }
-        case (byte) 0xb2: // getstatic
+        case GETSTATIC:
           {
-            if (pc == 371) {
-              int a = 1;
-            }
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
-
             fieldRef.resolve(constantPool);
+
             RawClass rawClass = methodAreaManager.lookupClass(fieldRef.getConstantClassRef());
             RawSystem.classLinker.link(rawClass);
             RawSystem.classInitializer.initialize(rawClass);
@@ -1651,17 +1550,17 @@ public class RawThread {
             RawField rawField = fieldRef.getRawField();
 
             List<Word> staticFieldValue = methodAreaManager.getStaticFieldValue(rawClass, rawField);
-            staticFieldValue.forEach(operandStack::push);
+            pushFromTail(staticFieldValue, operandStack);
 
             pc = pc + 3;
             break;
           }
-        case (byte) 0xb3: // putstatic
+        case PUTSTATIC:
           {
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
-
             fieldRef.resolve(constantPool);
+
             RawClass rawClass = methodAreaManager.lookupClass(fieldRef.getConstantClassRef());
             RawSystem.classLinker.link(rawClass);
             RawSystem.classInitializer.initialize(rawClass);
@@ -1677,18 +1576,10 @@ public class RawThread {
             pc = pc + 3;
             break;
           }
-        case (byte) 0xb4: // getfield
+        case GETFIELD:
           {
-            /*
-             * > objectref, value →
-             * > get a field value of an object objectref,
-             * */
-            if (pc == 27084) {
-              int a = 1;
-            }
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
-
             fieldRef.resolve(constantPool);
 
             int objectId = operandStack.pop().getValue();
@@ -1697,27 +1588,15 @@ public class RawThread {
 
             // REFACTOR: validate if the value is suitable for the field
             var words = heapManager.getValue(object, rawField);
-            for (Word word : words) {
-              operandStack.push(word);
-            }
+            pushFromTail(words, operandStack);
 
             pc += 3;
             break;
           }
-        case (byte) 0xb5: // putfield
+        case PUTFIELD:
           {
-            /*
-             * > objectref, value →
-             * > set field to value in an object objectref,
-             * > where the field is identified by a field reference index in constant pool
-             *
-             * ref: JAVA virtual machine
-             * it depends on the descriptor how many words to pop here
-             * */
-
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
-
             fieldRef.resolve(constantPool);
 
             // retrieve value to set
@@ -1738,15 +1617,11 @@ public class RawThread {
             pc += 3;
             break;
           }
-        case (byte) 0xb6: // invokevirtual
+        case INVOKEVIRTUAL:
           {
-            if (pc == 601) {
-              int a = 1;
-            }
             // REFACTOR
             var index = peekTwoBytes();
             ConstantMethodref methodRef = (ConstantMethodref) constantPool.findByIndex(index);
-
             methodRef.resolve(constantPool);
             RawMethod rawMethod = methodRef.getRawMethod();
 
@@ -1780,9 +1655,8 @@ public class RawThread {
             // no need to update pc. pc is modified in stackUp
             break;
           }
-
-        case (byte) 0xb7: // invokespecial
-        case (byte) 0xb8: // invokestatic
+        case INVOKESPECIAL:
+        case INVOKESTATIC:
           {
             // REFACTOR
             var index = peekTwoBytes();
@@ -1791,10 +1665,7 @@ public class RawThread {
             methodRef.resolve(constantPool);
             RawMethod rawMethod = methodRef.getRawMethod();
 
-            boolean hasReceiver =
-                (instruction == (byte) 0xb6
-                    || instruction == (byte) 0xb7
-                    || instruction == (byte) 0xb9);
+            boolean hasReceiver = (instruction == INVOKESPECIAL);
             int numOfWordsToTransit = rawMethod.getTransitWordSize(hasReceiver);
             var nextPc = pc + 3;
             var hasAddedFrame = this.stackUp(rawMethod, nextPc, numOfWordsToTransit);
@@ -1811,7 +1682,7 @@ public class RawThread {
             break;
           }
 
-        case (byte) 0xb9: // invokeinterface
+        case INVOKEINTERFACE:
           {
             var index = peekTwoBytes();
             // count = num of args. no need to be used.
@@ -1820,7 +1691,6 @@ public class RawThread {
 
             ConstantInterfaceMethodref methodRef =
                 (ConstantInterfaceMethodref) constantPool.findByIndex(index);
-
             methodRef.resolve(constantPool);
             RawMethod rawMethod = methodRef.getRawMethod();
 
@@ -1853,46 +1723,37 @@ public class RawThread {
 
             break;
           }
-        case (byte) 0xba: // invokedynamic
+        case INVOKEDYNAMIC:
           {
             // TODO: implementation
             var index = peekTwoBytes();
             var _no_used1 = methodAreaManager.lookupByte(pc + 3);
             var _no_used2 = methodAreaManager.lookupByte(pc + 4);
 
-            //            ConstantInvokeDynamic invokeDynamic =
-            //                (ConstantInvokeDynamic) constantPool.findByIndex(index);
-            //
-            //            invokeDynamic.resolve(constantPool);
-            //
-            //            var nextPc = pc + 5;
-            //
             throw new RuntimeException("invokedynamic is not implemented yet");
             //            break;
           }
-        case (byte) 0xbb: // new
+        case NEW:
           {
-            /** new just allocates the necessary mem → objectref(=objectId) */
+            // new instruction just allocates the necessary mem → objectref(=objectId)
             var index = peekTwoBytes();
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(index);
             classRef.resolve(constantPool);
 
             RawClass rawClass = methodAreaManager.lookupClass(classRef);
-
             int objectId = RawSystem.heapManager.register(rawClass);
 
             operandStack.push(Word.of(objectId));
-
             pc += 3;
-
             break;
           }
-        case (byte) 0xbc: // newarray
+        case NEWARRAY:
           {
-            /**
+            /*
              * https://docs.oracle.com/javase/specs/jvms/se17/html/jvms-6.html#jvms-6.5.newarray
              * newarray just allocates the necessary mem → objectref(=objectId)
              */
+            // REFACTOR
             JvmType arrType;
             var arrTypeCode = methodAreaManager.lookupByte(pc + 1);
             switch (arrTypeCode) {
@@ -1931,14 +1792,12 @@ public class RawThread {
                     RawArrayClass.lookupOrCreatePrimaryRawArrayClass(arrType, 1), arrSize);
 
             operandStack.push(Word.of(objectId));
-
             pc += 2;
-
             break;
           }
-        case (byte) 0xbd: // anewarray
+        case ANEWARRAY:
           {
-            /** anewarray just allocates the necessary mem → objectref(=objectId) */
+            // anewarray just allocates the necessary mem → objectref(=objectId)
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
             classRef.resolve(constantPool);
 
@@ -1950,12 +1809,10 @@ public class RawThread {
             int objectId = RawSystem.heapManager.registerArray(rawArrayClass, arrSize);
 
             operandStack.push(Word.of(objectId));
-
             pc += 3;
-
             break;
           }
-        case (byte) 0xbe: // arraylength
+        case ARRAYLENGTH:
           {
             int objectId = operandStack.pop().getValue();
             var word = Word.of(heapManager.lookupObject(objectId).getArrSize());
@@ -1964,7 +1821,7 @@ public class RawThread {
             pc += 1;
             break;
           }
-        case (byte) 0xbf: // athrow
+        case ATHROW:
           {
             int exceptionObjectId = operandStack.pop().getValue();
             RawClass exceptionClass = heapManager.lookupObject(exceptionObjectId).getRawClass();
@@ -1984,7 +1841,7 @@ public class RawThread {
             pc += exceptionInfo.getHandlerPc();
             break;
           }
-        case (byte) 0xc0: // checkcast
+        case CHECKCAST:
           {
             int index = peekTwoBytes();
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(index);
@@ -2006,22 +1863,18 @@ public class RawThread {
             }
 
             operandStack.push(Word.of(objectId));
-
             pc += 3;
             break;
           }
-        case (byte) 0xc1: // instanceof
+        case INSTANCEOF:
           {
             int index = peekTwoBytes();
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(index);
             classRef.resolve(constantPool);
-            RawObject rawObject = heapManager.lookupObject(classRef.getObjectId());
-            // TODO: Class objectからrawClassを引けるようにする...
 
             int objectId = operandStack.pop().getValue();
             RawClass rawClass = heapManager.lookupObject(objectId).getRawClass();
 
-            // TODO:
             boolean isInstanceOf =
                 classRef
                     .getName()
@@ -2033,21 +1886,25 @@ public class RawThread {
             pc += 3;
             break;
           }
-        case (byte) 0xc2: // monitorenter
+        case MONITORENTER:
           {
-            int objectId = operandStack.pop().getValue();
-            // TODO: what to do with this objectId
-            pc += 1;
-            break;
+            throw new RuntimeException("MONITORENTER is not implemented yet");
+//            int objectId = operandStack.pop().getValue();
+//            pc += 1;
+//            break;
           }
-        case (byte) 0xc3: // monitorexit
+        case MONITOREXIT:
           {
-            int objectId = operandStack.pop().getValue();
-            // TODO: what to do with this objectId
-            pc += 1;
-            break;
+            throw new RuntimeException("MONITOREXIT is not implemented yet");
+//            int objectId = operandStack.pop().getValue();
+//            pc += 1;
+//            break;
           }
-        case (byte) 0xc5: // multianewarray
+        case WIDE:
+        {
+          throw new RuntimeException("WIDE is not implemented yet");
+        }
+        case MULTIANEWARRAY:
           {
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
             classRef.resolve(constantPool);
@@ -2066,35 +1923,43 @@ public class RawThread {
             pc += 4;
             break;
           }
-        case (byte) 0xc6: // ifnull
+        case IFNULL:
           {
             // if value is not null, jump to jumpTo
             int right = operandStack.pop().getValue();
             int jumpTo = peekTwoBytes();
 
-            if (right == JvmType.NULL) {
+            if (right == RawObject.NULL) {
               pc = pc + jumpTo;
             } else {
               pc = pc + 3;
             }
             break;
           }
-        case (byte) 0xc7: // ifnonnull
+        case IFNONNULL:
           {
             // if value is not null, jump to jumpTo
             int right = operandStack.pop().getValue();
             int jumpTo = peekTwoBytes();
 
-            if (right != JvmType.NULL) {
+            if (right != RawObject.NULL) {
               pc = pc + jumpTo;
             } else {
               pc = pc + 3;
             }
             break;
           }
-        case (byte) 0xca: // breakpoint
-        case (byte) 0xfe: // impdep1
-        case (byte) 0xff: // impdep2
+        case GOTO_W:
+        {
+          throw new RuntimeException("GOTO_W is not implemented yet");
+        }
+        case JSR_W:
+        {
+          throw new RuntimeException("JSR_W is not implemented yet");
+        }
+        case BREAKPOINT:
+        case IMPDEP1:
+        case IMPDEP2:
           {
             // 0xca:
             // reserved for breakpoints in Java debuggers;
@@ -2106,8 +1971,8 @@ public class RawThread {
             pc += 1;
             break;
           }
-        default:
-          throw new RuntimeException(String.format("unrecognized instruction %x", instruction));
+//        default:
+//          throw new RuntimeException(String.format("unrecognized instruction %x", instruction));
       }
     }
   }
@@ -2238,11 +2103,16 @@ public class RawThread {
         createMultiArrayHelper(childRawObject, sizeList, depth + 1);
         heapManager.setElement(parentObject, i, List.of(Word.of(childObjectId)));
       }
-      //      operandStack.push(Word.of(nextChildrenSize));
     }
   }
 
-  private void dump(String name, int pc, byte inst, RawThread thread) {
+  private void pushFromTail(List<Word> words, Deque<Word> operandStack) {
+    var mutable = words.stream().collect(Collectors.toList());
+    Collections.reverse(mutable);
+    mutable.forEach(operandStack::push);
+  }
+
+  private void dump(String name, int pc, Instruction inst, RawThread thread) {
     int stackSize = thread.frames.size() - 1;
     System.out.printf(
         "%s[%s] stack#=%d, pc = %2d, inst = %x(%s), frame=%s%n",
@@ -2250,8 +2120,8 @@ public class RawThread {
         name,
         stackSize,
         pc,
-        inst,
-        Instruction.findBy(inst).name(),
+        inst.getOperandCode(),
+        inst.name(),
         this.currentFrame());
   }
 }
