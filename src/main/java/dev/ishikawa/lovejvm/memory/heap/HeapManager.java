@@ -10,20 +10,19 @@ import java.util.List;
 
 public interface HeapManager {
   /**
-   * allocate the specified size mem, and give the objectId. If the baseClass doesn't exist yet,
-   * ClassLoader will load it.
+   * allocate mem space according to the given class's object size.
    *
    * @return objectId
    * @param baseClass
    */
-  int register(RawClass baseClass);
+  int newObject(RawClass baseClass);
 
   /** set the value in heap */
   void setValue(RawObject rawObject, RawField rawField, List<Word> value);
 
   List<Word> getValue(RawObject rawObject, RawField rawField);
 
-  int registerArray(RawArrayClass rawArrayClass, int arrSize);
+  int newArrayObject(RawArrayClass rawArrayClass, int arrSize);
 
   void setElement(RawObject rawObject, int position, List<Word> value);
 

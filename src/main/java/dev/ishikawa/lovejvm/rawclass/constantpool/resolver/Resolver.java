@@ -29,6 +29,15 @@ import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
  * reference to the new instance - string constantそのものがreference? 別にobjectIdを持たなくてもよいのか? -
  * そも、stringはstaticだからresolveされるもの 9. long, float, long, double - group4: static 10. name_and_type,
  * module, package, utf8
+
+
+
+ *   - ! resolve can be delayed to when some operand codes are executed(ex: new, putstatic, getstatic)
+ *   - "replace" some constant entry in the constant pool from symbolic link to the actual *reference*
+ *     - CONSTANT_String_info -> String object's objectId
+ *     - CONSTANT_Class_info -> {some info that allows jvm to pick the corresponding class later. }
+ *     - CONSTANT_Methodref_info -> {some info that allows jvm to pick the corresponding method later}
+ *     - CONSTANT_Fieldref_info -> {some info that allows jvm to pick the corresponding field later}
  */
 public interface Resolver<T> {
   /**

@@ -6,40 +6,32 @@ import dev.ishikawa.lovejvm.rawclass.RawClass;
 /**
  * BootstrapLoader is responsible for loading the entrypoint class.
  *
- * Class goes throw three steps to be fully usable
+ * Classes go through three steps in order to be fully usable
  * 1. load
- *   - locate the class ... BootstrapLoader accepts a path of the entrypoint class
- *   - read the classfile's bytes
- *   - convert them into this jvm's internal representation(RawClass)
- *   - put RawClass into MethodArea(=register)
- *   - ! We can make the target class's "raw object" from here.
- *     - "raw object" is just a mem allocated with the necessarry size for this class.
- *     - We CANNOT run <init> for the object at this point yet.
- * 2. link for itself/its direct superclass/its superinterfaces/its element type
+ *   - BootstrapLoader accepts class identifier(ex: binaryName)
+ *   - BL locates the class
+ *   - BL reads the class's classfile as byte array
+ *   - BL pass the bytearray to JVM, and JVM converts them into an internal representation(RawClass in LoveJVM case)
+ *   - BL puts the RawClass into MethodArea
+ *   - NOTE: We can make the target class's "raw object" from this point.
+ *     - "raw object" is just an allocated mem space with the necessarry size for this class.
+ *     - We CANNOT run <init> for the object at this point yet. we have to wait the class to be initialized completely.
+ * 2. link
  *   - @see ClassLinker
- *   - verify - check the binary structure
- *   - prepare - create static fields default values ...
- *       TODO: just allocating mem space?
  * 3. resolve
  *   - @see Resolver
- *   - ! resolve can be delayed to when some operand codes are executed(ex: new, putstatic, getstatic)
- *   - "replace" some constant entry in the constant pool from symbolic link to the actual *reference*
- *     - CONSTANT_String_info -> String object's objectId
- *     - CONSTANT_Class_info -> {some info that allows jvm to pick the corresponding class later. }
- *     - CONSTANT_Methodref_info -> {some info that allows jvm to pick the corresponding method later}
- *     - CONSTANT_Fieldref_info -> {some info that allows jvm to pick the corresponding field later}
  * 4. initialize
  *   - @see ClassInitializer
  *
  */
 public interface BootstrapLoader {
   /**
-   * @param filePath file path string from the project root to the specific class file
-   * */
-  RawClass load(String filePath);
-
-  /**
    * @param binaryName binary name of the class to load. ex: java/lang/String, java/util/Map
    * */
-  RawClass loadByBinaryName(String binaryName);
+  RawClass load(String binaryName);
+
+  /**
+   * @param filePath file path string from the project root to the specific class file
+   * */
+  RawClass loadByFilePath(String filePath);
 }

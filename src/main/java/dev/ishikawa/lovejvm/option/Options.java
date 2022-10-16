@@ -2,7 +2,6 @@ package dev.ishikawa.lovejvm.option;
 
 
 import dev.ishikawa.lovejvm.logging.LogLevel;
-import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
 
 public class Options {
@@ -32,17 +31,17 @@ public class Options {
 
     public Builder() {
       setEntryClass(
-//           "guest/out/Add.class"
-//           "guest/out/ForLoop.class"
-//           "guest/out/dev/ishikawa/test/Recursive.class"
-//           "guest/out/dev/ishikawa/test/Recursive2.class"
-//           "guest/out/dev/ishikawa/test/ArraySample.class"
-//           "guest/out/dev/ishikawa/test/Math.class"
-           "guest/out/dev/ishikawa/test/TypeCast.class"
-//           "guest/out/BasicClass.class"
-//           "guest/out/dev/ishikawa/test/InstanceNew.class"
-//           "guest/out/dev/ishikawa/test/InstanceNew2.class"
-//          "guest/out/dev/ishikawa/test/SystemOut.class"
+//                     "guest/out/Add.class"
+//                     "guest/out/ForLoop.class"
+//                     "guest/out/dev/ishikawa/test/Recursive.class"
+//                     "guest/out/dev/ishikawa/test/Recursive2.class"
+//                     "guest/out/dev/ishikawa/test/ArraySample.class"
+//                     "guest/out/dev/ishikawa/test/Math.class"
+//                     "guest/out/dev/ishikawa/test/TypeCast.class"
+//                     "guest/out/BasicClass.class"
+//                     "guest/out/dev/ishikawa/test/InstanceNew.class"
+//                     "guest/out/dev/ishikawa/test/InstanceNew2.class"
+          "guest/out/dev/ishikawa/test/SystemOut.class"
       );
       setLogLevel(LogLevel.DEBUG);
     }

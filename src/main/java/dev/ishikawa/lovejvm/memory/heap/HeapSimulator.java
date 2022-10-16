@@ -1,10 +1,10 @@
 package dev.ishikawa.lovejvm.memory.heap;
 
 /**
- * HeapSimulator simulate Heap by utilizing host java's features. This doesn't manage native memory
- * at all.
+ * HeapSimulator simulate Heap by utilizing byte array.
+ * This doesn't manage native memory at all.
  *
- * <p>NOTE: At this mement, no free, no GC!
+ * NOTE: At this moment, no GC!
  */
 class HeapSimulator implements Heap {
   private final byte[] memory = new byte[10 * 1000 * 1000]; // 10MB

@@ -10,16 +10,15 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * 目的 - readClassData - loadClassData: RawClass - create internal representation of class = RawClass
- * - この過程でsuperclass, superinterfacesを"resolve" = link. 当然未loadのclassならまずはloadしてから -
- * classにはどのloaderを使ったかを記録. - > For every loaded .class file, JVM immediately creates an object on
- * the heap memory of type java.lang.class - ref:
- * https://www.javacodegeeks.com/2018/04/jvm-architecture-jvm-class-loader-and-runtime-data-areas.html
+ *
+ * - readClassData
+ * - loadClassData: RawClass
+ * - create internal representation of class = RawClass
+ * - この過程でsuperclass, superinterfacesを"resolve" = link. 当然未loadのclassならまずはloadしてから
+ * - classにはどのloaderを使ったかを記録.
+ *    - > For every loaded .class file, JVM immediately creates an object on the heap memory of type java.lang.class
+ *    - ref: https://www.javacodegeeks.com/2018/04/jvm-architecture-jvm-class-loader-and-runtime-data-areas.html
  * - and return Class object -
- * https://stackoverflow.com/questions/32819927/is-the-class-object-a-created-when-the-jvm-loads-class-a-or-when-i-call-a-class
- * - Target classをloadしたタイミングでClass objectは作れないといけない. Class clsasのconstructorはJVMが無理やり実行 -
- * そのためには、Class classがloadされている必要がある? ... これは本当か? - newのためにはinitializeも必要なはず...つまりClass
- * classは最初にload/link/initializeまで言っていないといけない?? - しかしClass classはいくつかのinterfaceを実装している = Class
  * classのcreateの段階でそれらのresolve=linkが発生してしまう - clinitもある - よく考えよう. Class.classをRawClassにした段階でclass
  * objectは作れる(=sizeが分かる) - class objectのlockができる必要がある / classでlockできる必要がある trigger -
  *
@@ -37,6 +36,9 @@ import java.util.List;
  *     よって、兄弟が持っているときは同じクラスを再びloadできる - なお、自分がloadに失敗した場合はchildrenにdelegateする
  *     <p>?? イマイチどうやってjvm <-> java file間で連携するかわからない
  *     <p>JVMの責務はbyte arrayをparseしてmemに置くところ
+ *
+ * refs:
+ * - https://stackoverflow.com/questions/32819927/is-the-class-object-a-created-when-the-jvm-loads-class-a-or-when-i-call-a-class
  */
 public class BootstrapLoaderImpl implements BootstrapLoader {
   public static final BootstrapLoaderImpl INSTANCE = new BootstrapLoaderImpl();
@@ -44,9 +46,10 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
   private BootstrapLoaderImpl() {}
 
   @Override
-  public RawClass load(String filePath) {
-    var targetClassFileBytes = readClassFile(filePath);
-    // TODO make and use a builder to create RawClsas. RawClass should be built after
+  public RawClass loadByFilePath(String filePath) {
+    var targetClassFileBytes = ByteUtil.readBytesFromFilePath(filePath);
+
+    // TODO make and use a builder to create RawClass. RawClass should be built after
     // `setClassObjectId` is called
     var targetClass = new RawClassParser(targetClassFileBytes, null).parse();
 
@@ -66,23 +69,17 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
             });
   }
 
-  private byte[] readClassFile(String filaPath) {
-    return ByteUtil.readBytesFromFilePath(filaPath);
-  }
-
   private void allocateClassData(RawClass targetClass, byte[] classFileBytes) {
-    RawSystem.methodAreaManager.register(targetClass, classFileBytes);
+    RawSystem.methodAreaManager.registerClass(targetClass, classFileBytes);
   }
 
   /**
-   * load a class from binaryName(ex: java/lang/String). This methods checks all dirs to find libs.
-   * classpath + some default dirs.
-   *
-   * <p>TODO: 本来こっちがloadであるべき
+   * load a class from binaryName(ex: java/lang/String).
+   * This methods checks all dirs to find libs. classpath + some default dirs.
    */
   @Override
-  public RawClass loadByBinaryName(String binaryName) {
-    return load(getPathFrom(binaryName).toString());
+  public RawClass load(String binaryName) {
+    return loadByFilePath(getPathFrom(binaryName).toString());
   }
 
   private Path getPathFrom(String binaryName) {
@@ -94,19 +91,16 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
     }
 
     // traverse classpath. if not found, throw exception
-    var a =
-        dirsToLookFor.stream()
-            .map((dirPath) -> Path.of(dirPath.toString(), binaryNamePlusExtension))
-            .filter((libPath) -> libPath.toFile().exists())
-            .findFirst()
-            .orElseThrow(
-                () -> {
-                  throw new RuntimeException(
-                      String.format(
-                          "The specified class doesn't exist! given binaryName: %s", binaryName));
-                });
-
-    return a;
+    return dirsToLookFor.stream()
+        .map((dirPath) -> Path.of(dirPath.toString(), binaryNamePlusExtension))
+        .filter((libPath) -> libPath.toFile().exists())
+        .findFirst()
+        .orElseThrow(
+            () -> {
+              throw new RuntimeException(
+                  String.format(
+                      "The specified class doesn't exist! given binaryName: %s", binaryName));
+            });
   }
 
   private static final List<String> customClassBinaryNames = List.of("java/io/PrintStream");

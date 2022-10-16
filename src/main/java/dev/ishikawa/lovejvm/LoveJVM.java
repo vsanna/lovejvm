@@ -56,7 +56,7 @@ public class LoveJVM {
 
   /** entrypoint class is loaded/linked/initialized at the beginning of the JVM process. */
   private RawClass prepareEntrypointClass(Options options) {
-    var entryClass = RawSystem.bootstrapLoader.load(options.getEntryClass());
+    var entryClass = RawSystem.bootstrapLoader.loadByFilePath(options.getEntryClass());
     RawSystem.classLinker.link(entryClass);
     RawSystem.classInitializer.initialize(entryClass);
     return entryClass;

@@ -12,6 +12,9 @@ import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
  * <p>binary layout of objects - non array object: [4B: address of superclass object][size of
  * field]*(num of fields) - array object: [4B: address of superclass object][size of
  * element]*(length of the array)
+
+ * RawObject is an object that contains a reference to bytearray[address:address+size-1].
+ * We retrieve fields data via rawObject from the heap
  */
 public class RawObject {
   private final int objectId;

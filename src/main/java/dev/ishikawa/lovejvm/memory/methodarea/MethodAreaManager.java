@@ -19,18 +19,18 @@ public interface MethodAreaManager {
    * register method allocates memory space for the classfile bytes and static area for the class
    * with its metadata = RawClass. static area is calculated by the given rawClass
    */
-  void register(RawClass rawClass, byte[] classfile);
+  void registerClass(RawClass rawClass, byte[] classfile);
 
   void registerArrayClass(RawArrayClass rawArrayClass);
 
   /** @return a byte located in the given address */
   byte lookupByte(int address);
 
-  /** @return the starting address of the given method */
+  /** @return the starting address of the given method in MethodArea*/
   int lookupCodeSectionAddress(RawMethod method);
 
   /** @return the offset from the head of the given method, to current pc */
-  int lookupCodeSectionRelativeAddress(RawMethod method, int pc);
+  int getOffsetFromCodeSectionToPc(RawMethod method, int pc);
 
   /** @return the starting address of the give class */
   int lookupStaticAreaAddress(RawClass rawClass);
@@ -90,6 +90,8 @@ public interface MethodAreaManager {
    * store the value
    */
   void putStaticFieldValue(RawClass rawClass, RawField rawField, List<Word> value);
+
+  // REFACTOR: このあたり整理する
 
   RawClass lookupOrLoadClass(String binaryName);
 

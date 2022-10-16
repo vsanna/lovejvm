@@ -5,14 +5,14 @@ interface MethodArea {
   /** save the given bytes in MethodArea's available area */
   void allocate(byte[] bytes);
 
-  /** @return a byte located in the given address */
-  byte lookupByte(int address);
-
   /** @return byte arrays specified by the args */
   byte[] retrieve(int startingAddress, int size);
 
   /** save the given bytes in the area specified by startingAddress */
   void save(int startingAddress, byte[] bytes);
+
+  /** @return a byte located in the given address */
+  byte lookupByte(int address);
 
   /** @return head head address of available space */
   int headAddress();

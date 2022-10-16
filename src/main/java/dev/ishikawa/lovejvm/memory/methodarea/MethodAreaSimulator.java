@@ -28,8 +28,10 @@ class MethodAreaSimulator implements MethodArea {
   @Override
   public void save(int startingAddress, byte[] bytes) {
     System.arraycopy(bytes, 0, memory, startingAddress, bytes.length);
-    // size is not updated here.
-    // So DO NOT use sae when allocating new mem space for a new object
+
+    if (size < startingAddress + bytes.length) {
+      size = startingAddress + bytes.length;
+    }
   }
 
   @Override

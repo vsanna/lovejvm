@@ -25,7 +25,7 @@ public class StringPoolSimulator implements StringPool {
   }
 
   /**
-   * create a String object,
+   * create a new String object,
    *
    * @return the newly created object's objectId
    */
@@ -34,18 +34,16 @@ public class StringPoolSimulator implements StringPool {
       stringRawClass = RawSystem.methodAreaManager.lookupOrLoadClass(STRING_CLASS_LABEL);
     }
 
-    int objectId = RawSystem.heapManager.register(stringRawClass);
+    int objectId = RawSystem.heapManager.newObject(stringRawClass);
     RawObject stringObject = RawSystem.heapManager.lookupObject(objectId);
     stringMap.put(label, stringObject);
 
-    // TODO: initialize String class
-
     // set byte array of the label into value field of this String object
     var byteArrayClass = RawArrayClass.lookupOrCreatePrimaryRawArrayClass(JvmType.BYTE, 1);
-    var arrayObjectId = RawSystem.heapManager.registerArray(byteArrayClass, label.length());
+    var arrayObjectId = RawSystem.heapManager.newArrayObject(byteArrayClass, label.length());
     var arrayObject = RawSystem.heapManager.lookupObject(arrayObjectId);
     for (int i = 0; i < label.getBytes().length; i++) {
-      // TODO: 1byteに1word割り当ててしまっている. 直す
+      // TODO: Now allocating 1 word for 1 byte. not efficient. fix it.
       RawSystem.heapManager.setElement(arrayObject, i, List.of(Word.of(label.getBytes()[i])));
     }
 
@@ -54,9 +52,6 @@ public class StringPoolSimulator implements StringPool {
             .findMemberFieldBy("value")
             .orElseThrow(() -> new RuntimeException("byte[] value field is not found"));
     RawSystem.heapManager.setValue(stringObject, valueField, List.of(Word.of(arrayObjectId)));
-
-    // value =
-    // coder = (byte)1
 
     return objectId;
   }

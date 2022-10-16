@@ -31,7 +31,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   }
 
   @Override
-  public void register(RawClass rawClass, byte[] classfile) {
+  public void registerClass(RawClass rawClass, byte[] classfile) {
     if (classMap.containsKey(rawClass.getBinaryName())) return;
 
     int startingAddress = methodArea.headAddress();
@@ -91,7 +91,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   }
 
   @Override
-  public int lookupCodeSectionRelativeAddress(RawMethod method, int pc) {
+  public int getOffsetFromCodeSectionToPc(RawMethod method, int pc) {
     if ((method.isAbstract() || method.isNative()) && !method.isClinit()) {
       return -1;
     }
@@ -291,7 +291,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
               if (binaryName.startsWith("[")) {
                 return RawArrayClass.lookupOrCreateRawArrayClass(binaryName);
               } else {
-                return RawSystem.bootstrapLoader.loadByBinaryName(binaryName);
+                return RawSystem.bootstrapLoader.load(binaryName);
               }
             });
   }

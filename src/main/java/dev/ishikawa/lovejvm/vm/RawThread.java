@@ -299,7 +299,8 @@ public class RawThread {
              */
             var index = Byte.toUnsignedInt(methodAreaManager.lookupByte(pc + 1));
 
-            ConstantPoolLoadableEntry entry = (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
+            ConstantPoolLoadableEntry entry =
+                (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
             entry.resolve(constantPool);
 
             Word word = entry.loadableValue().get(0);
@@ -318,7 +319,8 @@ public class RawThread {
              */
             var index = peekTwoBytes();
 
-            ConstantPoolLoadableEntry entry = (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
+            ConstantPoolLoadableEntry entry =
+                (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
             entry.resolve(constantPool);
 
             Word word = entry.loadableValue().get(0);
@@ -334,7 +336,8 @@ public class RawThread {
              */
             var index = peekTwoBytes();
 
-            ConstantPoolLoadableEntry entry = (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
+            ConstantPoolLoadableEntry entry =
+                (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
             entry.resolve(constantPool);
 
             List<Word> words = entry.loadableValue();
@@ -385,30 +388,34 @@ public class RawThread {
             break;
           }
         case LLOAD_0:
-        case DLOAD_0: {
-            operandStack.push(locals[0]);
+        case DLOAD_0:
+          {
             operandStack.push(locals[1]);
+            operandStack.push(locals[0]);
             pc = pc + 1;
             break;
           }
         case LLOAD_1:
-        case DLOAD_1: {
-            operandStack.push(locals[1]);
+        case DLOAD_1:
+          {
             operandStack.push(locals[2]);
+            operandStack.push(locals[1]);
             pc = pc + 1;
             break;
           }
         case LLOAD_2:
-        case DLOAD_2: {
-            operandStack.push(locals[2]);
+        case DLOAD_2:
+          {
             operandStack.push(locals[3]);
+            operandStack.push(locals[2]);
             pc = pc + 1;
             break;
           }
         case LLOAD_3:
-        case DLOAD_3: {
-            operandStack.push(locals[3]);
+        case DLOAD_3:
+          {
             operandStack.push(locals[4]);
+            operandStack.push(locals[3]);
             pc = pc + 1;
             break;
           }
@@ -501,7 +508,7 @@ public class RawThread {
         case ISTORE_0:
         case FSTORE_0:
         case ASTORE_0:
-        {
+          {
             locals[0] = operandStack.pop();
             pc = pc + 1;
             break;
@@ -509,7 +516,7 @@ public class RawThread {
         case ISTORE_1:
         case FSTORE_1:
         case ASTORE_1:
-        {
+          {
             locals[1] = operandStack.pop();
             pc = pc + 1;
             break;
@@ -517,7 +524,7 @@ public class RawThread {
         case ISTORE_2:
         case FSTORE_2:
         case ASTORE_2:
-        {
+          {
             locals[2] = operandStack.pop();
             pc = pc + 1;
             break;
@@ -525,14 +532,14 @@ public class RawThread {
         case ISTORE_3:
         case FSTORE_3:
         case ASTORE_3:
-        {
+          {
             locals[3] = operandStack.pop();
             pc = pc + 1;
             break;
           }
         case LSTORE_0:
         case DSTORE_0:
-        {
+          {
             locals[0] = operandStack.pop();
             locals[1] = operandStack.pop();
             pc = pc + 1;
@@ -540,7 +547,7 @@ public class RawThread {
           }
         case LSTORE_1:
         case DSTORE_1:
-        {
+          {
             locals[1] = operandStack.pop();
             locals[2] = operandStack.pop();
             pc = pc + 1;
@@ -548,7 +555,7 @@ public class RawThread {
           }
         case LSTORE_2:
         case DSTORE_2:
-        {
+          {
             locals[2] = operandStack.pop();
             locals[3] = operandStack.pop();
             pc = pc + 1;
@@ -556,7 +563,7 @@ public class RawThread {
           }
         case LSTORE_3:
         case DSTORE_3:
-        {
+          {
             locals[3] = operandStack.pop();
             locals[4] = operandStack.pop();
             pc = pc + 1;
@@ -1350,7 +1357,8 @@ public class RawThread {
             break;
           }
         case IF_ICMPEQ:
-        case IF_ACMPEQ: {
+        case IF_ACMPEQ:
+          {
             // if (left == right) then jump to jumpTo
             int right = operandStack.pop().getValue();
             int left = operandStack.pop().getValue();
@@ -1364,7 +1372,8 @@ public class RawThread {
             break;
           }
         case IF_ICMPNE:
-        case IF_ACMPNE: {
+        case IF_ACMPNE:
+          {
             // if (left != right) then jump to jumpTo
             int right = operandStack.pop().getValue();
             int left = operandStack.pop().getValue();
@@ -1440,13 +1449,13 @@ public class RawThread {
             break;
           }
         case JSR:
-        {
-          throw new RuntimeException("JSR is not implemented yet");
-        }
+          {
+            throw new RuntimeException("JSR is not implemented yet");
+          }
         case RET:
-        {
-          throw new RuntimeException("RET is not implemented yet");
-        }
+          {
+            throw new RuntimeException("RET is not implemented yet");
+          }
         case TABLESWITCH:
           {
             var index = operandStack.pop().getValue();
@@ -1501,13 +1510,13 @@ public class RawThread {
             break;
           }
         case LOOKUPSWITCH:
-        {
-          throw new RuntimeException("LOOKUPSWITCH is not implemented yet");
-        }
+          {
+            throw new RuntimeException("LOOKUPSWITCH is not implemented yet");
+          }
         case IRETURN:
         case FRETURN:
         case ARETURN:
-        {
+          {
             // ireturn/freturn/areturn returns one word
             // these operand codes must be able to stackDown
             var word = currentFrame().getOperandStack().pop();
@@ -1741,7 +1750,7 @@ public class RawThread {
             classRef.resolve(constantPool);
 
             RawClass rawClass = methodAreaManager.lookupClass(classRef);
-            int objectId = RawSystem.heapManager.register(rawClass);
+            int objectId = RawSystem.heapManager.newObject(rawClass);
 
             operandStack.push(Word.of(objectId));
             pc += 3;
@@ -1788,7 +1797,7 @@ public class RawThread {
 
             int arrSize = operandStack.pop().getValue();
             int objectId =
-                RawSystem.heapManager.registerArray(
+                RawSystem.heapManager.newArrayObject(
                     RawArrayClass.lookupOrCreatePrimaryRawArrayClass(arrType, 1), arrSize);
 
             operandStack.push(Word.of(objectId));
@@ -1806,7 +1815,7 @@ public class RawThread {
             var rawArrayClass =
                 RawArrayClass.lookupOrCreateComplexRawArrayClass(elementRawClass, 1);
             int arrSize = operandStack.pop().getValue();
-            int objectId = RawSystem.heapManager.registerArray(rawArrayClass, arrSize);
+            int objectId = RawSystem.heapManager.newArrayObject(rawArrayClass, arrSize);
 
             operandStack.push(Word.of(objectId));
             pc += 3;
@@ -1889,21 +1898,21 @@ public class RawThread {
         case MONITORENTER:
           {
             throw new RuntimeException("MONITORENTER is not implemented yet");
-//            int objectId = operandStack.pop().getValue();
-//            pc += 1;
-//            break;
+            //            int objectId = operandStack.pop().getValue();
+            //            pc += 1;
+            //            break;
           }
         case MONITOREXIT:
           {
             throw new RuntimeException("MONITOREXIT is not implemented yet");
-//            int objectId = operandStack.pop().getValue();
-//            pc += 1;
-//            break;
+            //            int objectId = operandStack.pop().getValue();
+            //            pc += 1;
+            //            break;
           }
         case WIDE:
-        {
-          throw new RuntimeException("WIDE is not implemented yet");
-        }
+          {
+            throw new RuntimeException("WIDE is not implemented yet");
+          }
         case MULTIANEWARRAY:
           {
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
@@ -1950,13 +1959,13 @@ public class RawThread {
             break;
           }
         case GOTO_W:
-        {
-          throw new RuntimeException("GOTO_W is not implemented yet");
-        }
+          {
+            throw new RuntimeException("GOTO_W is not implemented yet");
+          }
         case JSR_W:
-        {
-          throw new RuntimeException("JSR_W is not implemented yet");
-        }
+          {
+            throw new RuntimeException("JSR_W is not implemented yet");
+          }
         case BREAKPOINT:
         case IMPDEP1:
         case IMPDEP2:
@@ -1971,8 +1980,9 @@ public class RawThread {
             pc += 1;
             break;
           }
-//        default:
-//          throw new RuntimeException(String.format("unrecognized instruction %x", instruction));
+          //        default:
+          //          throw new RuntimeException(String.format("unrecognized instruction %x",
+          // instruction));
       }
     }
   }
@@ -2021,7 +2031,7 @@ public class RawThread {
             .flatMap(
                 it -> {
                   int offset =
-                      methodAreaManager.lookupCodeSectionRelativeAddress(
+                      methodAreaManager.getOffsetFromCodeSectionToPc(
                           currentFrame().getMethod(), pc);
                   return ((AttrCode) it)
                       .getAttrBody()
@@ -2072,7 +2082,7 @@ public class RawThread {
 
     // top levelの要素数. dimensionの文だけpopする。少なくとも1かいはpopできる
     int size = sizeList[0];
-    int objectId = RawSystem.heapManager.registerArray(rawArrayClass, size);
+    int objectId = RawSystem.heapManager.newArrayObject(rawArrayClass, size);
     RawObject rawObject = heapManager.lookupObject(objectId);
 
     // depthに応じて子要素を作る
@@ -2098,7 +2108,7 @@ public class RawThread {
           methodAreaManager.lookupOrLoadClass(currentClassBinaryName).asRawArrayClass();
       int nextChildrenSize = sizeList[depth]; // operandStack.pop().getValue();
       for (int i = 0; i < size; i++) {
-        int childObjectId = heapManager.registerArray(childClass, nextChildrenSize);
+        int childObjectId = heapManager.newArrayObject(childClass, nextChildrenSize);
         RawObject childRawObject = heapManager.lookupObject(childObjectId);
         createMultiArrayHelper(childRawObject, sizeList, depth + 1);
         heapManager.setElement(parentObject, i, List.of(Word.of(childObjectId)));

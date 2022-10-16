@@ -16,17 +16,11 @@ import java.util.Map.Entry;
 import java.util.Optional;
 
 public class HeapManagerImpl implements HeapManager {
-  // Map of objectId to ObjectEntry
-  private final Map<Integer, ObjectEntry> objectIdBasedObjectMap =
-      new HashMap<Integer, ObjectEntry>();
-  // Map of address to ObjectEntity
-  private final Map<Integer, ObjectEntry> addressBasedObjectMap = new HashMap<>();
-  // objectId starts with 100. objectId = 0 means, it's null reference.
   private int nextObjectId = 100;
-
+  private final Map<Integer, ObjectEntry> objectIdBasedObjectMap = new HashMap<>();
+  private final Map<Integer, ObjectEntry> addressBasedObjectMap = new HashMap<>();
   private final ClassObjectHandler classObjectHandler = new ClassObjectHandler(this);
   private final ArrayClassObjectHandler arrayclassObjectHandler = new ArrayClassObjectHandler(this);
-
   private final Heap heap = HeapSimulator.INSTANCE;
 
   public static final HeapManager INSTANCE = new HeapManagerImpl();
@@ -40,7 +34,7 @@ public class HeapManagerImpl implements HeapManager {
    * @param baseClass
    */
   @Override
-  public int register(RawClass baseClass) {
+  public int newObject(RawClass baseClass) {
     return classObjectHandler.create(baseClass);
   }
 
@@ -55,7 +49,7 @@ public class HeapManagerImpl implements HeapManager {
   }
 
   @Override
-  public int registerArray(RawArrayClass rawArrayClass, int arrSize) {
+  public int newArrayObject(RawArrayClass rawArrayClass, int arrSize) {
     return arrayclassObjectHandler.create(rawArrayClass, arrSize);
   }
 
@@ -79,21 +73,22 @@ public class HeapManagerImpl implements HeapManager {
                     String.format("Non existing object is tried to load. %s", objectId)));
   }
 
+  // REFACTOR: ここじゃない. RawClass or ClassLoader
   @Override
   public RawObject createClassObject(RawClass targetClass) {
     RawClass classRawClass = RawSystem.methodAreaManager.lookupOrLoadClass("java/lang/Class");
-    int objectId = RawSystem.heapManager.register(classRawClass);
+    int objectId = RawSystem.heapManager.newObject(classRawClass);
     RawObject classObject = RawSystem.heapManager.lookupObject(objectId);
-
-    // NOTE/TODO: Class classだけはinitialize前にobjectの生成を許す? 許せそう.
 
     // set classLoader field: null(cause this CL is bootstrap)
     RawField classLoaderField =
         classRawClass
             .findMemberFieldBy("classLoader")
-            .orElseThrow(() -> new RuntimeException("classLoaded doesn't exist in Class.class"));
+            .orElseThrow(
+                () -> new RuntimeException("classLoader field doesn't exist in Class.class"));
     RawSystem.heapManager.setValue(classObject, classLoaderField, Collections.emptyList());
 
+    // set componentType field
     List<Word> componentTypeFieldValue;
     if (targetClass instanceof RawArrayClass) {
       componentTypeFieldValue =
@@ -107,8 +102,10 @@ public class HeapManagerImpl implements HeapManager {
     RawField componentType =
         classRawClass
             .findMemberFieldBy("componentType")
-            .orElseThrow(() -> new RuntimeException("componentType; doesn't exist in Class.class"));
+            .orElseThrow(
+                () -> new RuntimeException("componentType field doesn't exist in Class.class"));
     RawSystem.heapManager.setValue(classObject, componentType, componentTypeFieldValue);
+
     return classObject;
   }
 
@@ -118,7 +115,7 @@ public class HeapManagerImpl implements HeapManager {
     return objectId;
   }
 
-  private void setNewObject(int startingAddress, RawObject rawObject) {
+  private void addNewObjectEntry(int startingAddress, RawObject rawObject) {
     ObjectEntry objectEntry = new ObjectEntry(startingAddress, rawObject);
     addressBasedObjectMap.put(startingAddress, objectEntry);
     objectIdBasedObjectMap.put(rawObject.getObjectId(), objectEntry);
@@ -126,10 +123,6 @@ public class HeapManagerImpl implements HeapManager {
 
   private Heap getHeap() {
     return heap;
-  }
-
-  private int getAddress(RawObject rawObject) {
-    return objectIdBasedObjectMap.get(rawObject.getObjectId()).address;
   }
 
   @Override
@@ -179,7 +172,7 @@ public class HeapManagerImpl implements HeapManager {
       heapManager.getHeap().allocate(bytes);
 
       RawObject rawObject = createRawObject(startingAddress, baseClass);
-      heapManager.setNewObject(startingAddress, rawObject);
+      heapManager.addNewObjectEntry(startingAddress, rawObject);
 
       return rawObject.getObjectId();
     }
@@ -204,9 +197,8 @@ public class HeapManagerImpl implements HeapManager {
 
     private int calcStartingAddress(RawObject rawObject, RawField rawField) {
       assert !(rawObject.getRawClass() instanceof RawArrayClass);
-      int objectAddress = heapManager.getAddress(rawObject);
       int offsetToField = rawObject.getRawClass().offsetToMemberFieldBytes(rawField);
-      return objectAddress + offsetToField;
+      return rawObject.getAddress() + offsetToField;
     }
   }
 
@@ -226,7 +218,7 @@ public class HeapManagerImpl implements HeapManager {
       heapManager.heap.allocate(bytes);
 
       RawObject rawObject = createRawObject(startingAddress, rawArrayClass, arrSize);
-      heapManager.setNewObject(startingAddress, rawObject);
+      heapManager.addNewObjectEntry(startingAddress, rawObject);
 
       return rawObject.getObjectId();
     }
@@ -247,13 +239,12 @@ public class HeapManagerImpl implements HeapManager {
 
     private RawObject createRawObject(int address, RawArrayClass rawArrayClass, int arrSize) {
       int objectId = heapManager.requestNextObjectId();
-      // TODO: create ArrayClass
       return new RawObject(objectId, address, rawArrayClass, arrSize);
     }
 
     private int calcStartingAddress(RawObject rawObject, int position) {
       assert (rawObject.getRawClass() instanceof RawArrayClass);
-      int objectAddress = heapManager.getAddress(rawObject);
+      int objectAddress = rawObject.getAddress();
       int elementBytesSize =
           ((RawArrayClass) rawObject.getRawClass()).getComponentWordSize() * Word.BYTES_SIZE;
       int offsetToField = elementBytesSize * position;

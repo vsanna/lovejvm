@@ -17,6 +17,11 @@ import dev.ishikawa.lovejvm.vm.RawSystem;
  * table, object templatesというものも作るらしい(ref:
  * https://www.ibm.com/docs/en/sdk-java-technology/7.1?topic=uc-class-loading-1) - resolve: ...
  * ただしこれはlazyにできる. classのresolve = class objectのreferenceを返す
+
+ *   - for itself/its direct superclass/its superinterfaces/its element type
+ *   - verify - check the binary structure
+ *   - prepare - create static fields default values ...
+ *       TODO: just allocating mem space?
  *
  * @see dev.ishikawa.lovejvm.rawclass.constantpool.resolver.Resolver
  */
