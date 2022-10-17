@@ -316,12 +316,12 @@ public class RawArrayClass extends RawClass {
   }
 
   // TODO: this should be in MethodAreaManager
-  public static RawArrayClass lookupOrCreateComplexRawArrayClass(RawClass rawClass, int dimension) {
-    String binaryName = "[".repeat(dimension) + rawClass.getBinaryName();
+  public static RawArrayClass lookupOrCreateComplexRawArrayClass(RawClass elementRawClass, int dimension) {
+    String binaryName = "[".repeat(dimension) + "L" + elementRawClass.getBinaryName() + ";";
     return RawSystem.methodAreaManager
         .lookupClass(binaryName)
         .map(it -> (RawArrayClass) it)
-        .orElseGet(() -> createRawArrayClass(binaryName, rawClass, null, dimension));
+        .orElseGet(() -> createRawArrayClass(binaryName, elementRawClass, null, dimension));
   }
 
   private static RawArrayClass createRawArrayClass(

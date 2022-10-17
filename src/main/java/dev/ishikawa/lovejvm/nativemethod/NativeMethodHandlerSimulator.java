@@ -2,6 +2,7 @@ package dev.ishikawa.lovejvm.nativemethod;
 
 import static dev.ishikawa.lovejvm.memory.stringpool.StringPoolSimulator.STRING_CLASS_LABEL;
 
+import dev.ishikawa.lovejvm.nativemethod.implementation.PrintStream;
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
@@ -126,31 +127,21 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
               "java/io/PrintStream",
               "println",
               "(Ljava/lang/String;)V",
+              PrintStream::printlnString),
+          new NativeMethodSimulation(
+              "java/io/PrintStream",
+              "println",
+              "(I)V",
+              PrintStream::printlnInt),
+          new NativeMethodSimulation(
+              "java/lang/Object",
+              "hashCode",
+              "()I",
               (currentFrame) -> {
-                var stringObjectId = currentFrame.getOperandStack().pop().getValue();
-                RawObject rawObject = RawSystem.heapManager.lookupObject(stringObjectId);
-
-                RawClass stringRawClass =
-                    RawSystem.methodAreaManager.lookupOrLoadClass(STRING_CLASS_LABEL);
-                var valueField =
-                    stringRawClass
-                        .findMemberFieldBy("value")
-                        .orElseThrow(() -> new RuntimeException("byte[] value field is not found"));
-
-                int labelCharArrayId =
-                    RawSystem.heapManager.getValue(rawObject, valueField).get(0).getValue();
-                RawObject labelObject = RawSystem.heapManager.lookupObject(labelCharArrayId);
-
-                char[] labelCharArr = new char[labelObject.getArrSize()];
-                for (int i = 0; i < labelObject.getArrSize(); i++) {
-                  labelCharArr[i] =
-                      (char) RawSystem.heapManager.getElement(labelObject, i).get(0).getValue();
-                }
-                String label = String.valueOf(labelCharArr);
-
-                System.out.println(label);
-                return List.of();
-              }));
+                int objectId = currentFrame.getOperandStack().pop().getValue();
+                return List.of(Word.of(objectId));
+              })
+      );
 
   private static class NativeMethodSimulation {
     @NotNull private final String binaryName;

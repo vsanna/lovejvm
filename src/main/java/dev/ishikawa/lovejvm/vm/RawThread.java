@@ -188,7 +188,7 @@ public class RawThread {
         case ACONST_NULL:
           {
             // push "null"(objectId = 0)
-            operandStack.push(Word.of(RawObject.NULL));
+            operandStack.push(Word.of(RawObject.NULL_ID));
             pc = pc + 1;
             break;
           }
@@ -477,9 +477,9 @@ public class RawThread {
         case SALOAD:
           {
             var position = operandStack.pop().getValue();
-            var arrayIndex = operandStack.pop().getValue();
+            var arrayObjectId = operandStack.pop().getValue();
 
-            var arrayObject = heapManager.lookupObject(arrayIndex);
+            var arrayObject = heapManager.lookupObject(arrayObjectId);
             var value = heapManager.getElement(arrayObject, position);
 
             pushFromTail(value, operandStack);
@@ -1859,7 +1859,7 @@ public class RawThread {
             RawClass castToClass = methodAreaManager.lookupClass(classRef);
 
             int objectId = operandStack.pop().getValue();
-            if (objectId == JvmType.NULL) {
+            if (objectId == RawObject.NULL_ID) {
               // nullは何にでもcastできる
             } else {
               RawClass castFromClass = heapManager.lookupObject(objectId).getRawClass();
@@ -1938,7 +1938,7 @@ public class RawThread {
             int right = operandStack.pop().getValue();
             int jumpTo = peekTwoBytes();
 
-            if (right == RawObject.NULL) {
+            if (right == RawObject.NULL_ID) {
               pc = pc + jumpTo;
             } else {
               pc = pc + 3;
@@ -1951,7 +1951,7 @@ public class RawThread {
             int right = operandStack.pop().getValue();
             int jumpTo = peekTwoBytes();
 
-            if (right != RawObject.NULL) {
+            if (right != RawObject.NULL_ID) {
               pc = pc + jumpTo;
             } else {
               pc = pc + 3;

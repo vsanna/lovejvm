@@ -36,12 +36,18 @@ public class Options {
 //                     "guest/out/dev/ishikawa/test/Recursive.class"
 //                     "guest/out/dev/ishikawa/test/Recursive2.class"
 //                     "guest/out/dev/ishikawa/test/ArraySample.class"
+//                     "guest/out/dev/ishikawa/test/Boxing.class" // FIX
+//          "guest/out/dev/ishikawa/test/ListSample.class"
+//          "guest/out/dev/ishikawa/test/MapSample1.class"
+//          "guest/out/dev/ishikawa/test/MapSample2.class"
 //                     "guest/out/dev/ishikawa/test/Math.class"
 //                     "guest/out/dev/ishikawa/test/TypeCast.class"
 //                     "guest/out/BasicClass.class"
+//                     "guest/out/dev/ishikawa/test/BasicClass2.class"
 //                     "guest/out/dev/ishikawa/test/InstanceNew.class"
 //                     "guest/out/dev/ishikawa/test/InstanceNew2.class"
-          "guest/out/dev/ishikawa/test/SystemOut.class"
+//          "guest/out/dev/ishikawa/test/SystemOut.class"
+          "guest/out/dev/ishikawa/test/LambdaSample.class"
       );
       setLogLevel(LogLevel.DEBUG);
     }

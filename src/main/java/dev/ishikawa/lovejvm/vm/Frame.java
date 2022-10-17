@@ -7,10 +7,10 @@ import java.util.Arrays;
 import java.util.Deque;
 
 public class Frame {
-  private RawThread thread;
-  private RawMethod method;
+  private final RawThread thread;
+  private final RawMethod method;
   private Word[] locals;
-  private Deque<Word> operandStack;
+  private final Deque<Word> operandStack;
 
   public Frame(RawThread thread, RawMethod method) {
     this.thread = thread;

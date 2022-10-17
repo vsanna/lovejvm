@@ -58,5 +58,6 @@ public class RawObject {
     }
   }
 
-  public static final int NULL = 0;
+  public static final int NULL_ID = 0;
+  public static final RawObject NULL_OBJECT = new RawObject(NULL_ID, 0, null, 0);
 }
