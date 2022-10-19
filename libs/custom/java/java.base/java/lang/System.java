@@ -20,8 +20,6 @@ public final class System {
     public static void setOut(PrintStream out) {
         setOut0(out);
     }
-
-    // VM forcefully set the out
     private static native void setOut0(PrintStream out);
 
     public static String getProperty(String key) {

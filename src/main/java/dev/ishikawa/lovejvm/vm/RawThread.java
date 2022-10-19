@@ -1,6 +1,5 @@
 package dev.ishikawa.lovejvm.vm;
 
-import static dev.ishikawa.lovejvm.vm.Instruction.*;
 import static dev.ishikawa.lovejvm.vm.RawSystem.heapManager;
 import static dev.ishikawa.lovejvm.vm.RawSystem.methodAreaManager;
 
@@ -44,7 +43,7 @@ public class RawThread {
    * Note: initial frame must be a static method, and static method doesn't have a receiver.
    */
   public RawThread init(RawMethod entryPoint) {
-    stackUp(entryPoint, 0, entryPoint.getTransitWordSize(false));
+    stackUp(entryPoint, 0);
     return this;
   }
 
@@ -53,7 +52,7 @@ public class RawThread {
    * This is used for initializing Class, Field, Method object, and resolivng Dynamic Const.
    * */
   public void invoke(RawMethod method, List<Word> arguments) {
-    stackUp(method, 0, 0);
+    stackUp(method, 0);
 
     var locals = new Word[method.getLocalsSize()];
     for (int i = 0; i < arguments.size(); i++) {
@@ -65,39 +64,26 @@ public class RawThread {
   }
 
   /**
-   * add a new frame. copy necessary locals from current frame to the new frame
+   * add a new frame. move necessary words from current operandStack to new frame's locals
    *
    * @param {int} pcToReturn next pc in current frame. not in the next frame. the caller of stackUp
    *     has to calculate pcToReturn beforehand.
    * @return true when stackUp actually adds a new frame
    */
-  private boolean stackUp(RawMethod nextMethod, int pcToReturn, int numOfWordsToTransit) {
+  private void stackUp(RawMethod nextMethod, int pcToReturn) {
     pc = methodAreaManager.lookupCodeSectionAddress(nextMethod);
 
-    if (pc < 0) {
-      if (nextMethod.isAbstract()) {
-        throw new RuntimeException(
-            String.format(
-                "abstract method is called. method: %s", nextMethod.getName().getLabel()));
-      } else if (nextMethod.isNative()) {
-        /**
-         * > If the method to be invoked is native and the platform-dependent code
-         * that implements it has not yet been bound (§5.6) into the Java Virtual Machine,
-         * then that is done.
-         * The nargs argument values and objectref are popped from the operand stack and are passed as parameters
-         * to the code that implements the method.
-         * The parameters are passed and the code is invoked in an implementation-dependent manner.
-         * When the platform-dependent code returns:
-         *
-         * If the native method returns a value,
-         * the return value of the platform-dependent code is converted in an implementation-dependent way
-         * to the return type of the native method and pushed onto the operand stack.
-         * */
-        List<Word> result = RawSystem.nativeMethodHandler.handle(nextMethod, currentFrame());
-        pushFromTail(result, currentFrame().getOperandStack());
-        pc = pcToReturn;
-        return false;
-      }
+    if (nextMethod.isAbstract()) {
+      throw new RuntimeException(
+          String.format("abstract method is called. method: %s", nextMethod.getName().getLabel()));
+    }
+
+    if (nextMethod.isNative()) {
+      // note: arguments are popped in this handle method
+      List<Word> result = RawSystem.nativeMethodHandler.handle(nextMethod, currentFrame());
+      pushFromTail(result, currentFrame().getOperandStack());
+      pc = pcToReturn;
+      return;
     }
 
     Frame newFrame = new Frame(this, nextMethod);
@@ -107,34 +93,20 @@ public class RawThread {
       // so that it can go back to previous PC when calling stackDown
       newFrame.getOperandStack().push(Word.of(pcToReturn));
 
-      // REFACTOR: Ideally, Not copying the words,
-      //  but use the unified global stack per one thread!!
+      int transitWordSize = nextMethod.getTransitWordSize();
+      List<JvmType> argumentsTypeInfo = nextMethod.getArgumentsToTranswer();
+      Collections.reverse(argumentsTypeInfo); // push arguments from the tail
+      int pos = 0;
 
-      /*
-       * > If the method to be invoked is not native,
-       * > the nargs argument values and objectref are popped from the operand stack.
-       * > A new frame is created on the Java Virtual Machine stack for the method being invoked.
-       * > The objectref and the argument values are consecutively made
-       * > the values of local variables of the new frame,
-       * > with objectref in local variable 0, arg1 in local variable 1
-       * > (or, if arg1 is of type long or double, in local variables 1 and 2), and so on.
-       * > The new frame is then made current,
-       * > and the Java Virtual Machine pc is set to the opcode of the first instruction
-       * > of the method to be invoked. Execution continues with the first instruction of the method.
-       * */
-      var tmpQueue = new ArrayDeque<Word>(numOfWordsToTransit);
-      for (int i = 0; i < numOfWordsToTransit; i++) {
-        tmpQueue.add(currentFrame().getOperandStack().pop());
-      }
-      for (int i = 0; i < numOfWordsToTransit; i++) {
-        var word = tmpQueue.pop();
-        currentFrame().getOperandStack().push(word);
-        newFrame.getLocals()[numOfWordsToTransit - i - 1] =
-            word; // put each word from the last position
+      for (JvmType aType : argumentsTypeInfo) {
+        for (int j = 0; j < aType.wordSize(); j++) {
+          newFrame.getLocals()[transitWordSize - 1 - (aType.wordSize() - 1) - pos + j] =
+              currentFrame().getOperandStack().pop();
+        }
+        pos += aType.wordSize();
       }
     } else {
-      // this pcToReturn won't be used because pcToReturn is for returning to the previous
-      // frame
+      // this pcToReturn won't be used because pcToReturn is for returning to the previous frame
       newFrame.getOperandStack().push(Word.of(pcToReturn));
 
       // this is the entry point method.
@@ -143,8 +115,6 @@ public class RawThread {
     }
 
     frames.push(newFrame);
-
-    return true;
   }
 
   private void stackDown() {
@@ -1634,32 +1604,10 @@ public class RawThread {
             methodRef.resolve(constantPool);
             RawMethod rawMethod = methodRef.getRawMethod();
 
-            // TODO: receiver objectのclassを特定
-            boolean hasReceiver = true;
-            int numOfWordsToTransit = rawMethod.getTransitWordSize(hasReceiver);
-            Deque<Word> tmp = new ArrayDeque(numOfWordsToTransit);
-            for (int i = 0; i < numOfWordsToTransit; i++) {
-              tmp.push(operandStack.pop());
-            }
-
-            int receiverObjectId = tmp.getFirst().getValue();
-            RawClass receiverClass = heapManager.lookupObject(receiverObjectId).getRawClass();
-            RawMethod selectedMethod = methodAreaManager.selectMethod(receiverClass, rawMethod);
-
-            for (int i = 0; i < numOfWordsToTransit; i++) {
-              operandStack.push(tmp.pop());
-            }
+            RawMethod selectedMethod = findMethodToInvoke(rawMethod, operandStack);
 
             var nextPc = pc + 3;
-            var hasAddedFrame = this.stackUp(selectedMethod, nextPc, numOfWordsToTransit);
-
-            if (hasAddedFrame) {
-              // Since arguments are copied to the new frame in stackUp step,
-              // arguments pushed into current frame should be removed here.
-              for (int i = 0; i < numOfWordsToTransit; i++) {
-                previousFrame().getOperandStack().pop();
-              }
-            }
+            this.stackUp(selectedMethod, nextPc);
 
             // no need to update pc. pc is modified in stackUp
             break;
@@ -1670,24 +1618,14 @@ public class RawThread {
             // REFACTOR
             var index = peekTwoBytes();
             ConstantMethodref methodRef = (ConstantMethodref) constantPool.findByIndex(index);
-
             methodRef.resolve(constantPool);
             RawMethod rawMethod = methodRef.getRawMethod();
 
-            boolean hasReceiver = (instruction == INVOKESPECIAL);
-            int numOfWordsToTransit = rawMethod.getTransitWordSize(hasReceiver);
+            // TODO: no need to call findMethodToInvoke?
+
             var nextPc = pc + 3;
-            var hasAddedFrame = this.stackUp(rawMethod, nextPc, numOfWordsToTransit);
+            this.stackUp(rawMethod, nextPc);
 
-            if (hasAddedFrame) {
-              // Since arguments are copied to the new frame in stackUp step,
-              // arguments pushed into current frame should be removed here.
-              for (int i = 0; i < numOfWordsToTransit; i++) {
-                previousFrame().getOperandStack().pop();
-              }
-            }
-
-            // no need to update pc. pc is modified in stackUp
             break;
           }
 
@@ -1703,32 +1641,10 @@ public class RawThread {
             methodRef.resolve(constantPool);
             RawMethod rawMethod = methodRef.getRawMethod();
 
-            // TODO: receiver objectのclassを特定
-            boolean hasReceiver = true;
-            int numOfWordsToTransit = rawMethod.getTransitWordSize(hasReceiver);
-            Deque<Word> tmp = new ArrayDeque(numOfWordsToTransit);
-            for (int i = 0; i < numOfWordsToTransit; i++) {
-              tmp.push(operandStack.pop());
-            }
-
-            int receiverObjectId = tmp.getFirst().getValue();
-            RawClass receiverClass = heapManager.lookupObject(receiverObjectId).getRawClass();
-            RawMethod selectedMethod = methodAreaManager.selectMethod(receiverClass, rawMethod);
-
-            for (int i = 0; i < numOfWordsToTransit; i++) {
-              operandStack.push(tmp.pop());
-            }
+            RawMethod selectedMethod = findMethodToInvoke(rawMethod, operandStack);
 
             var nextPc = pc + 5;
-            var hasAddedFrame = this.stackUp(selectedMethod, nextPc, numOfWordsToTransit);
-
-            if (hasAddedFrame) {
-              // Since arguments are copied to the new frame in stackUp step,
-              // arguments pushed into current frame should be removed here.
-              for (int i = 0; i < numOfWordsToTransit; i++) {
-                previousFrame().getOperandStack().pop();
-              }
-            }
+            this.stackUp(selectedMethod, nextPc);
 
             break;
           }
@@ -2120,6 +2036,29 @@ public class RawThread {
     var mutable = words.stream().collect(Collectors.toList());
     Collections.reverse(mutable);
     mutable.forEach(operandStack::push);
+  }
+
+  private int peekReceiverObjectId(RawMethod rawMethod, Deque<Word> operandStack) {
+    int numOfWordsToTransit = rawMethod.getTransitWordSize();
+
+    Deque<Word> tmp = new ArrayDeque(numOfWordsToTransit);
+    for (int i = 0; i < numOfWordsToTransit; i++) {
+      tmp.push(operandStack.pop());
+    }
+
+    int receiverObjectId = tmp.getFirst().getValue();
+
+    for (int i = 0; i < numOfWordsToTransit; i++) {
+      operandStack.push(tmp.pop());
+    }
+
+    return receiverObjectId;
+  }
+
+  private RawMethod findMethodToInvoke(RawMethod rawMethod, Deque<Word> operandStack) {
+    int receiverObjectId = peekReceiverObjectId(rawMethod, operandStack);
+    RawClass receiverClass = heapManager.lookupObject(receiverObjectId).getRawClass();
+    return methodAreaManager.selectMethod(receiverClass, rawMethod);
   }
 
   private void dump(String name, int pc, Instruction inst, RawThread thread) {

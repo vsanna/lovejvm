@@ -1,4 +1,4 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 class InstanceNew2 {
     static private String ss = "helloworld";
@@ -12,7 +12,7 @@ class InstanceNew2 {
         this.i = i;
     }
 
-    static public void main() {
+    static public void main(String[] args) {
         InstanceNew2 in2 = new InstanceNew2(
             "!",
             1000

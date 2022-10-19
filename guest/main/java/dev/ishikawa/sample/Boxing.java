@@ -1,10 +1,10 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 import java.util.ArrayList;
 import java.util.List;
 
 class Boxing {
-    static void main() {
+    static void main(String[] args) {
         Integer i = Integer.valueOf(1);
         Long l = Long.valueOf(10L);
         Float f = Float.valueOf(1.1f);

@@ -1,10 +1,10 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 import java.util.ArrayList;
 import java.util.List;
 
 class ListSample {
-    static void main() {
+    static void main(String[] args) {
         List<Integer> list = new ArrayList(10); // 105
         list.add(10);
         list.add(20);

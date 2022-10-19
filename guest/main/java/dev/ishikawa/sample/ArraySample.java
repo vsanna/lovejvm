@@ -1,7 +1,7 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 class ArraySample {
-    static public void main() {
+    static public void main(String[] args) {
         int[] intArray = new int[]{1,2,3,4,5}; // 104
         int[] intArray2 = new int[10]; // 105
 

@@ -4,7 +4,6 @@ import java.util.Objects;
 
 public final class StackTraceElement {
 
-    // Normally initialized by VM
     private String classLoaderName;
     private String moduleName;
     private String moduleVersion;
@@ -12,12 +11,6 @@ public final class StackTraceElement {
     private String methodName;
     private String fileName;
     private int    lineNumber;
-    private byte   format = 0; // Default to show all
-
-    public StackTraceElement(String declaringClass, String methodName,
-                             String fileName, int lineNumber) {
-        this(null, null, null, declaringClass, methodName, fileName, lineNumber);
-    }
 
     public StackTraceElement(String classLoaderName,
                              String moduleName, String moduleVersion,
@@ -32,6 +25,9 @@ public final class StackTraceElement {
         this.lineNumber      = lineNumber;
     }
 
+    public String formatted() {
+        return "TODO: impl here";
+    }
 
     public String getFileName() {
         return fileName;

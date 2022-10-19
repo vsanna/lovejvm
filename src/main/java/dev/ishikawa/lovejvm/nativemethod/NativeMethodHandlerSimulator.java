@@ -1,14 +1,15 @@
 package dev.ishikawa.lovejvm.nativemethod;
 
-import static dev.ishikawa.lovejvm.memory.stringpool.StringPoolSimulator.STRING_CLASS_LABEL;
 
-import dev.ishikawa.lovejvm.nativemethod.implementation.PrintStream;
-import dev.ishikawa.lovejvm.rawclass.RawClass;
+import dev.ishikawa.lovejvm.nativemethod.implementation.ClassNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.IntegerNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.ObjectNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.PrintStreamNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.StringNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.SystemNative;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
-import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.vm.Frame;
-import dev.ishikawa.lovejvm.vm.RawSystem;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 import java.util.function.Function;
@@ -29,7 +30,11 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
         .filter(it -> it.isMatched(rawMethod))
         .findFirst()
         .map(it -> it.apply(currentFrame))
-        .orElseGet(() -> defaultNativeMethodHandler(rawMethod));
+        .orElseThrow(
+            () -> {
+              var a = rawMethod;
+              return new RuntimeException("unhandled native method is used");
+            });
   }
 
   private List<Word> defaultNativeMethodHandler(RawMethod rawMethod) {
@@ -92,56 +97,31 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
           new NativeMethodSimulation(
               "java/lang/Class",
               "forName0",
-              "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class",
+              "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;",
               (currentFrame) -> {
                 // TODO: impl
                 return List.of(Word.of(-100));
               }),
           new NativeMethodSimulation(
-              "java/lang/Object",
-              "getClass",
-              "()Ljava/lang/Class",
-              (currentFrame) -> {
-                var v1 = currentFrame.getOperandStack().pop().getValue();
-                var classObjectReference =
-                    RawSystem.heapManager.lookupObject(v1).getRawClass().getClassObjectId();
-                return List.of(Word.of(classObjectReference));
-              }),
+              "java/lang/Object", "getClass", "()Ljava/lang/Class", ObjectNative::getClass),
           new NativeMethodSimulation(
-              "java/lang/System",
-              "setOut0",
-              "(Ljava/io/PrintStream;)V",
-              (currentFrame) -> {
-                var printStreamObjectId = currentFrame.getOperandStack().pop().getValue();
-                var systemRawClass =
-                    RawSystem.methodAreaManager.lookupOrLoadClass("java/lang/System");
-                var outField =
-                    systemRawClass
-                        .findStaticFieldBy("out")
-                        .orElseThrow(() -> new RuntimeException("out field is not found"));
-                RawSystem.methodAreaManager.putStaticFieldValue(
-                    systemRawClass, outField, List.of(Word.of(printStreamObjectId)));
-                return List.of();
-              }),
+              "java/lang/System", "setOut0", "(Ljava/io/PrintStream;)V", SystemNative::setOut0),
           new NativeMethodSimulation(
-              "java/io/PrintStream",
-              "println",
-              "(Ljava/lang/String;)V",
-              PrintStream::printlnString),
+              "java/lang/System", "setIn0", "(Ljava/io/InputStream;)V", SystemNative::setIn0),
           new NativeMethodSimulation(
-              "java/io/PrintStream",
-              "println",
-              "(I)V",
-              PrintStream::printlnInt),
+              "java/lang/System", "setErr0", "(Ljava/io/PrintStream;)V", SystemNative::setErr0),
           new NativeMethodSimulation(
-              "java/lang/Object",
-              "hashCode",
-              "()I",
-              (currentFrame) -> {
-                int objectId = currentFrame.getOperandStack().pop().getValue();
-                return List.of(Word.of(objectId));
-              })
-      );
+              "java/io/PrintStream", "write", "(Ljava/lang/String;)V", PrintStreamNative::write),
+          new NativeMethodSimulation("java/lang/Object", "hashCode", "()I", ObjectNative::hashCode),
+          new NativeMethodSimulation(
+              "java/lang/Integer", "toString", "(I)Ljava/lang/String;", IntegerNative::toString),
+          new NativeMethodSimulation(
+              "java/lang/Class",
+              "getPrimitiveClass",
+              "(Ljava/lang/String;)Ljava/lang/Class;",
+              ClassNative::getPrimitiveClass),
+          new NativeMethodSimulation(
+              "java/lang/String", "intern", "()Ljava/lang/String;", StringNative::intern));
 
   private static class NativeMethodSimulation {
     @NotNull private final String binaryName;

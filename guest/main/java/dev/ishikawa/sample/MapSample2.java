@@ -1,10 +1,10 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 import java.util.HashMap;
 import java.util.Map;
 
 class MapSample2 {
-    static void main() {
+    static void main(String[] args) {
         Map<String, Integer> map = new HashMap(100); // 105
         map.put("hello", 1);
         map.put("world", 10);

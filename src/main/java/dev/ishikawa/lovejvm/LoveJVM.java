@@ -65,5 +65,5 @@ public class LoveJVM {
   }
 
   public static final String ENTRY_METHOD_NAME = "main";
-  public static final String ENTRY_METHOD_DESC = "()V";
+  public static final String ENTRY_METHOD_DESC = "([Ljava/lang/String;)V";
 }

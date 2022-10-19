@@ -10,6 +10,7 @@ import dev.ishikawa.lovejvm.vm.Word;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 
 public class StringPoolSimulator implements StringPool {
@@ -22,6 +23,20 @@ public class StringPoolSimulator implements StringPool {
     return Optional.ofNullable(stringMap.get(label))
         .map(RawObject::getObjectId)
         .orElseGet(() -> register(label));
+  }
+
+  @Override
+  public Optional<String> getLabelBy(int objectId) {
+    return stringMap.entrySet().stream()
+        .filter(it -> it.getValue().getObjectId() == objectId)
+        .map(Entry::getKey)
+        .findFirst();
+  }
+
+  @Override
+  public int register(String label, RawObject stringRawObject) {
+    stringMap.put(label, stringRawObject);
+    return stringRawObject.getObjectId();
   }
 
   /**

@@ -1,4 +1,4 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -34,7 +34,7 @@ class BasicClass2 {
         return this.queue.get(queuePos);
     }
 
-    static public void main() {
+    static public void main(String[] args) {
         BasicClass2 bc2 = new BasicClass2(); // 103
         int a1 = bc2.getId("hello");    // 226
         int a2 = bc2.getId("world");    // 247

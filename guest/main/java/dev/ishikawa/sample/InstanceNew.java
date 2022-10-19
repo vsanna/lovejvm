@@ -1,4 +1,4 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 class InstanceNew {
     private static final int STATIC_VALUE = 2;
@@ -14,7 +14,7 @@ class InstanceNew {
         return a + b;
     }
 
-    static public void main() {
+    static public void main(String[] args) {
         InstanceNew instance = new InstanceNew(2000, -1000);
         int c = instance.sum() / STATIC_VALUE; // 500
     }

@@ -1,3 +1,12 @@
+## how to compile guest java files
+```shell
+cd guest/
+javac main/java/**/*.java -d out/main
+javac test/java/**/*.java -d out/test
+```
+
+
+
 ## how to compile standard libraries
 
 ```shell
@@ -5,9 +14,9 @@
 cd $JAVA_HOME/lib
 javac --module java.base -d path/to/project/standardlibs --module-source-path .
 
-cd libs/custom
+cd libs/custom/java
 # customlibs/javaの中身をcustomlibs/java.baseに上書き
-javac --module java.base -d ../../standardlibs/custom --module-source-path .                        
+javac --module java.base -d ../../../standardlibs/classfiles --module-source-path .                        
 
 cd libs/original
 javac --module java.base -d ../../standardlibs/original --module-source-path .                        

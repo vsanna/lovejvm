@@ -1,5 +1,7 @@
+package dev.ishikawa.sample;
+
 class Add {
-    static void main() {
+    static void main(String[] args) {
         int a = 10;    // var0
         int b = 4;     // var1
         int c = a + b; // var2

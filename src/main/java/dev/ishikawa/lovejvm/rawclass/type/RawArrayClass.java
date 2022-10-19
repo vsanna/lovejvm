@@ -316,7 +316,8 @@ public class RawArrayClass extends RawClass {
   }
 
   // TODO: this should be in MethodAreaManager
-  public static RawArrayClass lookupOrCreateComplexRawArrayClass(RawClass elementRawClass, int dimension) {
+  public static RawArrayClass lookupOrCreateComplexRawArrayClass(
+      RawClass elementRawClass, int dimension) {
     String binaryName = "[".repeat(dimension) + "L" + elementRawClass.getBinaryName() + ";";
     return RawSystem.methodAreaManager
         .lookupClass(binaryName)

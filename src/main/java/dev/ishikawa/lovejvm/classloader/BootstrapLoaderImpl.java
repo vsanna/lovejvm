@@ -85,13 +85,8 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
   private Path getPathFrom(String binaryName) {
     String binaryNamePlusExtension = binaryName + ".class";
 
-    List<Path> dirsToLookFor = dirsToLookForClasses;
-//    if (customClassBinaryNames.contains(binaryName)) {
-//      dirsToLookFor = dirsToLookForCustomClasses;
-//    }
-
     // traverse classpath. if not found, throw exception
-    return dirsToLookFor.stream()
+    return dirsToLookForClasses.stream()
         .map((dirPath) -> Path.of(dirPath.toString(), binaryNamePlusExtension))
         .filter((libPath) -> libPath.toFile().exists())
         .findFirst()
@@ -103,8 +98,6 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
             });
   }
 
-  private static final List<String> customClassBinaryNames = List.of("java/io/PrintStream");
-
   private static final List<Path> dirsToLookForClasses =
       List.of(
           /*
@@ -113,9 +106,7 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
        *     - check README.md to see how to compile standard libraries
        *   2. user defined classpaths
        * */
-          Path.of("libs/custom/classfiles/java.base/"));
-//          Path.of("standardlibs/original/java.base/"));
+          Path.of("standardlibs/classfiles/java.base/"));
+  //          Path.of("standardlibs/original/java.base/"));
 
-  private static final List<Path> dirsToLookForCustomClasses =
-      List.of(Path.of("standardlibs/custom/java.base/"));
 }

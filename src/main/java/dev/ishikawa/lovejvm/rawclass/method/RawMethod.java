@@ -7,7 +7,6 @@ import dev.ishikawa.lovejvm.rawclass.attr.AttrCode;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
 import dev.ishikawa.lovejvm.rawclass.attr.Attrs;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantUtf8;
-import dev.ishikawa.lovejvm.rawclass.field.RawField.AccessFlag;
 import dev.ishikawa.lovejvm.rawclass.type.JvmType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,17 +54,27 @@ public class RawMethod {
 
   /**
    * @return num of words to transfer when invoking a new method */
-  public int getTransitWordSize(boolean hasReceiver) {
-    // TODO: is it possible to know hasReceiver in this method?
+  public int getTransitWordSize() {
     int argumentsWordSize = getArgumentsWordSize();
-    if (hasReceiver) {
+    if (!isStatic()) {
       return argumentsWordSize + JvmType.OBJECT_REFERENCE.wordSize();
     }
     return argumentsWordSize;
   }
 
-  /** TODO: this should be fully tested */
-  private int getArgumentsWordSize() {
+  public List<JvmType> getArgumentsToTranswer() {
+    List<JvmType> result;
+    if (isStatic()) {
+      result = new ArrayList<>();
+    } else {
+      result = new ArrayList<>(List.of(JvmType.OBJECT_REFERENCE));
+    }
+    result.addAll(getArgumentsTypeInfo());
+    return result;
+  }
+
+  // TODO: this should be fully tested
+  private List<JvmType> getArgumentsTypeInfo() {
     // ex: ([Ljava/lang/String;[[IDLjava/lang/String;II)V -> [, [, D, L, I, I
     // [ -> L ~ ;まで飛ばす or 次の1文字飛ばす
     // L -> ~; まで飛ばす
@@ -101,7 +110,11 @@ public class RawMethod {
       argumentTypes.add(JvmType.findByJvmSignature(String.valueOf(c)));
     }
 
-    return argumentTypes.stream().map(JvmType::wordSize).reduce(0, Integer::sum);
+    return argumentTypes;
+  }
+
+  private int getArgumentsWordSize() {
+    return getArgumentsTypeInfo().stream().map(JvmType::wordSize).reduce(0, Integer::sum);
   }
 
   public JvmType getReturningType() {

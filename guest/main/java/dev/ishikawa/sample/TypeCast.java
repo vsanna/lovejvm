@@ -1,7 +1,7 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 class TypeCast {
-    static void main() {
+    static void main(String[] args) {
         int i = 100;             // 100
         long i2l = (long) i;     // 0 100
         float i2f = (float) i;   // 42,c8,0,0 == 100.0

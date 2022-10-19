@@ -1,82 +1,56 @@
 package java.lang;
 
-import java.util.Locale;
-
 public final class String {
 
     private final byte[] value;
     private final byte coder;
+
+    static final byte UTF16  = 1;
 
     public String() {
         this.value = "".value;
         this.coder = "".coder;
     }
 
-    public String(char value[]) {
-        throw new UnsupportedOperationException("");
+    public String(byte[] value) {
+        if(value.length == 0) {
+            this.value = "".value;
+            this.coder = "".coder;
+            return;
+        }
+
+        this.value = value;
+        this.coder = UTF16;
     }
 
-    public String(char value[], int offset, int count) {
-        throw new UnsupportedOperationException("");
-    }
-    public String(int[] codePoints, int offset, int count) {
-        throw new UnsupportedOperationException("");
-    }
+    public String(char[] value) {
+        if(value.length == 0) {
+            this.value = "".value;
+            this.coder = "".coder;
+            return;
+        }
+        byte[] bytes = new byte[value.length];
+        for (int i = 0; i < value.length; i++) {
+            bytes[i] = (byte)value[i];
+        }
 
-    public String(byte ascii[], int hibyte, int offset, int count) {
-        throw new UnsupportedOperationException("");
-    }
-    public String(byte ascii[], int hibyte) {
-        throw new UnsupportedOperationException("");
-    }
-    public String(byte bytes[], int offset, int length, String charsetName) {
-        throw new UnsupportedOperationException("");
-    }
-
-    public String(byte bytes[], String charsetName) {
-        this(bytes, 0, bytes.length, charsetName);
-    }
-
-    public String(byte bytes[], int offset, int length) {
-        throw new UnsupportedOperationException("");
+        this.value = bytes;
+        this.coder = UTF16;
     }
 
     public int length() {
         return value.length;
     }
-
-    public static String format(String format, Object... args) {
-        throw new UnsupportedOperationException("");
-    }
-
-    public static String format(Locale l, String format, Object... args) {
-        throw new UnsupportedOperationException("");
-    }
-
-    public String toUpperCase(Locale locale) {
-        throw new UnsupportedOperationException("");
-    }
-
-    static final byte LATIN1 = 0;
-    static final byte UTF16  = 1;
-    static final boolean COMPACT_STRINGS = true;
-
-    boolean isLatin1() {
-        return COMPACT_STRINGS && coder == LATIN1;
-    }
-
-
-    public static String valueOf(Object obj) {
-        return (obj == null) ? "null" : obj.toString();
-    }
-
-    public static String valueOf(char data[]) {
-        throw new UnsupportedOperationException("");
-    }
-
-    public static String valueOf(char data[], int offset, int count) {
-        throw new UnsupportedOperationException("");
-    }
+    
+    public static String valueOf(int value) { return Integer.toString(value); }
+    public static String valueOf(long value) { return Long.toString(value); }
+    public static String valueOf(short value) { return Short.toString(value); }
+    public static String valueOf(byte value) { return Byte.toString(value); }
+    public static String valueOf(float value) { return Float.toString(value); }
+    public static String valueOf(double value) { return Double.toString(value); }
+    public static String valueOf(boolean value) { return Boolean.toString(value); }
+    public static String valueOf(char value) { return Character.toString(value); }
+    public static String valueOf(Object obj) { return (obj == null) ? "null" : obj.toString(); }
 
     static String valueOfCodePoint(int codePoint) {
         throw new UnsupportedOperationException("");
@@ -120,4 +94,5 @@ public final class String {
         throw new UnsupportedOperationException("");
     }
 
+    public native String intern();
 }

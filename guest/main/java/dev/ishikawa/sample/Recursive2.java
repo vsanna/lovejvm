@@ -1,7 +1,7 @@
-package dev.ishikawa.test;
+package dev.ishikawa.sample;
 
 class Recursive2 {
-    static public void main() {
+    static public void main(String[] args) {
 //        fibonacchi(10);  // 55
         fibonacchi(13);  // 233
 //        fibonacchi(40);  // 102334155

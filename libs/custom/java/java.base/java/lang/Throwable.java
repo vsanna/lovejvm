@@ -1,18 +1,13 @@
 package java.lang;
 
 import java.io.PrintStream;
-import java.util.List;
-import java.util.ArrayList;
 
 public class Throwable {
     private static final StackTraceElement[] UNASSIGNED_STACK = new StackTraceElement[0];
-    private static final List<Throwable> SUPPRESSED_SENTINEL = new ArrayList<>();
 
     private String detailMessage;
     private Throwable cause = this;
     private StackTraceElement[] stackTrace = UNASSIGNED_STACK;
-    private transient int depth;
-    private List<Throwable> suppressedExceptions = SUPPRESSED_SENTINEL;
 
     public Throwable() {}
 
@@ -46,7 +41,9 @@ public class Throwable {
     }
 
     public void printStackTrace(PrintStream s) {
-        // TODO:
+        for (int i = 0; i < stackTrace.length; i++) {
+            s.println(stackTrace[i].formatted());
+        }
     }
 
     public synchronized Throwable fillInStackTrace() {
@@ -59,9 +56,6 @@ public class Throwable {
 
     public String toString() {
         throw new UnsupportedOperationException("");
-//        String s = getClass().getName();
-//        String message = getLocalizedMessage();
-//        return (message != null) ? (s + ": " + message) : s;
     }
 
     public String getLocalizedMessage() {
