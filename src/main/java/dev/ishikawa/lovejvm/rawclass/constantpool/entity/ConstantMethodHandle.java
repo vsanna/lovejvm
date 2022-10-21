@@ -3,13 +3,16 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.vm.Word;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class ConstantMethodHandle extends ConstantPoolResolvableEntry
     implements ConstantPoolEntry, ConstantPoolLoadableEntry {
-  private boolean isResolved = false;
 
-  private final int referenceKind; // 1byte
+  private final DescriptionKind descriptionKind;
 
   private final int referenceIndex; // 2byte
   private ConstantPoolEntry reference;
@@ -17,8 +20,9 @@ public class ConstantMethodHandle extends ConstantPoolResolvableEntry
 
   public ConstantMethodHandle(int referenceKind, int referenceIndex) {
     assert (referenceKind >= 1 && referenceKind <= 9);
-    this.referenceKind = referenceKind;
+    // 1byte
     this.referenceIndex = referenceIndex;
+    this.descriptionKind = DescriptionKind.findByKind(referenceKind);
     // TODO: follow this rule
     // when 1 (REF_getField), 2 (REF_getStatic), 3 (REF_putField), or 4 (REF_putStatic)
     //   then CONSTANT_Fieldref_info
@@ -44,12 +48,8 @@ public class ConstantMethodHandle extends ConstantPoolResolvableEntry
     return reference;
   }
 
-  public int getReferenceKind() {
-    return referenceKind;
-  }
-
-  public int getReferenceIndex() {
-    return referenceIndex;
+  public DescriptionKind getDescriptionKind() {
+    return descriptionKind;
   }
 
   public void setReference(ConstantPoolEntry reference) {
@@ -73,5 +73,40 @@ public class ConstantMethodHandle extends ConstantPoolResolvableEntry
   @Override
   public int size() {
     return 4;
+  }
+
+  public enum DescriptionKind {
+    REF_getField(1, "(C)T"),
+    REF_getStatic(2, "()T"),
+    REF_putField(3, "(C,T)V"),
+    REF_putStatic(4, "(T)V"),
+    REF_invokeVirtual(5, "(C,A*)T"),
+    REF_invokeStatic(6, "(A*)T"),
+    REF_invokeSpecial(7, "(C,A*)T"),
+    REF_newInvokeSpecial(8, "(A*)C"),
+    REF_invokeInterface(9, "(C,A*)T");
+
+    private final int kind;
+    private final String methodDescriptor;
+
+    DescriptionKind(int kind, String methodDescriptor) {
+      this.kind = kind;
+      this.methodDescriptor = methodDescriptor;
+    }
+
+    public String getMethodDescriptor() {
+      return methodDescriptor;
+    }
+
+    public static final Map<Integer, DescriptionKind> map =
+        Arrays.stream(DescriptionKind.values()).collect(Collectors.toMap(
+            (value) -> value.kind,
+            (value) -> value
+        ));
+
+    public static DescriptionKind findByKind(int kind) {
+      return Optional.ofNullable(map.get(kind))
+          .orElseThrow(() -> new IllegalArgumentException("invalid kind is passed"));
+    }
   }
 }

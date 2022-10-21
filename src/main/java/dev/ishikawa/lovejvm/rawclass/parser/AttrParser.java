@@ -2,8 +2,8 @@ package dev.ishikawa.lovejvm.rawclass.parser;
 
 
 import dev.ishikawa.lovejvm.rawclass.attr.*;
-import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMethodsBody;
-import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMethodsBody.LAttrBootstrapMethod;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.AttrBootstrapMethodsBody;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.AttrBootstrapMethodsBody.AttrBootstrapMethod;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrEnclosingMethod.AttrEnclosingMethodBody;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrExceptions.LAttrExceptionsBody;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrInnerClass.AttrInnerClassBody.LAttrInnerClassEntry;
@@ -216,7 +216,7 @@ public class AttrParser {
               ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
           pointer += 2;
 
-          var bootstrapMethods = new ArrayList<LAttrBootstrapMethod>(numBootstrapMethods);
+          var bootstrapMethods = new ArrayList<AttrBootstrapMethod>(numBootstrapMethods);
           for (int i = 0; i < numBootstrapMethods; i++) {
             var idx = ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1]);
             ConstantMethodHandle bootstrapMethodRef =
@@ -236,14 +236,14 @@ public class AttrParser {
             }
 
             bootstrapMethods.add(
-                new LAttrBootstrapMethod(
+                new AttrBootstrapMethod(
                     bootstrapMethodRef, numBootstrapArguments, bootstrapArguments));
           }
 
           return new AttrBootstrapMethods(
               attrName,
               dataLength,
-              new LAttrBootstrapMethodsBody(numBootstrapMethods, bootstrapMethods));
+              new AttrBootstrapMethodsBody(numBootstrapMethods, bootstrapMethods));
         }
         //      case RUNTIME_VISIBLE_TYPE_ANNOTATIONS:
         //        break;

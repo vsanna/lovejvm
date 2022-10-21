@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,43 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+package java.util.function;
 
-package java.lang;
+import java.util.Objects;
 
+@FunctionalInterface
+public interface Consumer<T> {
+    void accept(T t);
 
-import java.util.Map;
-
-public final class Class<T> {
-  private final ClassLoader classLoader;
-  private final Class<?> componentType;
-  private transient String name;
-
-  private Class(ClassLoader loader, Class<?> arrayComponentType) {
-    classLoader = loader;
-    componentType = arrayComponentType;
-  }
-
-  public String getName() {
-    String name = this.name;
-    return name != null ? name : initClassName();
-  }
-
-  // TODO: this should be native
-  private String initClassName() {
-    return "dummy";
-  }
-
-  public native Class<? super T> getSuperclass();
-
-  Map<String, T> enumConstantDirectory() {
-    throw new UnsupportedOperationException("");
-  }
-
-  public String getCanonicalName() {
-    throw new UnsupportedOperationException("");
-  }
-
-  static native Class<?> getPrimitiveClass(String name);
-
-  public native boolean isAssignableFrom(Class<?> cls);
+    default Consumer<T> andThen(Consumer<? super T> after) {
+        throw new UnsupportedOperationException("");
+    }
 }

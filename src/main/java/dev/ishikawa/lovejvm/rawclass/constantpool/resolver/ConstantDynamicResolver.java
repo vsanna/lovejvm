@@ -2,7 +2,7 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.resolver;
 
 
 import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods;
-import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMethodsBody.LAttrBootstrapMethod;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.AttrBootstrapMethodsBody.AttrBootstrapMethod;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantDynamic;
@@ -24,7 +24,7 @@ public class ConstantDynamicResolver implements Resolver<ConstantDynamic> {
         (ConstantNameAndType) constantPool.findByIndex(entry.getNameAndTypeIndex()));
 
     // 1. bootstrapMethodAttrIndexをもとに、RawClassのattrsにあるBootstrapMethods からentryを取得
-    LAttrBootstrapMethod bootstrapMethod =
+    AttrBootstrapMethod bootstrapMethod =
         constantPool.getRawClass().getAttrs().findAllBy(AttrName.BOOTSTRAP_METHODS).stream()
             .findFirst()
             .map(it -> (AttrBootstrapMethods) it)

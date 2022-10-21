@@ -10,7 +10,9 @@ import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantClass;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantFieldref;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantInterfaceMethodref;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantInvokeDynamic;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodref;
+import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPoolEntry;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPoolLoadableEntry;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
@@ -41,6 +43,8 @@ public class RawThread {
   /**
    * init the thread with the given method.
    * Note: initial frame must be a static method, and static method doesn't have a receiver.
+   *
+   * TODO: invokeに一本化したほうが良さそう
    */
   public RawThread init(RawMethod entryPoint) {
     stackUp(entryPoint, 0);
@@ -54,6 +58,7 @@ public class RawThread {
   public void invoke(RawMethod method, List<Word> arguments) {
     stackUp(method, 0);
 
+    // TODO: 2 words のargumentが正しく渡せない
     var locals = new Word[method.getLocalsSize()];
     for (int i = 0; i < arguments.size(); i++) {
       locals[i] = arguments.get(i);
@@ -1650,13 +1655,15 @@ public class RawThread {
           }
         case INVOKEDYNAMIC:
           {
-            // TODO: implementation
             var index = peekTwoBytes();
             var _no_used1 = methodAreaManager.lookupByte(pc + 3);
             var _no_used2 = methodAreaManager.lookupByte(pc + 4);
+            ConstantInvokeDynamic methodRef = (ConstantInvokeDynamic) constantPool.findByIndex(index);
+            methodRef.resolve(constantPool);
 
-            throw new RuntimeException("invokedynamic is not implemented yet");
-            //            break;
+            // push a reference(=objectId) to the target method handle
+            // push `nargs` argument values.
+            break;
           }
         case NEW:
           {

@@ -1,39 +1,39 @@
 package dev.ishikawa.lovejvm.rawclass.attr;
 
 
-import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.LAttrBootstrapMethodsBody;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrBootstrapMethods.AttrBootstrapMethodsBody;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodHandle;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPoolEntry;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantUtf8;
 import java.util.List;
 
 /** only method can have this attr */
-public class AttrBootstrapMethods extends Attr<LAttrBootstrapMethodsBody> {
+public class AttrBootstrapMethods extends Attr<AttrBootstrapMethodsBody> {
   public AttrBootstrapMethods(
-      ConstantUtf8 attrName, int dataLength, LAttrBootstrapMethodsBody body) {
+      ConstantUtf8 attrName, int dataLength, AttrBootstrapMethodsBody body) {
     super(attrName, dataLength, body);
   }
 
-  public static class LAttrBootstrapMethodsBody {
+  public static class AttrBootstrapMethodsBody {
     private final short numBootstrapMethods;
-    private final List<LAttrBootstrapMethod> bootstrapMethods;
+    private final List<AttrBootstrapMethod> bootstrapMethods;
 
-    public LAttrBootstrapMethodsBody(
-        short numBootstrapMethods, List<LAttrBootstrapMethod> bootstrapMethods) {
+    public AttrBootstrapMethodsBody(
+        short numBootstrapMethods, List<AttrBootstrapMethod> bootstrapMethods) {
       this.numBootstrapMethods = numBootstrapMethods;
       this.bootstrapMethods = bootstrapMethods;
     }
 
-    public LAttrBootstrapMethod findBy(int index) {
+    public AttrBootstrapMethod findBy(int index) {
       return this.bootstrapMethods.get(index);
     }
 
-    public static class LAttrBootstrapMethod {
+    public static class AttrBootstrapMethod {
       private final ConstantMethodHandle bootstrapMethodRef;
       private final short numBootstrapArguments;
       private final List<ConstantPoolEntry> bootstrapArguments;
 
-      public LAttrBootstrapMethod(
+      public AttrBootstrapMethod(
           ConstantMethodHandle bootstrapMethodRef,
           short numBootstrapArguments,
           List<ConstantPoolEntry> bootstrapArguments) {

@@ -3,6 +3,7 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.resolver;
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodHandle;
+import dev.ishikawa.lovejvm.vm.InvokeHelper;
 
 public class ConstantMethodHandlefResolver implements Resolver<ConstantMethodHandle> {
 

@@ -46,9 +46,10 @@ public class Options {
           //                     "guest/out/main/dev/ishikawa/sample/ListSample.class"
           //                     "guest/out/main/dev/ishikawa/sample/MapSample1.class"
           //                     "guest/out/main/dev/ishikawa/sample/MapSample2.class"
-          //                     "guest/out/main/dev/ishikawa/sample/BasicClass2.class"
-          //                     "guest/out/main/dev/ishikawa/sample/LambdaSample.class"
-          "guest/out/test/dev/ishikawa/sample/PrintStreamTest.class");
+                               "guest/out/main/dev/ishikawa/sample/BasicClass2.class"
+//          "guest/out/main/dev/ishikawa/sample/LambdaSample.class"
+          //                     "guest/out/test/dev/ishikawa/sample/PrintStreamTest.class"
+          );
       setLogLevel(LogLevel.DEBUG);
     }
 

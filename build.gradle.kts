@@ -26,6 +26,7 @@ spotless {
     java {
         target(
             "src/**/*.java",
+            "libs/custom/java/**/*.java"
         )
         removeUnusedImports()
         googleJavaFormat("1.8")
