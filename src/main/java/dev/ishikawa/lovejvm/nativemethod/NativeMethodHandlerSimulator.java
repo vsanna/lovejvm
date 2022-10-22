@@ -3,6 +3,8 @@ package dev.ishikawa.lovejvm.nativemethod;
 
 import dev.ishikawa.lovejvm.nativemethod.implementation.ClassNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.IntegerNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.LambdaFactoryNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.MethodHandleNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.ObjectNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.PrintStreamNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.StringNative;
@@ -33,34 +35,11 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
         .orElseThrow(
             () -> {
               var a = rawMethod;
-              return new RuntimeException("unhandled native method is used");
+              return new RuntimeException(
+                  String.format(
+                      "unhandled native method is used: %s%s",
+                      rawMethod.getName().getLabel(), rawMethod.getDescriptor().getLabel()));
             });
-  }
-
-  private List<Word> defaultNativeMethodHandler(RawMethod rawMethod) {
-    switch (rawMethod.getReturningType()) {
-      case BYTE:
-      case SHORT:
-      case CHAR:
-      case FLOAT:
-      case INT:
-        return List.of(Word.of(0));
-      case DOUBLE:
-        return Word.of(0.0D);
-      case LONG:
-        return Word.of(0L);
-      case BOOLEAN:
-        return List.of(Word.of(false));
-      case RETURN_ADDRESS:
-      case ARRAY:
-      case OBJECT_REFERENCE:
-        return List.of(Word.of(0));
-      case VOID:
-        return List.of();
-      default:
-        throw new RuntimeException(
-            String.format("unexpected returning type: %s", rawMethod.getReturningType()));
-    }
   }
 
   private final List<NativeMethodSimulation> nativeMethodSimulations =
@@ -103,7 +82,7 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
                 return List.of(Word.of(-100));
               }),
           new NativeMethodSimulation(
-              "java/lang/Object", "getClass", "()Ljava/lang/Class", ObjectNative::getClass),
+              "java/lang/Object", "getClass", "()Ljava/lang/Class;", ObjectNative::getClass),
           new NativeMethodSimulation(
               "java/lang/System", "setOut0", "(Ljava/io/PrintStream;)V", SystemNative::setOut0),
           new NativeMethodSimulation(
@@ -121,7 +100,17 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
               "(Ljava/lang/String;)Ljava/lang/Class;",
               ClassNative::getPrimitiveClass),
           new NativeMethodSimulation(
-              "java/lang/String", "intern", "()Ljava/lang/String;", StringNative::intern));
+              "java/lang/String", "intern", "()Ljava/lang/String;", StringNative::intern),
+          new NativeMethodSimulation(
+              "java/lang/invoke/MethodHandle",
+              "invoke",
+              "([Ljava/lang/Object;)Ljava/lang/Object;",
+              MethodHandleNative::invoke),
+          new NativeMethodSimulation(
+              "jdk/internal/lambda/LambdaFactory",
+              "createLambdaImplObject",
+              "(Ljava/lang/invoke/MethodType;Ljava/lang/String;Ljava/lang/invoke/MethodHandle;Ljava/lang/invoke/MethodType;)Ljava/lang/Object;",
+              LambdaFactoryNative::createLambdaImplObject));
 
   private static class NativeMethodSimulation {
     @NotNull private final String binaryName;

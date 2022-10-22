@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,23 +25,23 @@
 
 package java.lang.invoke;
 
+public class LambdaConversionException extends Exception {
+  public LambdaConversionException() {}
 
-import java.util.Objects;
-
-public abstract class MethodHandle {
-  private final Class<?> klass;
-  private final String name;
-  private final MethodType type;
-
-  MethodHandle(Class<?> klass, String name, MethodType type) {
-    this.klass = Objects.requireNonNull(klass);
-    this.name = Objects.requireNonNull(name);
-    this.type = Objects.requireNonNull(type);
+  public LambdaConversionException(String message) {
+    super(message);
   }
 
-  public final native Object invoke(Object... args) throws Throwable;
+  public LambdaConversionException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-  //  MethodHandle viewAsType(MethodType newType, boolean strict) {
-  //    throw new UnsupportedOperationException("");
-  //  }
+  public LambdaConversionException(Throwable cause) {
+    super(cause);
+  }
+
+  public LambdaConversionException(
+      String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    super(message, cause, enableSuppression, writableStackTrace);
+  }
 }

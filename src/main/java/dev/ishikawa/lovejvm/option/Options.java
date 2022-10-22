@@ -31,23 +31,25 @@ public class Options {
 
     public Builder() {
       setEntryClass(
-          //                     "guest/out/main/dev/ishikawa/sample/Add.class"
-          //                     "guest/out/main/dev/ishikawa/sample/ForLoop.class"
-          //                     "guest/out/main/dev/ishikawa/sample/Recursive.class"
-          //                     "guest/out/main/dev/ishikawa/sample/Recursive2.class"
-          //                     "guest/out/main/dev/ishikawa/sample/Math.class"
-          //                     "guest/out/main/dev/ishikawa/sample/TypeCast.class"
-          //                     "guest/out/main/dev/ishikawa/sample/BasicClass.class"
-          //                     "guest/out/main/dev/ishikawa/sample/InstanceNew.class"
-          //                     "guest/out/main/dev/ishikawa/sample/InstanceNew2.class"
-          //                     "guest/out/main/dev/ishikawa/sample/ArraySample.class"
-          //                     "guest/out/main/dev/ishikawa/sample/SystemOut.class"
-          //                     "guest/out/main/dev/ishikawa/sample/Boxing.class" // FIX
-          //                     "guest/out/main/dev/ishikawa/sample/ListSample.class"
-          //                     "guest/out/main/dev/ishikawa/sample/MapSample1.class"
-          //                     "guest/out/main/dev/ishikawa/sample/MapSample2.class"
-                               "guest/out/main/dev/ishikawa/sample/BasicClass2.class"
-//          "guest/out/main/dev/ishikawa/sample/LambdaSample.class"
+          //                               "guest/out/main/dev/ishikawa/sample/Add.class"
+          //                               "guest/out/main/dev/ishikawa/sample/ForLoop.class"
+          //                               "guest/out/main/dev/ishikawa/sample/Recursive.class"
+          //                               "guest/out/main/dev/ishikawa/sample/Recursive2.class"
+          //                               "guest/out/main/dev/ishikawa/sample/Math.class"
+          //                               "guest/out/main/dev/ishikawa/sample/TypeCast.class"
+          //                               "guest/out/main/dev/ishikawa/sample/BasicClass.class"
+          //                               "guest/out/main/dev/ishikawa/sample/InstanceNew.class"
+          //                               "guest/out/main/dev/ishikawa/sample/InstanceNew2.class"
+          //                               "guest/out/main/dev/ishikawa/sample/ArraySample.class"
+          //                               "guest/out/main/dev/ishikawa/sample/SystemOut.class"
+          //                     "guest/out/main/dev/ishikawa/sample/Boxing.class" // TODO
+          //                               "guest/out/main/dev/ishikawa/sample/ListSample.class"
+          //                               "guest/out/main/dev/ishikawa/sample/MapSample1.class"
+          //                               "guest/out/main/dev/ishikawa/sample/MapSample2.class"
+          //                               "guest/out/main/dev/ishikawa/sample/BasicClass2.class"
+          //          "guest/out/main/dev/ishikawa/sample/LambdaSample.class"
+          //          "guest/out/main/dev/ishikawa/sample/LambdaSample2.class"
+          "guest/out/main/dev/ishikawa/sample/LambdaSample3.class"
           //                     "guest/out/test/dev/ishikawa/sample/PrintStreamTest.class"
           );
       setLogLevel(LogLevel.DEBUG);

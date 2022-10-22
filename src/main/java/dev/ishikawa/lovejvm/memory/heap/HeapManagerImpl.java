@@ -44,8 +44,30 @@ public class HeapManagerImpl implements HeapManager {
   }
 
   @Override
+  public void setValue(RawObject rawObject, String fieldName, List<Word> value) {
+    var rawField =
+        rawObject
+            .getRawClass()
+            .findMemberFieldBy(fieldName)
+            .orElseThrow(
+                () -> new RuntimeException(String.format("%s field is not found", fieldName)));
+    setValue(rawObject, rawField, value);
+  }
+
+  @Override
   public List<Word> getValue(RawObject rawObject, RawField rawField) {
     return classObjectHandler.getValue(rawObject, rawField);
+  }
+
+  @Override
+  public List<Word> getValue(RawObject rawObject, String fieldName) {
+    var rawField =
+        rawObject
+            .getRawClass()
+            .findMemberFieldBy(fieldName)
+            .orElseThrow(
+                () -> new RuntimeException(String.format("%s field is not found", fieldName)));
+    return getValue(rawObject, rawField);
   }
 
   @Override
@@ -77,16 +99,17 @@ public class HeapManagerImpl implements HeapManager {
   @Override
   public RawObject createClassObject(RawClass targetClass) {
     RawClass classRawClass = RawSystem.methodAreaManager.lookupOrLoadClass("java/lang/Class");
-    int objectId = RawSystem.heapManager.newObject(classRawClass);
-    RawObject classObject = RawSystem.heapManager.lookupObject(objectId);
+    int classObjectId = RawSystem.heapManager.newObject(classRawClass);
+    RawObject classObject = RawSystem.heapManager.lookupObject(classObjectId);
+
+    // set name field
+    setValue(
+        classObject,
+        "name",
+        List.of(Word.of(RawSystem.stringPool.getOrCreate(targetClass.getBinaryName()))));
 
     // set classLoader field: null(cause this CL is bootstrap)
-    RawField classLoaderField =
-        classRawClass
-            .findMemberFieldBy("classLoader")
-            .orElseThrow(
-                () -> new RuntimeException("classLoader field doesn't exist in Class.class"));
-    RawSystem.heapManager.setValue(classObject, classLoaderField, Collections.emptyList());
+    setValue(classObject, "classLoader", Collections.emptyList());
 
     // set componentType field
     List<Word> componentTypeFieldValue;
@@ -99,12 +122,7 @@ public class HeapManagerImpl implements HeapManager {
     } else {
       componentTypeFieldValue = Collections.emptyList();
     }
-    RawField componentType =
-        classRawClass
-            .findMemberFieldBy("componentType")
-            .orElseThrow(
-                () -> new RuntimeException("componentType field doesn't exist in Class.class"));
-    RawSystem.heapManager.setValue(classObject, componentType, componentTypeFieldValue);
+    setValue(classObject, "componentType", componentTypeFieldValue);
 
     return classObject;
   }

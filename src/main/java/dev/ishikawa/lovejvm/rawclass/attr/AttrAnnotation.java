@@ -3,25 +3,25 @@ package dev.ishikawa.lovejvm.rawclass.attr;
 
 import java.util.List;
 
-public class LAttrAnnotation {
+public class AttrAnnotation {
   private final short typeIndex;
   private final short numElementValuePairs;
-  private final List<LAttrAnnotationElementValuePair> elementValuePairs;
+  private final List<AttrAnnotationElementValuePair> elementValuePairs;
 
-  public LAttrAnnotation(
+  public AttrAnnotation(
       short typeIndex,
       short numElementValuePairs,
-      List<LAttrAnnotationElementValuePair> elementValuePairs) {
+      List<AttrAnnotationElementValuePair> elementValuePairs) {
     this.typeIndex = typeIndex;
     this.numElementValuePairs = numElementValuePairs;
     this.elementValuePairs = elementValuePairs;
   }
 
-  public static class LAttrAnnotationElementValuePair {
+  public static class AttrAnnotationElementValuePair {
     private final short elementNameIndex; // index of constantpool
     private final ElementValue value;
 
-    public LAttrAnnotationElementValuePair(short elementNameIndex, ElementValue value) {
+    public AttrAnnotationElementValuePair(short elementNameIndex, ElementValue value) {
       this.elementNameIndex = elementNameIndex;
       this.value = value;
     }
@@ -62,8 +62,8 @@ public class LAttrAnnotation {
       }
     }
 
-    public static class AnnotationElementValue extends ElementValue<LAttrAnnotation> {
-      public AnnotationElementValue(LAttrAnnotation annotation) {
+    public static class AnnotationElementValue extends ElementValue<AttrAnnotation> {
+      public AnnotationElementValue(AttrAnnotation annotation) {
         super(annotation);
       }
     }

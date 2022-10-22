@@ -12,7 +12,7 @@ import java.util.List;
 public class ConstantMethodType extends ConstantPoolResolvableEntry
     implements ConstantPoolEntry, ConstantPoolLoadableEntry {
   private final int descriptorIndex; // 2bytes
-  private ConstantUtf8 label;
+  private ConstantUtf8 descriptor;
   private int objectId; // to java.lang.invoke.MethodType
 
   public ConstantMethodType(int descriptorIndex) {
@@ -21,11 +21,11 @@ public class ConstantMethodType extends ConstantPoolResolvableEntry
 
   @Override
   public void shakeOut(ConstantPool constantPool) {
-    label = (ConstantUtf8) constantPool.findByIndex(descriptorIndex);
+    descriptor = (ConstantUtf8) constantPool.findByIndex(descriptorIndex);
   }
 
-  public ConstantUtf8 getLabel() {
-    return label;
+  public ConstantUtf8 getDescriptor() {
+    return descriptor;
   }
 
   public int getObjectId() {
@@ -39,10 +39,6 @@ public class ConstantMethodType extends ConstantPoolResolvableEntry
 
   public int getDescriptorIndex() {
     return descriptorIndex;
-  }
-
-  public void setLabel(ConstantUtf8 label) {
-    this.label = label;
   }
 
   @Override

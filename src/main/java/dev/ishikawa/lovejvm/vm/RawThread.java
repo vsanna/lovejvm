@@ -12,7 +12,6 @@ import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantFieldref;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantInterfaceMethodref;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantInvokeDynamic;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantMethodref;
-import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPoolEntry;
 import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPoolLoadableEntry;
 import dev.ishikawa.lovejvm.rawclass.field.RawField;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
@@ -22,6 +21,7 @@ import dev.ishikawa.lovejvm.rawclass.type.RawArrayClass;
 import dev.ishikawa.lovejvm.rawobject.RawObject;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
@@ -54,16 +54,14 @@ public class RawThread {
   /**
    * In order for JVM to invoke a method.
    * This is used for initializing Class, Field, Method object, and resolivng Dynamic Const.
+   *
+   * arguments expects to be passed as an order that locals can accept.
+   * ex. void hello(String var1, long var2, int var3)
+   * arguments = [var1, left bits of var2, right bits of var2, var3]
    * */
   public void invoke(RawMethod method, List<Word> arguments) {
     stackUp(method, 0);
-
-    // TODO: 2 words のargumentが正しく渡せない
-    var locals = new Word[method.getLocalsSize()];
-    for (int i = 0; i < arguments.size(); i++) {
-      locals[i] = arguments.get(i);
-    }
-
+    var locals = arguments.toArray(new Word[method.getLocalsSize()]);
     currentFrame().setLocals(locals);
     this.run();
   }
@@ -104,11 +102,15 @@ public class RawThread {
       int pos = 0;
 
       for (JvmType aType : argumentsTypeInfo) {
-        for (int j = 0; j < aType.wordSize(); j++) {
-          newFrame.getLocals()[transitWordSize - 1 - (aType.wordSize() - 1) - pos + j] =
-              currentFrame().getOperandStack().pop();
+        try {
+          for (int j = 0; j < aType.wordSize(); j++) {
+            newFrame.getLocals()[transitWordSize - 1 - (aType.wordSize() - 1) - pos + j] =
+                currentFrame().getOperandStack().pop();
+          }
+          pos += aType.wordSize();
+        } catch (Exception ex) {
+          int a = 1;
         }
-        pos += aType.wordSize();
       }
     } else {
       // this pcToReturn won't be used because pcToReturn is for returning to the previous frame
@@ -143,6 +145,10 @@ public class RawThread {
     var ret = this.frames.peek();
     this.frames.push(tmp);
     return ret;
+  }
+
+  public List<Word> getOutput() {
+    return new ArrayList<>(currentFrame().getOperandStack());
   }
 
   public void run() {
@@ -1492,25 +1498,34 @@ public class RawThread {
         case FRETURN:
         case ARETURN:
           {
-            // ireturn/freturn/areturn returns one word
-            // these operand codes must be able to stackDown
-            var word = currentFrame().getOperandStack().pop();
-            previousFrame().getOperandStack().push(word);
-            stackDown();
-            break;
+            if (pc == 1973) {
+              int a = 1;
+            }
+            if (canStackDown()) {
+              // ireturn/freturn/areturn returns one word
+              // these operand codes must be able to stackDown
+              var word = currentFrame().getOperandStack().pop();
+              previousFrame().getOperandStack().push(word);
+              stackDown();
+              break;
+            }
+            return;
           }
         case LRETURN: // lreturn
         case DRETURN: // dreturn
           {
-            // TODO: test here
-            // lreturn/dreturn returns two words
-            // these operand codes must be able to stackDown
-            var v1 = currentFrame().getOperandStack().pop();
-            var v2 = currentFrame().getOperandStack().pop();
-            previousFrame().getOperandStack().push(v2);
-            previousFrame().getOperandStack().push(v1);
-            stackDown();
-            break;
+            if (canStackDown()) {
+              // TODO: test here
+              // lreturn/dreturn returns two words
+              // these operand codes must be able to stackDown
+              var v1 = currentFrame().getOperandStack().pop();
+              var v2 = currentFrame().getOperandStack().pop();
+              previousFrame().getOperandStack().push(v2);
+              previousFrame().getOperandStack().push(v1);
+              stackDown();
+              break;
+            }
+            return;
           }
         case RETURN:
           {
@@ -1518,7 +1533,8 @@ public class RawThread {
               stackDown();
               break;
             }
-            // this thread is finished
+            // this thread is finished. don't call stackDown so that the thread can return the
+            // output to this JVM
             return;
           }
         case GETSTATIC:
@@ -1658,11 +1674,37 @@ public class RawThread {
             var index = peekTwoBytes();
             var _no_used1 = methodAreaManager.lookupByte(pc + 3);
             var _no_used2 = methodAreaManager.lookupByte(pc + 4);
-            ConstantInvokeDynamic methodRef = (ConstantInvokeDynamic) constantPool.findByIndex(index);
-            methodRef.resolve(constantPool);
+            ConstantInvokeDynamic invokeDynamic =
+                (ConstantInvokeDynamic) constantPool.findByIndex(index);
+            invokeDynamic.resolve(constantPool);
 
-            // push a reference(=objectId) to the target method handle
-            // push `nargs` argument values.
+            int callsiteObjectId = invokeDynamic.getCallSiteObjectId();
+            RawObject callsite = heapManager.lookupObject(callsiteObjectId);
+
+            // invoke callsite = push(lambdaImplObjectId)
+            // capture arguments
+            int lambdaImplObjectId = heapManager.getValue(callsite, "lambdaImpl").get(0).getValue();
+
+            RawObject rawObject = heapManager.lookupObject(lambdaImplObjectId);
+            for (int i = rawObject.getRawClass().getMemberFields().size() - 1; i >= 0; i--) {
+              RawField rawField = rawObject.getRawClass().getMemberFields().get(i);
+              JvmType jvmType = JvmType.findByJvmSignature(rawField.getDescriptor().getLabel());
+              if (jvmType == JvmType.LONG || jvmType == JvmType.DOUBLE) {
+                heapManager.setValue(
+                    rawObject,
+                    rawField,
+                    List.of(
+                        Word.of(currentFrame().getOperandStack().pop()),
+                        Word.of(currentFrame().getOperandStack().pop())));
+              } else {
+                heapManager.setValue(
+                    rawObject, rawField, List.of(Word.of(currentFrame().getOperandStack().pop())));
+              }
+            }
+
+            operandStack.push(Word.of(lambdaImplObjectId));
+
+            pc += 5;
             break;
           }
         case NEW:

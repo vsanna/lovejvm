@@ -26,9 +26,9 @@
 package java.lang.invoke;
 
 public abstract class CallSite {
-  CallSite(MethodType type) {}
+  final MethodHandle target;
 
-  CallSite(MethodHandle target) {}
-
-  CallSite(MethodType targetType, MethodHandle createTargetHook) throws Throwable {}
+  CallSite(MethodHandle target) {
+    this.target = target;
+  }
 }

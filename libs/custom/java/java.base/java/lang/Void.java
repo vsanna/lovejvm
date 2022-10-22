@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,25 +23,10 @@
  * questions.
  */
 
-package java.lang.invoke;
+package java.lang;
 
+public final class Void {
+  public static final Class<Void> TYPE = (Class<Void>) Class.getPrimitiveClass("void");
 
-import java.util.Objects;
-
-public abstract class MethodHandle {
-  private final Class<?> klass;
-  private final String name;
-  private final MethodType type;
-
-  MethodHandle(Class<?> klass, String name, MethodType type) {
-    this.klass = Objects.requireNonNull(klass);
-    this.name = Objects.requireNonNull(name);
-    this.type = Objects.requireNonNull(type);
-  }
-
-  public final native Object invoke(Object... args) throws Throwable;
-
-  //  MethodHandle viewAsType(MethodType newType, boolean strict) {
-  //    throw new UnsupportedOperationException("");
-  //  }
+  private Void() {}
 }

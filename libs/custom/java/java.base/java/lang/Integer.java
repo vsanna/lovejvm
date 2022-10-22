@@ -29,6 +29,8 @@ public final class Integer {
   // static field
   public static final int MIN_VALUE = 0x80000000;
   public static final int MAX_VALUE = 0x7fffffff;
+  // int.class == Integer.class
+  // int.class -> Integer.TYPE. this replacement is occured by compiler.
   public static final Class<Integer> TYPE = (Class<Integer>) Class.getPrimitiveClass("int");
   public static final int SIZE = 32;
   public static final int BYTES = SIZE / Byte.SIZE;

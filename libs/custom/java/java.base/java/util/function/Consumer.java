@@ -24,13 +24,11 @@
  */
 package java.util.function;
 
-import java.util.Objects;
-
 @FunctionalInterface
 public interface Consumer<T> {
-    void accept(T t);
+  void accept(T t);
 
-    default Consumer<T> andThen(Consumer<? super T> after) {
-        throw new UnsupportedOperationException("");
-    }
+  default Consumer<T> andThen(Consumer<? super T> after) {
+    throw new UnsupportedOperationException("");
+  }
 }

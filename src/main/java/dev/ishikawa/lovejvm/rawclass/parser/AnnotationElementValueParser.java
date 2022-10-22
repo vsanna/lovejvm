@@ -1,14 +1,15 @@
 package dev.ishikawa.lovejvm.rawclass.parser;
 
 
-import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation;
-import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.AnnotationElementValue;
-import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.ArrayValue;
-import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.ArrayValueElementValue;
-import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.ClassInfoIndexElementValue;
-import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue;
-import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.EnumConstValue;
-import dev.ishikawa.lovejvm.rawclass.attr.LAttrAnnotation.LAttrAnnotationElementValuePair.EnumConstValueElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation.AttrAnnotationElementValuePair;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation.AttrAnnotationElementValuePair.AnnotationElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation.AttrAnnotationElementValuePair.ArrayValue;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation.AttrAnnotationElementValuePair.ArrayValueElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation.AttrAnnotationElementValuePair.ClassInfoIndexElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation.AttrAnnotationElementValuePair.ElementValue;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation.AttrAnnotationElementValuePair.EnumConstValue;
+import dev.ishikawa.lovejvm.rawclass.attr.AttrAnnotation.AttrAnnotationElementValuePair.EnumConstValueElementValue;
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
 import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.util.Pair;
@@ -20,7 +21,7 @@ public class AnnotationElementValueParser {
       int pointer, byte[] bytecode, ConstantPool constantPool) {
     // ElementValue
 
-    LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue<?> value;
+    AttrAnnotationElementValuePair.ElementValue<?> value;
 
     String tag = String.valueOf((char) bytecode[pointer]);
     pointer += 1;
@@ -37,8 +38,8 @@ public class AnnotationElementValueParser {
       case "s":
         // const
         value =
-            new LAttrAnnotation.LAttrAnnotationElementValuePair.ElementValue<>(
-                new LAttrAnnotation.LAttrAnnotationElementValuePair.ConstValueIndexElementValue(
+            new AttrAnnotationElementValuePair.ElementValue<>(
+                new AttrAnnotationElementValuePair.ConstValueIndexElementValue(
                     ByteUtil.concatToShort(bytecode[pointer], bytecode[pointer + 1])));
         pointer += 2;
         break;
@@ -62,9 +63,9 @@ public class AnnotationElementValueParser {
         break;
       case "@":
         // annotation
-        Pair<Integer, LAttrAnnotation> result =
+        Pair<Integer, AttrAnnotation> result =
             AnnotationParser.parse(pointer, bytecode, constantPool);
-        LAttrAnnotation innerAnnotation = result.getRight();
+        AttrAnnotation innerAnnotation = result.getRight();
         value = new ElementValue<>(new AnnotationElementValue(innerAnnotation));
         pointer = result.getLeft();
         break;

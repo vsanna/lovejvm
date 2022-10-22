@@ -20,7 +20,11 @@ public interface HeapManager {
   /** set the value in heap */
   void setValue(RawObject rawObject, RawField rawField, List<Word> value);
 
+  void setValue(RawObject rawObject, String fieldName, List<Word> value);
+
   List<Word> getValue(RawObject rawObject, RawField rawField);
+
+  List<Word> getValue(RawObject rawObject, String fieldName);
 
   int newArrayObject(RawArrayClass rawArrayClass, int arrSize);
 

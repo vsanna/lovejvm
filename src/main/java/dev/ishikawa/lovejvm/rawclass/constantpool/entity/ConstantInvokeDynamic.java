@@ -9,8 +9,11 @@ public class ConstantInvokeDynamic extends ConstantPoolResolvableEntry
 
   private final int nameAndTypeIndex; // 2byte
   private ConstantNameAndType nameAndType;
+  private int methodTypeObjectId;
 
-  private int objectId; // to java.lang.invoke.CallStack
+  private int callSiteObjectId; // to java.lang.invoke.CallSite
+
+  private ConstantMethodref methodRef;
 
   public ConstantInvokeDynamic(int bootstrapMethodAttrIndex, int nameAndTypeIndex) {
     this.bootstrapMethodAttrIndex = bootstrapMethodAttrIndex;
@@ -38,17 +41,34 @@ public class ConstantInvokeDynamic extends ConstantPoolResolvableEntry
     this.nameAndType = nameAndType;
   }
 
-  public int getObjectId() {
+  public int getCallSiteObjectId() {
     if (!isResolved()) throw new RuntimeException("not resolved yet");
-    return objectId;
+    return callSiteObjectId;
   }
 
-  public void setObjectId(int objectId) {
-    this.objectId = objectId;
+  public void setCallSiteObjectId(int callSiteObjectId) {
+    this.callSiteObjectId = callSiteObjectId;
   }
 
   @Override
   public int size() {
     return 5;
+  }
+
+  public int getMethodTypeObjectId() {
+    if (!isResolved()) throw new RuntimeException("not resolved yet");
+    return methodTypeObjectId;
+  }
+
+  public void setMethodTypeObjectId(int methodTypeObjectId) {
+    this.methodTypeObjectId = methodTypeObjectId;
+  }
+
+  public ConstantMethodref getMethodRef() {
+    return methodRef;
+  }
+
+  public void setMethodRef(ConstantMethodref methodRef) {
+    this.methodRef = methodRef;
   }
 }

@@ -30,7 +30,7 @@ public class ResolverService implements Resolver<ConstantPoolEntry> {
           Map.entry(ConstantFieldref.class, new ConstantFieldrefResolver()),
           Map.entry(ConstantInterfaceMethodref.class, new ConstantInterfaceMethodrefResolver()),
           Map.entry(ConstantInvokeDynamic.class, new ConstantInvokeDynamicResolver()),
-          Map.entry(ConstantMethodHandle.class, new ConstantMethodHandlefResolver()),
+          Map.entry(ConstantMethodHandle.class, new ConstantMethodHandleResolver()),
           Map.entry(ConstantMethodref.class, new ConstantMethodrefResolver()),
           Map.entry(ConstantMethodType.class, new ConstantMethodTypeResolver()),
           Map.entry(ConstantModule.class, new ConstantModuleResolver()),

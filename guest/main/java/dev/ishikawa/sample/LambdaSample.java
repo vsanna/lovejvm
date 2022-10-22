@@ -7,29 +7,10 @@ import java.lang.Runnable;
 
 class LambdaSample {
     static void main(String[] args) {
-        makerun(100).run();
-//        makeConsumer().accpet(200);
-//        System.out.println(makeSupplier<Integer>(300).get());
+        Runnable r1 = () -> { System.out.println("runnable 1!"); };
+        Runnable r2 = () -> { System.out.println("runnable 2!"); };
+        System.out.println("starting!");
+        r1.run();
+        r2.run();
     }
-
-    static public Runnable makerun(int i) {
-        return () -> {
-            System.out.println("runnable");
-            System.out.println(i);
-        };
-    }
-//
-//    static public Consumer<Integer> makeConsumer() {
-//        return (int a) -> {
-//            System.out.println("consumer");
-//            System.out.println(a);
-//        };
-//    }
-//
-//    static public <T> Supplier<T> makeSupplier(int i) {
-//        return () -> {
-//            System.out.println("supplier");
-//            return i;
-//        };
-//    }
 }

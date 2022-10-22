@@ -34,4 +34,6 @@ public interface BootstrapLoader {
    * @param filePath file path string from the project root to the specific class file
    * */
   RawClass loadByFilePath(String filePath);
+
+  RawClass loadFromBytes(byte[] bytes);
 }

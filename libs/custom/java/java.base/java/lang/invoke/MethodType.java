@@ -26,10 +26,12 @@
 package java.lang.invoke;
 
 public class MethodType {
-  Class<?>[] ptypes;
+  String descriptor;
   Class<?> rtype;
+  Class<?>[] ptypes;
 
-  private MethodType(Class<?> rtype, Class<?>[] ptypes) {
+  private MethodType(String descriptor, Class<?> rtype, Class<?>[] ptypes) {
+    this.descriptor = descriptor;
     this.rtype = rtype;
     this.ptypes = ptypes;
   }

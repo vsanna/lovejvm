@@ -23,20 +23,6 @@ public class ConstantMethodHandle extends ConstantPoolResolvableEntry
     // 1byte
     this.referenceIndex = referenceIndex;
     this.descriptionKind = DescriptionKind.findByKind(referenceKind);
-    // TODO: follow this rule
-    // when 1 (REF_getField), 2 (REF_getStatic), 3 (REF_putField), or 4 (REF_putStatic)
-    //   then CONSTANT_Fieldref_info
-    // when 5 (REF_invokeVirtual), 6 (REF_invokeStatic), 7 (REF_invokeSpecial), or 8
-    // (REF_newInvokeSpecial),
-    //   then CONSTANT_Methodref_info
-    // when 9 (REF_invokeInterface)
-    //   then CONSTANT_InterfaceMethodref_info
-    // AND
-    // when 5 (REF_invokeVirtual), 6 (REF_invokeStatic), 7 (REF_invokeSpecial), or 9
-    // (REF_invokeInterface),
-    //   then method name must not be <init> or <clinit>.
-    // when 8 (REF_newInvokeSpecial)
-    //   then method name must be <init>
   }
 
   @Override
@@ -99,10 +85,8 @@ public class ConstantMethodHandle extends ConstantPoolResolvableEntry
     }
 
     public static final Map<Integer, DescriptionKind> map =
-        Arrays.stream(DescriptionKind.values()).collect(Collectors.toMap(
-            (value) -> value.kind,
-            (value) -> value
-        ));
+        Arrays.stream(DescriptionKind.values())
+            .collect(Collectors.toMap((value) -> value.kind, (value) -> value));
 
     public static DescriptionKind findByKind(int kind) {
       return Optional.ofNullable(map.get(kind))

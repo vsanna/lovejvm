@@ -38,6 +38,10 @@ public class ConstantMethodrefResolver implements Resolver<ConstantMethodref> {
     String methodName = entry.getNameAndType().getName().getLabel();
     String methodDescriptor = entry.getNameAndType().getDescriptor().getLabel();
 
+    if (methodName.equals("lambda$makerun$0")) {
+      int a = 1;
+    }
+
     // TODO: check if this class is surely not Interface
 
     RawClass targetClass = RawSystem.methodAreaManager.lookupOrLoadClass(binaryName);

@@ -6,6 +6,8 @@ import java.util.List;
 class Boxing {
     static void main(String[] args) {
         Integer i = Integer.valueOf(1);
+        System.out.println(int.class == Integer.TYPE);
+        
         Long l = Long.valueOf(10L);
         Float f = Float.valueOf(1.1f);
         Double d = Double.valueOf(2.1D);

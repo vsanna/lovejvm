@@ -45,10 +45,23 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
 
   private BootstrapLoaderImpl() {}
 
+  /**
+   * load a class from binaryName(ex: java/lang/String).
+   * This methods checks all dirs to find libs. classpath + some default dirs.
+   */
+  @Override
+  public RawClass load(String binaryName) {
+    return loadByFilePath(getPathFrom(binaryName).toString());
+  }
+
   @Override
   public RawClass loadByFilePath(String filePath) {
     var targetClassFileBytes = ByteUtil.readBytesFromFilePath(filePath);
+    return loadFromBytes(targetClassFileBytes);
+  }
 
+  @Override
+  public RawClass loadFromBytes(byte[] targetClassFileBytes) {
     // TODO make and use a builder to create RawClass. RawClass should be built after
     // `setClassObjectId` is called
     var targetClass = new RawClassParser(targetClassFileBytes, null).parse();
@@ -71,15 +84,6 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
 
   private void allocateClassData(RawClass targetClass, byte[] classFileBytes) {
     RawSystem.methodAreaManager.registerClass(targetClass, classFileBytes);
-  }
-
-  /**
-   * load a class from binaryName(ex: java/lang/String).
-   * This methods checks all dirs to find libs. classpath + some default dirs.
-   */
-  @Override
-  public RawClass load(String binaryName) {
-    return loadByFilePath(getPathFrom(binaryName).toString());
   }
 
   private Path getPathFrom(String binaryName) {

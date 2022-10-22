@@ -41,7 +41,7 @@ public class Object {
   }
 
   public String toString() {
-    throw new UnsupportedOperationException("");
+    return "not implemented yet";
   }
 
   public final native void notify();

@@ -26,22 +26,20 @@
 package java.lang.invoke;
 
 public class ConstantCallSite extends CallSite {
-  public ConstantCallSite(MethodType type) {
-    super(type);
+  // TODO: ideally, this should have MethodHandle that returns this impl.
+  final Object lambdaImpl;
+
+  public ConstantCallSite(MethodHandle methodHandle) {
+    super(methodHandle);
+    this.lambdaImpl = null;
   }
 
-  protected ConstantCallSite(MethodType targetType, MethodHandle createTargetHook)
-      throws Throwable {
-    super(targetType, createTargetHook);
+  public ConstantCallSite(MethodHandle methodHandle, Object lambdaImpl) {
+    super(methodHandle);
+    this.lambdaImpl = lambdaImpl;
   }
 
   public MethodHandle getTarget() {
-    return null;
-  }
-
-  public void setTarget(MethodHandle newTarget) {}
-
-  public MethodHandle dynamicInvoker() {
-    return null;
+    return this.target;
   }
 }
