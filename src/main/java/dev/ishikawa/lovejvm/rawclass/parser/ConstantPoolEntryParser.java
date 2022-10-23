@@ -7,9 +7,6 @@ import dev.ishikawa.lovejvm.util.Pair;
 
 public class ConstantPoolEntryParser {
   public static Pair<Integer, ConstantPoolEntry> parse(int pointer, byte[] bytecode) {
-    if (bytecode[pointer] == 0) {
-      int a = 1;
-    }
     var tag = ConstantPoolTag.findBy(bytecode[pointer]);
 
     switch (tag) {

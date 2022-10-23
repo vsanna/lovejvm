@@ -2,6 +2,8 @@ package dev.ishikawa.lovejvm.nativemethod;
 
 
 import dev.ishikawa.lovejvm.nativemethod.implementation.ClassNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.DoubleNative;
+import dev.ishikawa.lovejvm.nativemethod.implementation.FloatNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.IntegerNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.LambdaFactoryNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.MethodHandleNative;
@@ -10,7 +12,6 @@ import dev.ishikawa.lovejvm.nativemethod.implementation.PrintStreamNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.StringNative;
 import dev.ishikawa.lovejvm.nativemethod.implementation.SystemNative;
 import dev.ishikawa.lovejvm.rawclass.method.RawMethod;
-import dev.ishikawa.lovejvm.util.ByteUtil;
 import dev.ishikawa.lovejvm.vm.Frame;
 import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
@@ -45,42 +46,23 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
   private final List<NativeMethodSimulation> nativeMethodSimulations =
       List.of(
           new NativeMethodSimulation(
-              "java/lang/Double",
-              "longBitsToDouble",
-              "(J)D",
-              (currentFrame) -> {
-                var v1 = currentFrame.getOperandStack().pop().getValue();
-                var v2 = currentFrame.getOperandStack().pop().getValue();
-                double result = Double.longBitsToDouble(ByteUtil.concatToLong(v1, v2));
-                return Word.of(result);
-              }),
+              "java/lang/Double", "longBitsToDouble", "(J)D", DoubleNative::longBitsToDouble),
           new NativeMethodSimulation(
-              "java/lang/Double",
-              "doubleToRawLongBits",
-              "(D)J",
-              (currentFrame) -> {
-                var v1 = currentFrame.getOperandStack().pop().getValue();
-                var v2 = currentFrame.getOperandStack().pop().getValue();
-                long result = Double.doubleToRawLongBits(ByteUtil.concatToDouble(v1, v2));
-                return Word.of(result);
-              }),
+              "java/lang/Double", "doubleToRawLongBits", "(D)J", DoubleNative::doubleToRawLongBits),
           new NativeMethodSimulation(
-              "java/lang/Float",
-              "floatToRawIntBits",
-              "(F)I",
-              (currentFrame) -> {
-                var v1 = currentFrame.getOperandStack().pop().getValue();
-                int result = Float.floatToRawIntBits(ByteUtil.convertToFloat(v1));
-                return List.of(Word.of(result));
-              }),
+              "java/lang/Double", "toString", "(D)Ljava/lang/String;", DoubleNative::toString),
+          new NativeMethodSimulation(
+              "java/lang/Float", "floatToRawIntBits", "(F)I", FloatNative::floatToRawIntBits),
           new NativeMethodSimulation(
               "java/lang/Class",
               "forName0",
               "(Ljava/lang/String;ZLjava/lang/ClassLoader;Ljava/lang/Class;)Ljava/lang/Class;",
-              (currentFrame) -> {
-                // TODO: impl
-                return List.of(Word.of(-100));
-              }),
+              ClassNative::forName0),
+          new NativeMethodSimulation(
+              "java/lang/Class",
+              "getPrimitiveClass",
+              "(Ljava/lang/String;)Ljava/lang/Class;",
+              ClassNative::getPrimitiveClass),
           new NativeMethodSimulation(
               "java/lang/Object", "getClass", "()Ljava/lang/Class;", ObjectNative::getClass),
           new NativeMethodSimulation(
@@ -94,11 +76,6 @@ public class NativeMethodHandlerSimulator implements NativeMethodHandler {
           new NativeMethodSimulation("java/lang/Object", "hashCode", "()I", ObjectNative::hashCode),
           new NativeMethodSimulation(
               "java/lang/Integer", "toString", "(I)Ljava/lang/String;", IntegerNative::toString),
-          new NativeMethodSimulation(
-              "java/lang/Class",
-              "getPrimitiveClass",
-              "(Ljava/lang/String;)Ljava/lang/Class;",
-              ClassNative::getPrimitiveClass),
           new NativeMethodSimulation(
               "java/lang/String", "intern", "()Ljava/lang/String;", StringNative::intern),
           new NativeMethodSimulation(

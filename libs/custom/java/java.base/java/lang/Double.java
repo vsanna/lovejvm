@@ -38,9 +38,7 @@ public final class Double {
   public static final int BYTES = SIZE / Byte.SIZE;
   public static final Class<Double> TYPE = (Class<Double>) Class.getPrimitiveClass("double");
 
-  public static String toString(double d) {
-    throw new UnsupportedOperationException("");
-  }
+  public static native String toString(double d);
 
   public static Double valueOf(String s) throws NumberFormatException {
     return new Double(parseDouble(s));

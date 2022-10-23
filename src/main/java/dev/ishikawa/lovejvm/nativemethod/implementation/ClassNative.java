@@ -40,4 +40,9 @@ public class ClassNative {
         .map(it -> List.of(Word.of(it.getClassObjectId())))
         .orElseThrow(() -> new RuntimeException("invalid primitive class is searched"));
   }
+
+  public static List<Word> forName0(Frame currentFrame) {
+    // TODO: impl
+    return List.of(Word.of(-100));
+  }
 }

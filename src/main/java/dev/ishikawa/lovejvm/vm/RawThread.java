@@ -102,15 +102,11 @@ public class RawThread {
       int pos = 0;
 
       for (JvmType aType : argumentsTypeInfo) {
-        try {
-          for (int j = 0; j < aType.wordSize(); j++) {
-            newFrame.getLocals()[transitWordSize - 1 - (aType.wordSize() - 1) - pos + j] =
-                currentFrame().getOperandStack().pop();
-          }
-          pos += aType.wordSize();
-        } catch (Exception ex) {
-          int a = 1;
+        for (int j = 0; j < aType.wordSize(); j++) {
+          newFrame.getLocals()[transitWordSize - 1 - (aType.wordSize() - 1) - pos + j] =
+              currentFrame().getOperandStack().pop();
         }
+        pos += aType.wordSize();
       }
     } else {
       // this pcToReturn won't be used because pcToReturn is for returning to the previous frame
@@ -1498,9 +1494,6 @@ public class RawThread {
         case FRETURN:
         case ARETURN:
           {
-            if (pc == 1973) {
-              int a = 1;
-            }
             if (canStackDown()) {
               // ireturn/freturn/areturn returns one word
               // these operand codes must be able to stackDown
@@ -1682,7 +1675,7 @@ public class RawThread {
             RawObject callsite = heapManager.lookupObject(callsiteObjectId);
 
             // invoke callsite = push(lambdaImplObjectId)
-            // capture arguments
+            // capture arguments = move words in stack to heap(this lambda's fields space)
             int lambdaImplObjectId = heapManager.getValue(callsite, "lambdaImpl").get(0).getValue();
 
             RawObject rawObject = heapManager.lookupObject(lambdaImplObjectId);
@@ -1945,9 +1938,6 @@ public class RawThread {
             pc += 1;
             break;
           }
-          //        default:
-          //          throw new RuntimeException(String.format("unrecognized instruction %x",
-          // instruction));
       }
     }
   }
@@ -2111,15 +2101,18 @@ public class RawThread {
   }
 
   private void dump(String name, int pc, Instruction inst, RawThread thread) {
-    int stackSize = thread.frames.size() - 1;
-    System.out.printf(
-        "%s[%s] stack#=%d, pc = %2d, inst = %x(%s), frame=%s%n",
-        "  ".repeat(stackSize),
-        name,
-        stackSize,
-        pc,
-        inst.getOperandCode(),
-        inst.name(),
-        this.currentFrame());
+    boolean isShowing = true;
+    if (isShowing) {
+      int stackSize = thread.frames.size() - 1;
+      System.out.printf(
+          "%s[%s] stack#=%d, pc = %2d, inst = %x(%s), frame=%s%n",
+          "  ".repeat(stackSize),
+          name,
+          stackSize,
+          pc,
+          inst.getOperandCode(),
+          inst.name(),
+          this.currentFrame());
+    }
   }
 }
