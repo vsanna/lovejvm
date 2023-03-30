@@ -42,11 +42,18 @@ import java.util.List;
  //   then method name must be <init>
  */
 public class ConstantMethodHandleResolver implements Resolver<ConstantMethodHandle> {
+  private final RawSystem rawSystem;
+  private final InvokeHelper invokeHelper;
+
+  public ConstantMethodHandleResolver(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+    this.invokeHelper = new InvokeHelper(rawSystem);
+  }
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantMethodHandle entry) {
     // Fieldref or Methodrefがreferenceにsetされる
-    entry.getReference().resolve(constantPool);
+    entry.getReference().resolve(constantPool, rawSystem.resolverService());
 
     int methodTypeObjectId = -1;
     String name = null;
@@ -62,7 +69,7 @@ public class ConstantMethodHandleResolver implements Resolver<ConstantMethodHand
           var descriptor = fieldref.getNameAndType().getDescriptor().getLabel();
           name = fieldref.getNameAndType().getName().getLabel();
           classObjectId = fieldref.getClassObjectId();
-          methodTypeObjectId = InvokeHelper.INSTANCE.createMethodTypeObject(descriptor);
+          methodTypeObjectId = invokeHelper.createMethodTypeObject(descriptor);
           break;
         }
       case REF_invokeVirtual:
@@ -74,7 +81,7 @@ public class ConstantMethodHandleResolver implements Resolver<ConstantMethodHand
           var descriptor = methodref.getNameAndType().getDescriptor().getLabel();
           name = methodref.getNameAndType().getName().getLabel();
           classObjectId = methodref.getClassObjectId();
-          methodTypeObjectId = InvokeHelper.INSTANCE.createMethodTypeObject(descriptor);
+          methodTypeObjectId = invokeHelper.createMethodTypeObject(descriptor);
           break;
         }
       case REF_invokeInterface:
@@ -83,7 +90,7 @@ public class ConstantMethodHandleResolver implements Resolver<ConstantMethodHand
           var descriptor = interfaceMethodref.getNameAndType().getDescriptor().getLabel();
           name = interfaceMethodref.getNameAndType().getName().getLabel();
           classObjectId = interfaceMethodref.getClassObjectId();
-          methodTypeObjectId = InvokeHelper.INSTANCE.createMethodTypeObject(descriptor);
+          methodTypeObjectId = invokeHelper.createMethodTypeObject(descriptor);
           break;
         }
     }
@@ -91,25 +98,25 @@ public class ConstantMethodHandleResolver implements Resolver<ConstantMethodHand
     String METHOD_HANDLE_BINARY_NAME = "java/lang/invoke/MethodHandle";
 
     var methodHandleRawClass =
-        RawSystem.methodAreaManager.lookupOrLoadClass(METHOD_HANDLE_BINARY_NAME);
-    int objectId = RawSystem.heapManager.newObject(methodHandleRawClass);
-    RawObject methodHandleObject = RawSystem.heapManager.lookupObject(objectId);
+        rawSystem.methodAreaManager().lookupOrLoadClass(METHOD_HANDLE_BINARY_NAME);
+    int objectId = rawSystem.heapManager().newObject(methodHandleRawClass);
+    RawObject methodHandleObject = rawSystem.heapManager().lookupObject(objectId);
 
     // set typeField
     var typeField =
         methodHandleRawClass
             .findMemberFieldBy("type")
             .orElseThrow(() -> new RuntimeException("MethodHandle type field is not found"));
-    RawSystem.heapManager.setValue(
+    rawSystem.heapManager().setValue(
         methodHandleObject, typeField, List.of(Word.of(methodTypeObjectId)));
 
     // set name
-    var nameStringObjectId = RawSystem.stringPool.getOrCreate(name);
+    var nameStringObjectId = rawSystem.stringPool().getOrCreate(name);
     var nameField =
         methodHandleRawClass
             .findMemberFieldBy("name")
             .orElseThrow(() -> new RuntimeException("MethodHandle name field is not found"));
-    RawSystem.heapManager.setValue(
+    rawSystem.heapManager().setValue(
         methodHandleObject, nameField, List.of(Word.of(nameStringObjectId)));
 
     // set klass
@@ -117,7 +124,7 @@ public class ConstantMethodHandleResolver implements Resolver<ConstantMethodHand
         methodHandleRawClass
             .findMemberFieldBy("klass")
             .orElseThrow(() -> new RuntimeException("MethodHandle klass field is not found"));
-    RawSystem.heapManager.setValue(methodHandleObject, klassField, List.of(Word.of(classObjectId)));
+    rawSystem.heapManager().setValue(methodHandleObject, klassField, List.of(Word.of(classObjectId)));
 
     entry.setObjectId(objectId);
     entry.setResolved(true);

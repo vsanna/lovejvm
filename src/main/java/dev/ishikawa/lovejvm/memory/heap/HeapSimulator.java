@@ -10,8 +10,6 @@ class HeapSimulator implements Heap {
   private final byte[] memory = new byte[10 * 1000 * 1000]; // 10MB
   private int size = 0;
 
-  private HeapSimulator() {}
-
   @Override
   public void allocate(byte[] bytes) {
     System.arraycopy(bytes, 0, memory, size, bytes.length);
@@ -34,6 +32,4 @@ class HeapSimulator implements Heap {
   public int headAddress() {
     return size;
   }
-
-  public static final Heap INSTANCE = new HeapSimulator();
 }

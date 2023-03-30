@@ -11,7 +11,7 @@ class MethodAreaSimulator implements MethodArea {
   private final byte[] memory = new byte[10 * 1000 * 1000]; // 10MB
   private int size = 0;
 
-  private MethodAreaSimulator() {}
+  MethodAreaSimulator() {}
 
   @Override
   public byte lookupByte(int address) {
@@ -51,6 +51,4 @@ class MethodAreaSimulator implements MethodArea {
     Arrays.fill(zeroByteArray, (byte) 0);
     System.arraycopy(zeroByteArray, 0, memory, startingAddress, staticAreaByteSize);
   }
-
-  public static final MethodArea INSTANCE = new MethodAreaSimulator();
 }

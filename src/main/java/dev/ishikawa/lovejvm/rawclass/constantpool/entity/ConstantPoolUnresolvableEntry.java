@@ -2,6 +2,7 @@ package dev.ishikawa.lovejvm.rawclass.constantpool.entity;
 
 
 import dev.ishikawa.lovejvm.rawclass.constantpool.ConstantPool;
+import dev.ishikawa.lovejvm.rawclass.constantpool.resolver.ResolverService;
 
 /**
  * ConstantPoolUnresolvableEntry is a constant pool entry that doesn't need resolution steps. Such
@@ -19,7 +20,7 @@ public abstract class ConstantPoolUnresolvableEntry implements ConstantPoolEntry
   }
 
   @Override
-  public ConstantPoolEntry resolve(ConstantPool constantPool) {
+  public ConstantPoolEntry resolve(ConstantPool constantPool, ResolverService resolverService) {
     return this;
   }
 }

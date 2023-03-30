@@ -21,11 +21,12 @@ public class HeapManagerImpl implements HeapManager {
   private final Map<Integer, ObjectEntry> addressBasedObjectMap = new HashMap<>();
   private final ClassObjectHandler classObjectHandler = new ClassObjectHandler(this);
   private final ArrayClassObjectHandler arrayclassObjectHandler = new ArrayClassObjectHandler(this);
-  private final Heap heap = HeapSimulator.INSTANCE;
+  private final Heap heap = new HeapSimulator();
+  private final RawSystem rawSystem;
 
-  public static final HeapManager INSTANCE = new HeapManagerImpl();
-
-  private HeapManagerImpl() {}
+  public HeapManagerImpl(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
 
   /**
    * allocate method doesn't consider freeing the used mem or cg at this moment. it just moves ahead
@@ -98,15 +99,15 @@ public class HeapManagerImpl implements HeapManager {
   // REFACTOR: ここじゃない. RawClass or ClassLoader
   @Override
   public RawObject createClassObject(RawClass targetClass) {
-    RawClass classRawClass = RawSystem.methodAreaManager.lookupOrLoadClass("java/lang/Class");
-    int classObjectId = RawSystem.heapManager.newObject(classRawClass);
-    RawObject classObject = RawSystem.heapManager.lookupObject(classObjectId);
+    RawClass classRawClass = rawSystem.methodAreaManager().lookupOrLoadClass("java/lang/Class");
+    int classObjectId = rawSystem.heapManager().newObject(classRawClass);
+    RawObject classObject = rawSystem.heapManager().lookupObject(classObjectId);
 
     // set name field
     setValue(
         classObject,
         "name",
-        List.of(Word.of(RawSystem.stringPool.getOrCreate(targetClass.getBinaryName()))));
+        List.of(Word.of(rawSystem.stringPool().getOrCreate(targetClass.getBinaryName()))));
 
     // set classLoader field: null(cause this CL is bootstrap)
     setValue(classObject, "classLoader", Collections.emptyList());

@@ -20,9 +20,11 @@ import java.util.stream.Collectors;
  * or implementation initialize - entrypoint class loading
  */
 public class ClassInitializer {
-  public static final ClassInitializer INSTANCE = new ClassInitializer();
+  private final RawSystem rawSystem;
 
-  private ClassInitializer() {}
+  public ClassInitializer(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
 
   public void initialize(RawClass targetClass) {
     if (targetClass instanceof RawArrayClass) return;
@@ -55,7 +57,7 @@ public class ClassInitializer {
         .ifPresent(
             (clinit) -> {
               // TODO: stop all the other thread.
-              new RawThread("system:clinit:" + targetClass.getBinaryName()).init(clinit).run();
+              rawSystem.createThread("system:clinit:" + targetClass.getBinaryName()).init(clinit).run();
             });
 
     targetClass.setClassObjectStatus(ClassObjectStatus.INITIALIZED);
@@ -80,7 +82,7 @@ public class ClassInitializer {
 
   private void initializeFromConstantClass(ConstantClass constantClass) {
     String superClassBinaryName = constantClass.getName().getLabel();
-    RawClass rawSuperClass = RawSystem.methodAreaManager.lookupOrLoadClass(superClassBinaryName);
+    RawClass rawSuperClass = rawSystem.methodAreaManager().lookupOrLoadClass(superClassBinaryName);
     initialize(rawSuperClass);
   }
 }

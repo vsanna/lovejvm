@@ -6,10 +6,15 @@ import dev.ishikawa.lovejvm.rawclass.constantpool.entity.ConstantPackage;
 import dev.ishikawa.lovejvm.vm.RawSystem;
 
 public class ConstantPackageResolver implements Resolver<ConstantPackage> {
+  private final RawSystem rawSystem;
+
+  public ConstantPackageResolver(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantPackage entry) {
-    entry.setStringObjectId(RawSystem.stringPool.getOrCreate(entry.getName().getLabel()));
+    entry.setStringObjectId(rawSystem.stringPool().getOrCreate(entry.getName().getLabel()));
     entry.setResolved(true);
   }
 }

@@ -7,7 +7,7 @@ import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 
 public class FloatNative {
-  public static List<Word> floatToRawIntBits(Frame currentFrame) {
+  public List<Word> floatToRawIntBits(Frame currentFrame) {
     var v1 = currentFrame.getOperandStack().pop().getValue();
     int result = Float.floatToRawIntBits(ByteUtil.convertToFloat(v1));
     return List.of(Word.of(result));

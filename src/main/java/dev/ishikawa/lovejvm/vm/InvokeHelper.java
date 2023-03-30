@@ -11,35 +11,31 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class InvokeHelper {
-  public static final InvokeHelper INSTANCE = new InvokeHelper();
+  private final RawSystem rawSystem;
 
-  private final MethodTypeFactory METHOD_TYPE_HANDLER = new MethodTypeFactory();
+  private final MethodTypeFactory methodTypeFactory;
+
+  public InvokeHelper(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+    this.methodTypeFactory = new MethodTypeFactory(rawSystem, this);
+  }
 
   public int createMethodTypeObject(String descriptor) {
-    return METHOD_TYPE_HANDLER.createMethodTypeObject(descriptor);
-  }
-
-  private final MethodHandleFactory METHOD_HANDLE_FACTORY = new MethodHandleFactory();
-
-  public int createMethodHandleObject() {
-    return METHOD_HANDLE_FACTORY.createMethodHandle();
-  }
-
-  static class MethodHandleFactory {
-    private static final String METHOD_HANDLE_BINARY_NAME = "java/lang/invoke/MethodHandle";
-
-    private final InvokeHelper invokeHelper = InvokeHelper.INSTANCE;
-
-    public int createMethodHandle() {
-      return 0;
-    }
+    return methodTypeFactory.createMethodTypeObject(descriptor);
   }
 
   // These logics should be in MethodType in SDK
   static class MethodTypeFactory {
     private static final String METHOD_TYPE_BINARY_NAME = "java/lang/invoke/MethodType";
+    private final RawSystem rawSystem;
+    private final InvokeHelper invokeHelper;
+    private final RawClass methodTypeRawClass;
 
-    private RawClass methodTypeRawClass;
+    public MethodTypeFactory(RawSystem rawSystem, InvokeHelper invokeHelper) {
+      this.rawSystem = rawSystem;
+      this.invokeHelper = invokeHelper;
+      this.methodTypeRawClass = rawSystem.methodAreaManager().lookupOrLoadClass(METHOD_TYPE_BINARY_NAME);
+    }
 
     public int createMethodTypeObject(String descriptor) {
       return createMethodTypeObject(
@@ -47,49 +43,46 @@ public class InvokeHelper {
     }
 
     private int getRTypeClassObjectId(String descriptor) {
-      String rTypeBinaryName = InvokeHelper.INSTANCE.parseRType(descriptor);
-      RawClass rawClass = InvokeHelper.INSTANCE.mapType(rTypeBinaryName);
+      String rTypeBinaryName = invokeHelper.parseRType(descriptor);
+      RawClass rawClass = invokeHelper.mapType(rTypeBinaryName);
       return rawClass.getClassObjectId();
     }
 
     private List<Integer> getPTypeClassObjectIds(String descriptor) {
-      List<String> pTypeBinaryNames = InvokeHelper.INSTANCE.parsePTypes(descriptor);
+      List<String> pTypeBinaryNames = invokeHelper.parsePTypes(descriptor);
       return pTypeBinaryNames.stream()
-          .map(it -> InvokeHelper.INSTANCE.mapType(it).getClassObjectId())
+          .map(it -> invokeHelper.mapType(it).getClassObjectId())
           .collect(Collectors.toList());
     }
 
     private int createMethodTypeObject(
         String descriptor, int rTypeClassObjectId, List<Integer> pTypeClassObjectIds) {
-      if (methodTypeRawClass == null) {
-        methodTypeRawClass = RawSystem.methodAreaManager.lookupOrLoadClass(METHOD_TYPE_BINARY_NAME);
-      }
 
-      int objectId = RawSystem.heapManager.newObject(methodTypeRawClass);
-      RawObject methodTypeObject = RawSystem.heapManager.lookupObject(objectId);
+      int objectId = rawSystem.heapManager().newObject(methodTypeRawClass);
+      RawObject methodTypeObject = rawSystem.heapManager().lookupObject(objectId);
 
       // set descriptor
-      RawSystem.heapManager.setValue(
+      rawSystem.heapManager().setValue(
           methodTypeObject,
           "descriptor",
-          List.of(Word.of(RawSystem.stringPool.getOrCreate(descriptor))));
+          List.of(Word.of(rawSystem.stringPool().getOrCreate(descriptor))));
 
       // set rType
-      RawSystem.heapManager.setValue(
+      rawSystem.heapManager().setValue(
           methodTypeObject, "rtype", List.of(Word.of(rTypeClassObjectId)));
 
       // set pTypes
       RawClass classArrayClass =
-          RawSystem.methodAreaManager.lookupOrLoadClass("[Ljava/lang/Class;");
+          rawSystem.methodAreaManager().lookupOrLoadClass("[Ljava/lang/Class;");
       int classArrayRawObjectId =
-          RawSystem.heapManager.newArrayObject(
+          rawSystem.heapManager().newArrayObject(
               ((RawArrayClass) classArrayClass), pTypeClassObjectIds.size());
-      RawObject classArrayRawObject = RawSystem.heapManager.lookupObject(classArrayRawObjectId);
+      RawObject classArrayRawObject = rawSystem.heapManager().lookupObject(classArrayRawObjectId);
       for (int i = 0; i < pTypeClassObjectIds.size(); i++) {
-        RawSystem.heapManager.setElement(
+        rawSystem.heapManager().setElement(
             classArrayRawObject, i, List.of(Word.of(pTypeClassObjectIds.get(i))));
       }
-      RawSystem.heapManager.setValue(
+      rawSystem.heapManager().setValue(
           methodTypeObject, "ptypes", List.of(Word.of(classArrayRawObjectId)));
 
       return objectId;
@@ -168,7 +161,7 @@ public class InvokeHelper {
             .map(JvmType::getBoxTypeBinaryName)
             .orElse(binaryName);
 
-    return RawSystem.methodAreaManager.lookupOrLoadClass(binaryNameToLookup);
+    return rawSystem.methodAreaManager().lookupOrLoadClass(binaryNameToLookup);
   }
 
   /**

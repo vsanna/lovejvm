@@ -31,6 +31,11 @@ import java.util.Optional;
  *   - interface I でそれが定義されているとするとき、そこに他に該当するmaximally-specific superinterface methodが存在しない
  * */
 public class ConstantMethodrefResolver implements Resolver<ConstantMethodref> {
+  private final RawSystem rawSystem;
+
+  public ConstantMethodrefResolver(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantMethodref entry) {
@@ -40,18 +45,18 @@ public class ConstantMethodrefResolver implements Resolver<ConstantMethodref> {
 
     // TODO: check if this class is surely not Interface
 
-    RawClass targetClass = RawSystem.methodAreaManager.lookupOrLoadClass(binaryName);
+    RawClass targetClass = rawSystem.methodAreaManager().lookupOrLoadClass(binaryName);
     int classObjectId = targetClass.getClassObjectId();
     entry.setClassObjectId(classObjectId);
 
     var rawMethodOptional =
-        RawSystem.methodAreaManager
+        rawSystem.methodAreaManager()
             .lookupAllMethodRecursively(binaryName, methodName, methodDescriptor)
             .or(
                 () -> {
                   var result =
                       new ArrayList<>(
-                          RawSystem.methodAreaManager.lookupMaximallySpecificSuperinterfaceMethods(
+                          rawSystem.methodAreaManager().lookupMaximallySpecificSuperinterfaceMethods(
                               binaryName, methodName, methodDescriptor));
                   if (result.size() == 1) {
                     return result.stream().findFirst();
@@ -61,7 +66,7 @@ public class ConstantMethodrefResolver implements Resolver<ConstantMethodref> {
                 })
             .or(
                 () ->
-                    RawSystem.methodAreaManager
+                    rawSystem.methodAreaManager()
                         .lookupMaximallySpecificSuperinterfaceMethods(
                             binaryName, methodName, methodDescriptor)
                         .stream()

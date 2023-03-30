@@ -16,7 +16,14 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
 public class LambdaFactoryNative {
-  private static final AtomicInteger atomicInteger = new AtomicInteger(0);
+  private final RawSystem rawSystem;
+  private final AtomicInteger atomicInteger = new AtomicInteger(0);
+  private final InvokeHelper invokeHelper;
+
+  public LambdaFactoryNative(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+    this.invokeHelper = new InvokeHelper(rawSystem);
+  }
 
   /*
       MethodType invokedMethodType      // capture情報
@@ -24,7 +31,7 @@ public class LambdaFactoryNative {
       MethodHandle implMethod,          // ref to actual logic to use.           ex: REF_invokeStatic dev/ishikawa/sample/LambdaSample2.lambda$makerun$0:(I)V
       MethodType instantiatedMethodType // descriptor of this functional method  ex: ()V
   * */
-  public static List<Word> createLambdaImplObject(Frame currentFrame) {
+  public List<Word> createLambdaImplObject(Frame currentFrame) {
     int instantiatedMethodTypeObjectId = currentFrame.getOperandStack().pop().getValue();
     int implMethodObjectId = currentFrame.getOperandStack().pop().getValue();
     int invokedNameObjectId = currentFrame.getOperandStack().pop().getValue();
@@ -32,17 +39,17 @@ public class LambdaFactoryNative {
 
     // このinner classが満たすべきI/F
     // 1. name
-    String invokedName = RawSystem.stringPool.getLabelBy(invokedNameObjectId).orElseThrow();
+    String invokedName = rawSystem.stringPool().getLabelBy(invokedNameObjectId).orElseThrow();
     // 2. descriptor
-    RawObject typeForCaller = RawSystem.heapManager.lookupObject(instantiatedMethodTypeObjectId);
+    RawObject typeForCaller = rawSystem.heapManager().lookupObject(instantiatedMethodTypeObjectId);
     String descriptorForCaller =
-        RawSystem.stringPool
+        rawSystem.stringPool()
             .getLabelBy(
-                RawSystem.heapManager.getValue(typeForCaller, "descriptor").get(0).getValue())
+                rawSystem.heapManager().getValue(typeForCaller, "descriptor").get(0).getValue())
             .orElseThrow();
     // reference -> Object, primitive -> primitive
     var modifiedPtypesDescForCaller =
-        InvokeHelper.INSTANCE.parsePTypes(descriptorForCaller).stream()
+        invokeHelper.parsePTypes(descriptorForCaller).stream()
             .map(
                 it -> {
                   if (JvmType.primaryTypes.contains(JvmType.findByJvmSignature(it))) {
@@ -52,7 +59,7 @@ public class LambdaFactoryNative {
                   }
                 })
             .collect(Collectors.toList());
-    String modifiedRtypeDescriptorForCaller = InvokeHelper.INSTANCE.parseRType(descriptorForCaller);
+    String modifiedRtypeDescriptorForCaller = invokeHelper.parseRType(descriptorForCaller);
     if (!JvmType.primaryTypes.contains(
         JvmType.findByJvmSignature(modifiedRtypeDescriptorForCaller))) {
       modifiedRtypeDescriptorForCaller = "Ljava/lang/Object;";
@@ -63,47 +70,56 @@ public class LambdaFactoryNative {
 
     // このinner classが実際に呼び出す処理
     // 1. name
-    RawObject methodHandleRawObject = RawSystem.heapManager.lookupObject(implMethodObjectId);
+    RawObject methodHandleRawObject = rawSystem.heapManager().lookupObject(implMethodObjectId);
     String methodNameForImpl =
-        RawSystem.stringPool
+        rawSystem.stringPool()
             .getLabelBy(
-                RawSystem.heapManager.getValue(methodHandleRawObject, "name").get(0).getValue())
+                rawSystem.heapManager().getValue(methodHandleRawObject, "name").get(0).getValue())
             .orElseThrow();
     // 2. outer class
-    List<Word> klassRawValue = RawSystem.heapManager.getValue(methodHandleRawObject, "klass");
+    List<Word> klassRawValue = rawSystem.heapManager().getValue(methodHandleRawObject, "klass");
     List<Word> outerClassNameRawValue =
-        RawSystem.heapManager.getValue(
-            RawSystem.heapManager.lookupObject(klassRawValue.get(0).getValue()), "name");
+        rawSystem.heapManager().getValue(
+            rawSystem.heapManager().lookupObject(klassRawValue.get(0).getValue()), "name");
     String outerClassBinaryName =
-        RawSystem.stringPool.getLabelBy(outerClassNameRawValue.get(0).getValue()).orElseThrow();
+        rawSystem.stringPool().getLabelBy(outerClassNameRawValue.get(0).getValue()).orElseThrow();
     // 3. descriptor
     RawObject typeForImpl =
-        RawSystem.heapManager.lookupObject(
-            RawSystem.heapManager.getValue(methodHandleRawObject, "type").get(0).getValue());
+        rawSystem.heapManager().lookupObject(
+            rawSystem.heapManager().getValue(methodHandleRawObject, "type").get(0).getValue());
 
     String descriptorForImpl =
-        RawSystem.stringPool
-            .getLabelBy(RawSystem.heapManager.getValue(typeForImpl, "descriptor").get(0).getValue())
+        rawSystem.stringPool()
+            .getLabelBy(rawSystem.heapManager().getValue(typeForImpl, "descriptor").get(0).getValue())
             .orElseThrow();
 
-    String rtypeDescForImpl = InvokeHelper.INSTANCE.parseRType(descriptorForImpl);
-    List<String> ptypeDescForImpl = InvokeHelper.INSTANCE.parsePTypes(descriptorForImpl);
+    String rtypeDescForImpl = invokeHelper.parseRType(descriptorForImpl);
+    List<String> ptypeDescForImpl = invokeHelper.parsePTypes(descriptorForImpl);
 
     // captureのためのtype
-    RawObject typeForCapture = RawSystem.heapManager.lookupObject(invokedMethodTypeObjectId);
+    RawObject typeForCapture = rawSystem.heapManager().lookupObject(invokedMethodTypeObjectId);
     String descriptorForCapture =
-        RawSystem.stringPool
+        rawSystem.stringPool()
             .getLabelBy(
-                RawSystem.heapManager.getValue(typeForCapture, "descriptor").get(0).getValue())
+                rawSystem.heapManager().getValue(typeForCapture, "descriptor").get(0).getValue())
             .orElseThrow();
-    List<String> ptypesDescForCapture = InvokeHelper.INSTANCE.parsePTypes(descriptorForCapture);
+    List<String> ptypesDescForCapture = invokeHelper.parsePTypes(descriptorForCapture);
 
     ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
     String innerClassName =
         String.format("%s$Lambda$%d", outerClassBinaryName, atomicInteger.incrementAndGet());
+
+
     // define class
     cw.visit(
-        Opcodes.V1_8, Opcodes.ACC_PUBLIC, innerClassName, null, "java/lang/Object", new String[0]);
+        Opcodes.V1_8,
+        Opcodes.ACC_PUBLIC,
+        innerClassName,
+        null,
+        "java/lang/Object",
+        new String[]{getInterfaceFromDescriptorForCaller(descriptorForCaller)}
+    );
+
 
     // define fields
     // To store captured variables in fields
@@ -179,15 +195,33 @@ public class LambdaFactoryNative {
     }
     methodVisitor.visitEnd();
 
-    // cwからinner classを登録
-    // cwをcache
-    // inner classからnew
+    // TODO: cwをcache
 
     cw.visitEnd();
     byte[] classbytes = cw.toByteArray();
 
-    RawClass rawClass = RawSystem.bootstrapLoader.loadFromBytes(classbytes);
-    int objectId = RawSystem.heapManager.newObject(rawClass);
+    RawClass rawClass = rawSystem.bootstrapLoader().loadFromBytes(classbytes);
+    int objectId = rawSystem.heapManager().newObject(rawClass);
     return List.of(Word.of(objectId));
+  }
+
+  // Get Interface's name from descriptorForCaller(ex: (Ljava/lang/Object;)Ljava/lang/Object; -> Function
+  private static String getInterfaceFromDescriptorForCaller(String descriptorForCaller) {
+    switch(descriptorForCaller) {
+      case "()V":
+        return "java/lang/Runnable";
+      case "(Ljava/lang/Object;)V":
+        return "java/util/function/Consumer";
+      case "()Ljava/lang/Object;":
+        return "java/util/function/Supplier";
+      case "(Ljava/lang/Object;)Ljava/lang/Object;":
+        return "java/util/function/Function";
+      case "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;":
+        return "java/util/function/BiFunction";
+      case "(Ljava/lang/Object;Ljava/lang/Object;)V":
+        return "java/util/function/BiConsumer";
+      default:
+        throw new UnsupportedOperationException(String.format("given signature of this lambda is not supported. %s", descriptorForCaller));
+    }
   }
 }

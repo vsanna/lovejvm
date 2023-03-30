@@ -41,9 +41,11 @@ import java.util.List;
  * - https://stackoverflow.com/questions/32819927/is-the-class-object-a-created-when-the-jvm-loads-class-a-or-when-i-call-a-class
  */
 public class BootstrapLoaderImpl implements BootstrapLoader {
-  public static final BootstrapLoaderImpl INSTANCE = new BootstrapLoaderImpl();
+  private final RawSystem rawSystem;
 
-  private BootstrapLoaderImpl() {}
+  public BootstrapLoaderImpl(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
 
   /**
    * load a class from binaryName(ex: java/lang/String).
@@ -67,7 +69,7 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
     var targetClass = new RawClassParser(targetClassFileBytes, null).parse();
 
     // check if the class has been already loaded or not
-    return RawSystem.methodAreaManager
+    return rawSystem.methodAreaManager()
         .lookupClass(targetClass.getBinaryName())
         .orElseGet(
             () -> {
@@ -75,7 +77,7 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
               allocateClassData(targetClass, targetClassFileBytes);
 
               // make raw class object in advance.
-              RawObject classObject = RawSystem.heapManager.createClassObject(targetClass);
+              RawObject classObject = rawSystem.heapManager().createClassObject(targetClass);
               targetClass.setClassObjectId(classObject.getObjectId());
 
               return targetClass;
@@ -83,7 +85,7 @@ public class BootstrapLoaderImpl implements BootstrapLoader {
   }
 
   private void allocateClassData(RawClass targetClass, byte[] classFileBytes) {
-    RawSystem.methodAreaManager.registerClass(targetClass, classFileBytes);
+    rawSystem.methodAreaManager().registerClass(targetClass, classFileBytes);
   }
 
   private Path getPathFrom(String binaryName) {

@@ -36,6 +36,13 @@ import java.util.List;
  * ref: https://www.baeldung.com/java-invoke-dynamic
  * */
 public class ConstantInvokeDynamicResolver implements Resolver<ConstantInvokeDynamic> {
+  private final RawSystem rawSystem;
+  private final InvokeHelper invokeHelper;
+
+  public ConstantInvokeDynamicResolver(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+    this.invokeHelper = new InvokeHelper(rawSystem);
+  }
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantInvokeDynamic entry) {
@@ -54,7 +61,7 @@ public class ConstantInvokeDynamicResolver implements Resolver<ConstantInvokeDyn
 
     // 1-1. bootstrap method handle is resolved
     ConstantMethodHandle bootstrapMethodHandle = bootstrapMethod.getBootstrapMethodRef();
-    bootstrapMethodHandle.resolve(constantPool); // MethodHandle = Methodrefをwrapしたもの、を取得
+    bootstrapMethodHandle.resolve(constantPool, rawSystem.resolverService()); // MethodHandle = Methodrefをwrapしたもの、を取得
 
     // 1-2. (this is for CONSTANT_ConstDynamic. skipped)
 
@@ -66,7 +73,7 @@ public class ConstantInvokeDynamicResolver implements Resolver<ConstantInvokeDyn
     // NOTE: このdescriptorはlambdaのdescriptor
     ConstantNameAndType descriptor = entry.getNameAndType();
     int methodTypeObjectId =
-        InvokeHelper.INSTANCE.createMethodTypeObject(descriptor.getDescriptor().getLabel());
+        invokeHelper.createMethodTypeObject(descriptor.getDescriptor().getLabel());
     entry.setMethodTypeObjectId(methodTypeObjectId);
 
     // 1-4. R gives zero or more static arguments,
@@ -96,14 +103,14 @@ public class ConstantInvokeDynamicResolver implements Resolver<ConstantInvokeDyn
     // Lookup(not to be used now)
     arguments.add(Word.of(RawObject.NULL_ID));
     // String(methodName)
-    arguments.add(Word.of(RawSystem.stringPool.getOrCreate(descriptor.getName().getLabel())));
+    arguments.add(Word.of(rawSystem.stringPool().getOrCreate(descriptor.getName().getLabel())));
     // MethodType(methodDescriptor)
     arguments.add(Word.of(methodTypeObjectId));
 
     bootstrapArguments.forEach(
         it -> {
           if (it instanceof ConstantString) {
-            it.resolve(constantPool);
+            it.resolve(constantPool, rawSystem.resolverService());
             arguments.addAll(((ConstantPoolLoadableEntry) it).loadableValue());
           }
 
@@ -138,13 +145,13 @@ public class ConstantInvokeDynamicResolver implements Resolver<ConstantInvokeDyn
             entry.setMethodRef((ConstantMethodref) ((ConstantMethodHandle) it).getReference());
           }
 
-          it.resolve(constantPool);
+          it.resolve(constantPool, rawSystem.resolverService());
           arguments.addAll(((ConstantPoolLoadableEntry) it).loadableValue());
         });
 
     // Second, the arguments are packaged into an array and the bootstrap method is invoked.
     // ここまででBSMのmethodrefとargumentsが手に入った. それらを用いて、まずBSMを実行する(invokeWithArguments相当)
-    var bsmThread = new RawThread("BSM");
+    var bsmThread = rawSystem.createThread("BSM");
     bsmThread.invoke(
         ((ConstantMethodref) bootstrapMethodHandle.getReference()).getRawMethod(), arguments);
     // metafactory()がcallsiteを返す

@@ -7,8 +7,14 @@ import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 
 public class IntegerNative {
-  public static List<Word> toString(Frame currentFrame) {
+  private final RawSystem rawSystem;
+
+  public IntegerNative(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
+
+  public List<Word> toString(Frame currentFrame) {
     var intValue = currentFrame.getOperandStack().pop().getValue();
-    return List.of(Word.of(RawSystem.stringPool.getOrCreate(String.valueOf(intValue))));
+    return List.of(Word.of(rawSystem.stringPool().getOrCreate(String.valueOf(intValue))));
   }
 }

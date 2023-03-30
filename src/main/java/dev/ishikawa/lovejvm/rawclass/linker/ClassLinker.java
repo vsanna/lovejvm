@@ -26,14 +26,16 @@ import dev.ishikawa.lovejvm.vm.RawSystem;
  * @see dev.ishikawa.lovejvm.rawclass.constantpool.resolver.Resolver
  */
 public class ClassLinker {
-  public static final ClassLinker INSTANCE = new ClassLinker();
+  private final RawSystem rawSystem;
 
-  private ClassLinker() {}
+  public ClassLinker(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
 
   public void link(RawClass targetClass) {
     if (targetClass instanceof RawArrayClass) return;
 
-    if (RawSystem.methodAreaManager.lookupClass(targetClass.getBinaryName()).isEmpty()) {
+    if (rawSystem.methodAreaManager().lookupClass(targetClass.getBinaryName()).isEmpty()) {
       throw new RuntimeException(
           String.format(
               "This class is not loaded yet. classname: %s", targetClass.getBinaryName()));
@@ -55,7 +57,7 @@ public class ClassLinker {
    * set default values to each field according to each field's type ex: int -> 0, boolean -> false
    */
   private void prepare(RawClass targetClass) {
-    RawSystem.methodAreaManager.prepareStaticArea(targetClass);
+    rawSystem.methodAreaManager().prepareStaticArea(targetClass);
 
     // TODO: make method table, object templates
   }

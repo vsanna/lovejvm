@@ -21,9 +21,12 @@ import java.util.stream.Collectors;
 public class MethodAreaManagerImpl implements MethodAreaManager {
   // Map<String binaryName(ex: java/lang/String) to ClassEntry>
   private final Map<String, ClassEntry> classMap = new HashMap<>();
-  private final MethodArea methodArea = MethodAreaSimulator.INSTANCE;
-
-  public MethodAreaManagerImpl() {}
+  private final MethodArea methodArea = new MethodAreaSimulator();
+  private final RawSystem rawSystem;
+  
+  public MethodAreaManagerImpl(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;  
+  }
 
   @Override
   public byte lookupByte(int address) {
@@ -145,7 +148,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
     return rawClass
         .getMethods()
         .findAllBy(targetMethod.getName().getLabel(), targetMethod.getDescriptor().getLabel())
-        .or(() -> rawClass.getRawSuperClass().flatMap(it -> selectMethodHelper(it, targetMethod)));
+        .or(() -> rawClass.getRawSuperClass(rawSystem).flatMap(it -> selectMethodHelper(it, targetMethod)));
   }
 
   /**
@@ -197,7 +200,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   @Override
   public Optional<RawMethod> lookupAllMethodRecursively(
       String binaryName, String methodName, String methodDescriptor) {
-    RawClass targetClass = RawSystem.methodAreaManager.lookupOrLoadClass(binaryName);
+    RawClass targetClass = rawSystem.methodAreaManager().lookupOrLoadClass(binaryName);
 
     return targetClass
         .findPolymorphicMethod(methodName, methodDescriptor)
@@ -211,7 +214,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
         .or(
             () -> {
               return targetClass
-                  .getRawSuperClass()
+                  .getRawSuperClass(rawSystem)
                   .flatMap(
                       superClass ->
                           lookupAllMethodRecursively(
@@ -226,7 +229,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
   @Override
   public Optional<RawField> lookupAllInterfaceFieldRecursively(
       String binaryName, String fieldName) {
-    RawClass targetClass = RawSystem.methodAreaManager.lookupOrLoadClass(binaryName);
+    RawClass targetClass = rawSystem.methodAreaManager().lookupOrLoadClass(binaryName);
 
     return targetClass
         .findAllFieldBy(fieldName)
@@ -251,7 +254,7 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
         .or(
             () ->
                 rawClass
-                    .getRawSuperClass()
+                    .getRawSuperClass(rawSystem)
                     .flatMap(it -> lookupAllFieldRecursively(it.getBinaryName(), fieldName)));
   }
 
@@ -289,9 +292,14 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
         .orElseGet(
             () -> {
               if (binaryName.startsWith("[")) {
-                return RawArrayClass.lookupOrCreateRawArrayClass(binaryName);
+                return RawArrayClass.lookupOrCreateRawArrayClass(binaryName, rawSystem);
               } else {
-                return RawSystem.bootstrapLoader.load(binaryName);
+                try {
+                  return rawSystem.bootstrapLoader().load(binaryName);
+                } catch (Exception ex) {
+                  int a = 1;
+                  throw ex;
+                }
               }
             });
   }
@@ -338,8 +346,6 @@ public class MethodAreaManagerImpl implements MethodAreaManager {
         .map(it -> it.address)
         .orElseThrow(() -> new RuntimeException("Non existing class is tried to load"));
   }
-
-  public static final MethodAreaManager INSTANCE = new MethodAreaManagerImpl();
 
   private static class ClassEntry {
     private final int address;

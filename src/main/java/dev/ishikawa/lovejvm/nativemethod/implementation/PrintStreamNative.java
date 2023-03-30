@@ -8,12 +8,19 @@ import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 
 public class PrintStreamNative {
-  public static List<Word> write(Frame currentFrame) {
+  private final RawSystem rawSystem;
+
+  public PrintStreamNative(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
+
+  public List<Word> write(Frame currentFrame) {
     var stringObjectId = currentFrame.getOperandStack().pop().getValue();
     String label =
-        RawSystem.stringPool
+        rawSystem.stringPool()
             .getLabelBy(stringObjectId)
-            .orElseGet(() -> StringPoolUtil.getLabelByObjectId(stringObjectId));
+            .orElseGet(() -> StringPoolUtil.getLabelByObjectId(stringObjectId, rawSystem));
+
     System.out.println(label);
     return List.of();
   }

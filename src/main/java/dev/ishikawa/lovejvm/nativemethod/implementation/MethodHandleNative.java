@@ -6,7 +6,7 @@ import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 
 public class MethodHandleNative {
-  public static List<Word> invoke(Frame currentFrame) {
+  public List<Word> invoke(Frame currentFrame) {
     return List.of();
   }
 }

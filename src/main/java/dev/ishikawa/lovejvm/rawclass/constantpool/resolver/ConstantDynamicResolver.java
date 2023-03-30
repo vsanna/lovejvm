@@ -17,6 +17,11 @@ import java.util.stream.Collectors;
 
 /** どういうときに使われるのかまだ良くわかっていない */
 public class ConstantDynamicResolver implements Resolver<ConstantDynamic> {
+  private final RawSystem rawSystem;
+
+  public ConstantDynamicResolver(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
 
   @Override
   public void resolve(ConstantPool constantPool, ConstantDynamic entry) {
@@ -37,15 +42,15 @@ public class ConstantDynamicResolver implements Resolver<ConstantDynamic> {
         bootstrapMethod.getBootstrapArguments().stream()
             .map(
                 it -> {
-                  it.resolve(constantPool);
+                  it.resolve(constantPool, rawSystem.resolverService());
                   return ((ConstantPoolLoadableEntry) it).loadableValue();
                 })
             .collect(Collectors.toList());
 
     ConstantMethodHandle bootstrapMethodRef = bootstrapMethod.getBootstrapMethodRef();
-    bootstrapMethodRef.resolve(constantPool);
+    bootstrapMethodRef.resolve(constantPool, rawSystem.resolverService());
 
-    RawObject methodRef = RawSystem.heapManager.lookupObject(bootstrapMethodRef.getObjectId());
+    RawObject methodRef = rawSystem.heapManager().lookupObject(bootstrapMethodRef.getObjectId());
 
     // 3. execute the bootstrap method
     // java.lang.invoke.MethodRefからRawMethodを作る

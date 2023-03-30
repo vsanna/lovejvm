@@ -102,12 +102,11 @@ class LambdaSample3 {
         };
     }
 
-    static public BiConsumer<Integer, Integer> makeBiConsumer() {
-        return (Integer p1, Integer p2) -> {
+    static public <P> BiConsumer<P, P> makeBiConsumer() {
+        return (P p1, P p2) -> {
             System.out.println("biconsumer");
             System.out.println(p1);
             System.out.println(p2);
-            System.out.println(p1 + p2);
         };
     }
 }

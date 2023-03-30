@@ -9,16 +9,22 @@ import dev.ishikawa.lovejvm.vm.Word;
 import java.util.List;
 
 public class StringNative {
-  public static List<Word> intern(Frame currentFrame) {
+  private final RawSystem rawSystem;
+
+  public StringNative(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
+
+  public List<Word> intern(Frame currentFrame) {
     int stringObjectId = currentFrame.getOperandStack().pop().getValue();
-    return RawSystem.stringPool
+    return rawSystem.stringPool()
         .getLabelBy(stringObjectId)
         .map((_label) -> List.of(Word.of(stringObjectId)))
         .orElseGet(
             () -> {
-              RawObject stringRawObject = RawSystem.heapManager.lookupObject(stringObjectId);
-              String label = StringPoolUtil.getLabelByObjectId(stringObjectId);
-              return List.of(Word.of(RawSystem.stringPool.register(label, stringRawObject)));
+              RawObject stringRawObject = rawSystem.heapManager().lookupObject(stringObjectId);
+              String label = StringPoolUtil.getLabelByObjectId(stringObjectId, rawSystem);
+              return List.of(Word.of(rawSystem.stringPool().register(label, stringRawObject)));
             });
   }
 }

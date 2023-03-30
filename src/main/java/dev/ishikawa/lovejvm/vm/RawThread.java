@@ -1,8 +1,6 @@
 package dev.ishikawa.lovejvm.vm;
 
-import static dev.ishikawa.lovejvm.vm.RawSystem.heapManager;
-import static dev.ishikawa.lovejvm.vm.RawSystem.methodAreaManager;
-
+import dev.ishikawa.lovejvm.LoveJVM;
 import dev.ishikawa.lovejvm.rawclass.RawClass;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrCode;
 import dev.ishikawa.lovejvm.rawclass.attr.AttrName;
@@ -35,9 +33,11 @@ public class RawThread {
   // REFACTOR: have a stack in thread level.
   private final Deque<Frame> frames = new ArrayDeque<>();
   private int pc = 0;
+  private LoveJVM jvm;
 
-  public RawThread(String name) {
+  public RawThread(String name, LoveJVM jvm) {
     this.name = name;
+    this.jvm = jvm;
   }
 
   /**
@@ -74,7 +74,8 @@ public class RawThread {
    * @return true when stackUp actually adds a new frame
    */
   private void stackUp(RawMethod nextMethod, int pcToReturn) {
-    pc = methodAreaManager.lookupCodeSectionAddress(nextMethod);
+    var rawSystem = jvm.getRawSystem();
+    pc = rawSystem.methodAreaManager().lookupCodeSectionAddress(nextMethod);
 
     if (nextMethod.isAbstract()) {
       throw new RuntimeException(
@@ -83,7 +84,7 @@ public class RawThread {
 
     if (nextMethod.isNative()) {
       // note: arguments are popped in this handle method
-      List<Word> result = RawSystem.nativeMethodHandler.handle(nextMethod, currentFrame());
+      List<Word> result = rawSystem.nativeMethodHandler().handle(nextMethod, currentFrame());
       pushFromTail(result, currentFrame().getOperandStack());
       pc = pcToReturn;
       return;
@@ -148,6 +149,11 @@ public class RawThread {
   }
 
   public void run() {
+    var rawSystem = jvm.getRawSystem();
+    var methodAreaManager = rawSystem.methodAreaManager();
+    var heapManager = rawSystem.heapManager();
+    var resolverService = rawSystem.resolverService();
+
     while (true) {
       var instruction = Instruction.findBy(methodAreaManager.lookupByte(pc));
       dump(name, pc, instruction, this);
@@ -278,7 +284,7 @@ public class RawThread {
 
             ConstantPoolLoadableEntry entry =
                 (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
-            entry.resolve(constantPool);
+            entry.resolve(constantPool, resolverService);
 
             Word word = entry.loadableValue().get(0);
             operandStack.push(word);
@@ -298,7 +304,7 @@ public class RawThread {
 
             ConstantPoolLoadableEntry entry =
                 (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
-            entry.resolve(constantPool);
+            entry.resolve(constantPool, resolverService);
 
             Word word = entry.loadableValue().get(0);
             operandStack.push(word);
@@ -315,7 +321,7 @@ public class RawThread {
 
             ConstantPoolLoadableEntry entry =
                 (ConstantPoolLoadableEntry) constantPool.findByIndex(index);
-            entry.resolve(constantPool);
+            entry.resolve(constantPool, resolverService);
 
             List<Word> words = entry.loadableValue();
             pushFromTail(words, operandStack);
@@ -1534,11 +1540,11 @@ public class RawThread {
           {
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
-            fieldRef.resolve(constantPool);
+            fieldRef.resolve(constantPool, resolverService);
 
             RawClass rawClass = methodAreaManager.lookupClass(fieldRef.getConstantClassRef());
-            RawSystem.classLinker.link(rawClass);
-            RawSystem.classInitializer.initialize(rawClass);
+            rawSystem.classLinker().link(rawClass);
+            rawSystem.classInitializer().initialize(rawClass);
 
             RawField rawField = fieldRef.getRawField();
 
@@ -1552,11 +1558,11 @@ public class RawThread {
           {
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
-            fieldRef.resolve(constantPool);
+            fieldRef.resolve(constantPool, resolverService);
 
             RawClass rawClass = methodAreaManager.lookupClass(fieldRef.getConstantClassRef());
-            RawSystem.classLinker.link(rawClass);
-            RawSystem.classInitializer.initialize(rawClass);
+            rawSystem.classLinker().link(rawClass);
+            rawSystem.classInitializer().initialize(rawClass);
 
             RawField rawField = fieldRef.getRawField();
 
@@ -1573,7 +1579,7 @@ public class RawThread {
           {
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
-            fieldRef.resolve(constantPool);
+            fieldRef.resolve(constantPool, resolverService);
 
             int objectId = operandStack.pop().getValue();
             RawObject object = heapManager.lookupObject(objectId);
@@ -1590,7 +1596,7 @@ public class RawThread {
           {
             var index = peekTwoBytes();
             ConstantFieldref fieldRef = (ConstantFieldref) constantPool.findByIndex(index);
-            fieldRef.resolve(constantPool);
+            fieldRef.resolve(constantPool, resolverService);
 
             // retrieve value to set
             JvmType jvmTypeName =
@@ -1599,13 +1605,13 @@ public class RawThread {
 
             // retrieve the object's address
             int objectId = operandStack.pop().getValue();
-            var object = RawSystem.heapManager.lookupObject(objectId);
+            var object = heapManager.lookupObject(objectId);
 
             RawField rawField = fieldRef.getRawField();
 
             // set the value into field's address
             // REFACTOR: validate if the value is suitable for the field
-            RawSystem.heapManager.setValue(object, rawField, words);
+            heapManager.setValue(object, rawField, words);
 
             pc += 3;
             break;
@@ -1615,7 +1621,7 @@ public class RawThread {
             // REFACTOR
             var index = peekTwoBytes();
             ConstantMethodref methodRef = (ConstantMethodref) constantPool.findByIndex(index);
-            methodRef.resolve(constantPool);
+            methodRef.resolve(constantPool, resolverService);
             RawMethod rawMethod = methodRef.getRawMethod();
 
             RawMethod selectedMethod = findMethodToInvoke(rawMethod, operandStack);
@@ -1632,7 +1638,7 @@ public class RawThread {
             // REFACTOR
             var index = peekTwoBytes();
             ConstantMethodref methodRef = (ConstantMethodref) constantPool.findByIndex(index);
-            methodRef.resolve(constantPool);
+            methodRef.resolve(constantPool, resolverService);
             RawMethod rawMethod = methodRef.getRawMethod();
 
             // TODO: no need to call findMethodToInvoke?
@@ -1652,7 +1658,7 @@ public class RawThread {
 
             ConstantInterfaceMethodref methodRef =
                 (ConstantInterfaceMethodref) constantPool.findByIndex(index);
-            methodRef.resolve(constantPool);
+            methodRef.resolve(constantPool, resolverService);
             RawMethod rawMethod = methodRef.getRawMethod();
 
             RawMethod selectedMethod = findMethodToInvoke(rawMethod, operandStack);
@@ -1669,7 +1675,7 @@ public class RawThread {
             var _no_used2 = methodAreaManager.lookupByte(pc + 4);
             ConstantInvokeDynamic invokeDynamic =
                 (ConstantInvokeDynamic) constantPool.findByIndex(index);
-            invokeDynamic.resolve(constantPool);
+            invokeDynamic.resolve(constantPool, resolverService);
 
             int callsiteObjectId = invokeDynamic.getCallSiteObjectId();
             RawObject callsite = heapManager.lookupObject(callsiteObjectId);
@@ -1705,10 +1711,10 @@ public class RawThread {
             // new instruction just allocates the necessary mem → objectref(=objectId)
             var index = peekTwoBytes();
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(index);
-            classRef.resolve(constantPool);
+            classRef.resolve(constantPool, resolverService);
 
             RawClass rawClass = methodAreaManager.lookupClass(classRef);
-            int objectId = RawSystem.heapManager.newObject(rawClass);
+            int objectId = heapManager.newObject(rawClass);
 
             operandStack.push(Word.of(objectId));
             pc += 3;
@@ -1755,8 +1761,8 @@ public class RawThread {
 
             int arrSize = operandStack.pop().getValue();
             int objectId =
-                RawSystem.heapManager.newArrayObject(
-                    RawArrayClass.lookupOrCreatePrimaryRawArrayClass(arrType, 1), arrSize);
+                heapManager.newArrayObject(
+                    RawArrayClass.lookupOrCreatePrimaryRawArrayClass(arrType, 1, rawSystem), arrSize);
 
             operandStack.push(Word.of(objectId));
             pc += 2;
@@ -1766,14 +1772,14 @@ public class RawThread {
           {
             // anewarray just allocates the necessary mem → objectref(=objectId)
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
-            classRef.resolve(constantPool);
+            classRef.resolve(constantPool, resolverService);
 
             RawClass elementRawClass =
                 methodAreaManager.lookupOrLoadClass(classRef.getName().getLabel());
             var rawArrayClass =
-                RawArrayClass.lookupOrCreateComplexRawArrayClass(elementRawClass, 1);
+                RawArrayClass.lookupOrCreateComplexRawArrayClass(elementRawClass, 1, rawSystem);
             int arrSize = operandStack.pop().getValue();
-            int objectId = RawSystem.heapManager.newArrayObject(rawArrayClass, arrSize);
+            int objectId = heapManager.newArrayObject(rawArrayClass, arrSize);
 
             operandStack.push(Word.of(objectId));
             pc += 3;
@@ -1812,7 +1818,7 @@ public class RawThread {
           {
             int index = peekTwoBytes();
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(index);
-            classRef.resolve(constantPool);
+            classRef.resolve(constantPool, resolverService);
             // TODO: Class objectからrawClassを引けるようにする...
             RawClass castToClass = methodAreaManager.lookupClass(classRef);
 
@@ -1822,7 +1828,7 @@ public class RawThread {
             } else {
               RawClass castFromClass = heapManager.lookupObject(objectId).getRawClass();
 
-              boolean isCastable = Objects.requireNonNull(castFromClass).isCastableTo(castToClass);
+              boolean isCastable = Objects.requireNonNull(castFromClass).isCastableTo(castToClass, rawSystem);
 
               if (!isCastable) {
                 throw new RuntimeException("ClassCastException");
@@ -1837,7 +1843,7 @@ public class RawThread {
           {
             int index = peekTwoBytes();
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(index);
-            classRef.resolve(constantPool);
+            classRef.resolve(constantPool, resolverService);
 
             int objectId = operandStack.pop().getValue();
             RawClass rawClass = heapManager.lookupObject(objectId).getRawClass();
@@ -1874,7 +1880,7 @@ public class RawThread {
         case MULTIANEWARRAY:
           {
             ConstantClass classRef = (ConstantClass) constantPool.findByIndex(peekTwoBytes());
-            classRef.resolve(constantPool);
+            classRef.resolve(constantPool, resolverService);
             RawClass rawClass = methodAreaManager.lookupClass(classRef);
             int depth = methodAreaManager.lookupByte(pc + 3);
 
@@ -1942,12 +1948,17 @@ public class RawThread {
     }
   }
 
-  private int peekTwoBytes() {
+
+  public int peekTwoBytes() {
+    var methodAreaManager = jvm.getRawSystem().methodAreaManager();
     return ByteUtil.concatToShort(
-        methodAreaManager.lookupByte(pc + 1), methodAreaManager.lookupByte(pc + 2));
+        methodAreaManager.lookupByte(pc + 1),
+        methodAreaManager.lookupByte(pc + 2)
+    );
   }
 
-  private int peekFourBytes() {
+  public int peekFourBytes() {
+    var methodAreaManager = jvm.getRawSystem().methodAreaManager();
     return ByteUtil.concatToInt(
         methodAreaManager.lookupByte(pc + 1),
         methodAreaManager.lookupByte(pc + 2),
@@ -1980,6 +1991,8 @@ public class RawThread {
   // 5. if no exception handler is found until popping all stackframes, system's exception handler
   // is used.
   private ExceptionInfo lookupExceptionHandler(@NotNull RawClass exceptionClass) {
+    var methodAreaManager = jvm.getRawSystem().methodAreaManager();
+
     Optional<ExceptionInfo> exceptionInfo =
         currentFrame().getMethod().getAttrs().findAllBy(AttrName.CODE).stream()
             .findFirst()
@@ -2016,6 +2029,8 @@ public class RawThread {
    * @return int objectId of the root array object
    * */
   private int createMultiArray(RawArrayClass rawArrayClass, int depth, int[] sizeList) {
+    var heapManager = jvm.getRawSystem().heapManager();
+
     // this dimension means how many dimentions to actually create here.
     // this should be less than tha actual dimension defiend in the type info, and more than or
     // equal to 1.
@@ -2037,7 +2052,7 @@ public class RawThread {
 
     // top levelの要素数. dimensionの文だけpopする。少なくとも1かいはpopできる
     int size = sizeList[0];
-    int objectId = RawSystem.heapManager.newArrayObject(rawArrayClass, size);
+    int objectId = heapManager.newArrayObject(rawArrayClass, size);
     RawObject rawObject = heapManager.lookupObject(objectId);
 
     // depthに応じて子要素を作る
@@ -2052,6 +2067,9 @@ public class RawThread {
   }
 
   private void createMultiArrayHelper(RawObject parentObject, int[] sizeList, int depth) {
+    var methodAreaManager = jvm.getRawSystem().methodAreaManager();
+    var heapManager = jvm.getRawSystem().heapManager();
+
     String currentClassBinaryName = parentObject.getRawClass().getBinaryName().substring(1);
     int size = parentObject.getArrSize();
 
@@ -2095,13 +2113,16 @@ public class RawThread {
   }
 
   private RawMethod findMethodToInvoke(RawMethod rawMethod, Deque<Word> operandStack) {
+    var methodAreaManager = jvm.getRawSystem().methodAreaManager();
+    var heapManager = jvm.getRawSystem().heapManager();
+
     int receiverObjectId = peekReceiverObjectId(rawMethod, operandStack);
     RawClass receiverClass = heapManager.lookupObject(receiverObjectId).getRawClass();
     return methodAreaManager.selectMethod(receiverClass, rawMethod);
   }
 
   private void dump(String name, int pc, Instruction inst, RawThread thread) {
-    boolean isShowing = true;
+    boolean isShowing = !true;
     if (isShowing) {
       int stackSize = thread.frames.size() - 1;
       System.out.printf(

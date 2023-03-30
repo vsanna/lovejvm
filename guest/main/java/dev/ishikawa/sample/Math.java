@@ -3,7 +3,7 @@ package dev.ishikawa.sample;
 class Math {
     static void main(String[] args) {
         int i1 = 100 + 200; // 300
-        int i2 = 100 - 200; // 156???
+        int i2 = 100 - 200; // -100
         int i3 = 100 * 200; // 20000
         int i4 = 200 / 99;  // 2
         int i5 = 100 % 200; // 100

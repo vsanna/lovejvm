@@ -16,23 +16,27 @@ import dev.ishikawa.lovejvm.vm.RawThread;
  */
 public class LoveJVM {
   public static void main(String[] args) {
+    Options options = OptionsParser.parse(args);
+    LoveJVM jvm = new LoveJVM(options);
     try {
-      Options options = OptionsParser.parse(args);
-      LoveJVM jvm = new LoveJVM(options);
       jvm.run();
-      HeapManagerImpl.INSTANCE.dump();
-      MethodAreaManagerImpl.INSTANCE.dump();
+      jvm.rawSystem.heapManager().dump();
+      jvm.rawSystem.methodAreaManager().dump();
     } catch (Exception ex) {
-      HeapManagerImpl.INSTANCE.dump();
-      MethodAreaManagerImpl.INSTANCE.dump();
       throw ex;
     }
   }
 
   private final Options options;
+  private final RawSystem rawSystem;
 
   public LoveJVM(Options options) {
     this.options = options;
+    this.rawSystem = RawSystem.create(this);
+  }
+
+  public RawSystem getRawSystem() {
+    return rawSystem;
   }
 
   public void run() {
@@ -43,8 +47,8 @@ public class LoveJVM {
     entryPoint
         .map(
             (ep) -> {
-              var thread = new RawThread("main");
-              RawSystem.setMainThread(thread);
+              var thread = new RawThread("main", this);
+              rawSystem.setMainThread(thread);
               thread.init(ep).run();
               return thread;
             })
@@ -58,9 +62,9 @@ public class LoveJVM {
 
   /** entrypoint class is loaded/linked/initialized at the beginning of the JVM process. */
   private RawClass prepareEntrypointClass(Options options) {
-    var entryClass = RawSystem.bootstrapLoader.loadByFilePath(options.getEntryClass());
-    RawSystem.classLinker.link(entryClass);
-    RawSystem.classInitializer.initialize(entryClass);
+    var entryClass = rawSystem.bootstrapLoader().loadByFilePath(options.getEntryClass());
+    rawSystem.classLinker().link(entryClass);
+    rawSystem.classInitializer().initialize(entryClass);
     return entryClass;
   }
 

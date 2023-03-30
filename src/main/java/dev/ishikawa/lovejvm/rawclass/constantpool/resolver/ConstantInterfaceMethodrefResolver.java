@@ -28,6 +28,12 @@ import java.util.Optional;
  *   - interface I でそれが定義されているとするとき、そこに他に該当するmaximally-specific superinterface methodが存在しない
  * */
 public class ConstantInterfaceMethodrefResolver implements Resolver<ConstantInterfaceMethodref> {
+  private final RawSystem rawSystem;
+
+  public ConstantInterfaceMethodrefResolver(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
+
   @Override
   public void resolve(ConstantPool constantPool, ConstantInterfaceMethodref entry) {
     String binaryName = entry.getConstantClassRef().getName().getLabel();
@@ -36,7 +42,7 @@ public class ConstantInterfaceMethodrefResolver implements Resolver<ConstantInte
 
     // TODO: check if this class is surely Interface
 
-    RawClass targetInterface = RawSystem.methodAreaManager.lookupOrLoadClass(binaryName);
+    RawClass targetInterface = rawSystem.methodAreaManager().lookupOrLoadClass(binaryName);
     int classObjectId = targetInterface.getClassObjectId();
     entry.setClassObjectId(classObjectId);
 
@@ -45,7 +51,7 @@ public class ConstantInterfaceMethodrefResolver implements Resolver<ConstantInte
             .findAllMethodBy(methodName, methodDescriptor)
             .or(
                 () ->
-                    RawSystem.methodAreaManager
+                    rawSystem.methodAreaManager()
                         .lookupOrLoadClass("java/lang/Object")
                         .findMemberMethodBy(methodName, methodDescriptor)
                         .filter(RawMethod::isPublic))
@@ -53,7 +59,7 @@ public class ConstantInterfaceMethodrefResolver implements Resolver<ConstantInte
                 () -> {
                   var result =
                       new ArrayList<>(
-                          RawSystem.methodAreaManager.lookupMaximallySpecificSuperinterfaceMethods(
+                          rawSystem.methodAreaManager().lookupMaximallySpecificSuperinterfaceMethods(
                               binaryName, methodName, methodDescriptor));
                   if (result.size() == 1) {
                     return result.stream().findFirst();
@@ -63,7 +69,7 @@ public class ConstantInterfaceMethodrefResolver implements Resolver<ConstantInte
                 })
             .or(
                 () ->
-                    RawSystem.methodAreaManager
+                    rawSystem.methodAreaManager()
                         .lookupMaximallySpecificSuperinterfaceMethods(
                             binaryName, methodName, methodDescriptor)
                         .stream()

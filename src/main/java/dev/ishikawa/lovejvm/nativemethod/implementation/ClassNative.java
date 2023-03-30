@@ -14,34 +14,40 @@ import java.util.Objects;
 import java.util.Optional;
 
 public class ClassNative {
-  private static final Map<String, RawClass> primitiveClasses =
-      JvmType.primaryTypes.stream()
-          .reduce(
-              new HashMap<>(),
-              (map, entry) -> {
-                map.put(
-                    Objects.requireNonNull(entry.getPrimitiveName()),
-                    RawSystem.methodAreaManager.lookupOrLoadClass(entry.getBoxTypeBinaryName()));
-                return map;
-              },
-              (mapA, mapB) -> {
-                mapA.putAll(mapB);
-                return mapA;
-              });
+  private final RawSystem rawSystem;
+  private final Map<String, RawClass> primitiveClasses;
 
-  public static List<Word> getPrimitiveClass(Frame currentFrame) {
+  public ClassNative(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+    this.primitiveClasses =
+        JvmType.primaryTypes.stream()
+            .reduce(
+                new HashMap<>(),
+                (map, entry) -> {
+                  map.put(
+                      Objects.requireNonNull(entry.getPrimitiveName()),
+                      rawSystem.methodAreaManager().lookupOrLoadClass(entry.getBoxTypeBinaryName()));
+                  return map;
+                },
+                (mapA, mapB) -> {
+                  mapA.putAll(mapB);
+                  return mapA;
+                });
+  }
+
+  public List<Word> getPrimitiveClass(Frame currentFrame) {
     var stringObjectId = currentFrame.getOperandStack().pop().getValue();
     String className =
-        RawSystem.stringPool
+        rawSystem.stringPool()
             .getLabelBy(stringObjectId)
-            .orElseGet(() -> StringPoolUtil.getLabelByObjectId(stringObjectId));
+            .orElseGet(() -> StringPoolUtil.getLabelByObjectId(stringObjectId, rawSystem));
 
     return Optional.ofNullable(primitiveClasses.get(className))
         .map(it -> List.of(Word.of(it.getClassObjectId())))
         .orElseThrow(() -> new RuntimeException("invalid primitive class is searched"));
   }
 
-  public static List<Word> forName0(Frame currentFrame) {
+  public List<Word> forName0(Frame currentFrame) {
     // TODO: impl
     return List.of(Word.of(-100));
   }

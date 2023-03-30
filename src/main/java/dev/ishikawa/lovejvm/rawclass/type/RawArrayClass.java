@@ -91,8 +91,8 @@ public class RawArrayClass extends RawClass {
   }
 
   @Override
-  public Optional<RawClass> getRawSuperClass() {
-    return RawSystem.methodAreaManager.lookupClass("java/lang/Object");
+  public Optional<RawClass> getRawSuperClass(RawSystem rawSystem) {
+    return rawSystem.methodAreaManager().lookupClass("java/lang/Object");
   }
 
   public int getDimension() {
@@ -270,8 +270,8 @@ public class RawArrayClass extends RawClass {
   }
 
   // TODO: this should be in MethodAreaManager
-  public static RawArrayClass lookupOrCreateRawArrayClass(String binaryName) {
-    return RawSystem.methodAreaManager
+  public static RawArrayClass lookupOrCreateRawArrayClass(String binaryName, RawSystem rawSystem) {
+    return rawSystem.methodAreaManager()
         .lookupClass(binaryName)
         .map(it -> (RawArrayClass) it)
         .orElseGet(
@@ -292,44 +292,46 @@ public class RawArrayClass extends RawClass {
               JvmType jvmSignature =
                   JvmType.findByJvmSignature(elementTypeBinaryName.substring(0, 1));
               if (primaryTypes.contains(jvmSignature)) {
-                return lookupOrCreatePrimaryRawArrayClass(jvmSignature, dimension);
+                return lookupOrCreatePrimaryRawArrayClass(jvmSignature, dimension, rawSystem);
               } else {
                 // omit the heading 'L', and trailing ';'
                 var elementRawClass =
-                    RawSystem.methodAreaManager.lookupOrLoadClass(
+                    rawSystem.methodAreaManager().lookupOrLoadClass(
                         elementTypeBinaryName.substring(1, elementTypeBinaryName.length() - 1));
-                return lookupOrCreateComplexRawArrayClass(elementRawClass, dimension);
+                return lookupOrCreateComplexRawArrayClass(elementRawClass, dimension, rawSystem);
               }
             });
   }
 
   // TODO: this should be in MethodAreaManager
-  public static RawArrayClass lookupOrCreatePrimaryRawArrayClass(JvmType jvmType, int dimension) {
+  public static RawArrayClass lookupOrCreatePrimaryRawArrayClass(JvmType jvmType, int dimension, RawSystem rawSystem) {
     if (!primaryTypes.contains(jvmType)) {
       throw new IllegalArgumentException(String.format("%s is not primary type", jvmType));
     }
     String binaryName = "[".repeat(dimension) + jvmType.getJvmSignature();
-    return RawSystem.methodAreaManager
+    return rawSystem.methodAreaManager()
         .lookupClass(binaryName)
         .map(it -> (RawArrayClass) it)
-        .orElseGet(() -> createRawArrayClass(binaryName, null, jvmType, dimension));
+        .orElseGet(() -> createRawArrayClass(binaryName, null, jvmType, dimension, rawSystem));
   }
 
   // TODO: this should be in MethodAreaManager
   public static RawArrayClass lookupOrCreateComplexRawArrayClass(
-      RawClass elementRawClass, int dimension) {
+      RawClass elementRawClass, int dimension, RawSystem rawSystem) {
     String binaryName = "[".repeat(dimension) + "L" + elementRawClass.getBinaryName() + ";";
-    return RawSystem.methodAreaManager
+    return rawSystem.methodAreaManager()
         .lookupClass(binaryName)
         .map(it -> (RawArrayClass) it)
-        .orElseGet(() -> createRawArrayClass(binaryName, elementRawClass, null, dimension));
+        .orElseGet(() -> createRawArrayClass(binaryName, elementRawClass, null, dimension, rawSystem));
   }
 
   private static RawArrayClass createRawArrayClass(
       String binaryName,
       @Nullable RawClass componentComplexClass,
       @Nullable JvmType componentPrimaryType,
-      int dimension) {
+      int dimension,
+      RawSystem rawSystem
+  ) {
     var rawArrayClass =
         new RawArrayClass(
             binaryName,
@@ -338,8 +340,8 @@ public class RawArrayClass extends RawClass {
             componentComplexClass,
             componentPrimaryType,
             dimension);
-    RawSystem.methodAreaManager.registerArrayClass(rawArrayClass);
-    RawObject classObject = RawSystem.heapManager.createClassObject(rawArrayClass);
+    rawSystem.methodAreaManager().registerArrayClass(rawArrayClass);
+    RawObject classObject = rawSystem.heapManager().createClassObject(rawArrayClass);
     rawArrayClass.setClassObjectId(classObject.getObjectId());
 
     return rawArrayClass;

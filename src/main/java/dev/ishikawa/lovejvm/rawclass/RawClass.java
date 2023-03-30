@@ -198,8 +198,8 @@ public class RawClass {
     return superClass;
   }
 
-  public Optional<RawClass> getRawSuperClass() {
-    return Optional.ofNullable(getSuperClass()).map(RawSystem.methodAreaManager::lookupClass);
+  public Optional<RawClass> getRawSuperClass(RawSystem rawSystem) {
+    return Optional.ofNullable(getSuperClass()).map(it -> rawSystem.methodAreaManager().lookupClass(it));
   }
 
   public Interfaces getInterfaces() {
@@ -334,21 +334,19 @@ public class RawClass {
     return result;
   }
 
-  public boolean isCastableTo(RawClass castToClass) {
+  public boolean isCastableTo(RawClass castToClass, RawSystem rawSystem) {
     if (this.getBinaryName().equals(castToClass.getBinaryName())) return true;
 
     var isCastableInSuperClasses =
-        getRawSuperClass().map(it -> it.isCastableTo(castToClass)).orElse(false);
+        getRawSuperClass(rawSystem).map(it -> it.isCastableTo(castToClass, rawSystem)).orElse(false);
 
     if (isCastableInSuperClasses) return true;
 
     return this.getInterfaces().getInterfaces().stream()
         .anyMatch(
-            it -> {
-              return RawSystem.methodAreaManager
-                  .lookupClass(it.getConstantClassRef())
-                  .isCastableTo(castToClass);
-            });
+            it -> rawSystem.methodAreaManager()
+                .lookupClass(it.getConstantClassRef())
+                .isCastableTo(castToClass, rawSystem));
   }
 
   public RawArrayClass asRawArrayClass() {

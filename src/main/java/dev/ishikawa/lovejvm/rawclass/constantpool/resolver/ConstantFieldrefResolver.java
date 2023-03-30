@@ -22,24 +22,30 @@ import dev.ishikawa.lovejvm.vm.RawSystem;
  * <p>Otherwise, field lookup fails.
  */
 public class ConstantFieldrefResolver implements Resolver<ConstantFieldref> {
+  private final RawSystem rawSystem;
+
+  public ConstantFieldrefResolver(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
+
   @Override
   public void resolve(ConstantPool constantPool, ConstantFieldref entry) {
     String binaryName = entry.getConstantClassRef().getName().getLabel();
     String fieldName = entry.getNameAndType().getName().getLabel();
 
-    RawClass targetClass = RawSystem.methodAreaManager.lookupOrLoadClass(binaryName);
+    RawClass targetClass = rawSystem.methodAreaManager().lookupOrLoadClass(binaryName);
     int classObjectId = targetClass.getClassObjectId();
     entry.setClassObjectId(classObjectId);
 
     var rawFieldOptional =
         // 1. C's field
         // 2. C's superinterfaces'fields
-        RawSystem.methodAreaManager
+        rawSystem.methodAreaManager()
             .lookupAllInterfaceFieldRecursively(binaryName, fieldName)
             .or(
                 () -> {
                   // 3. C's superclass
-                  return RawSystem.methodAreaManager.lookupAllFieldRecursively(
+                  return rawSystem.methodAreaManager().lookupAllFieldRecursively(
                       binaryName, fieldName);
                 });
 

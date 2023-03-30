@@ -15,7 +15,12 @@ import java.util.Optional;
 
 public class StringPoolSimulator implements StringPool {
   public final Map<String, RawObject> stringMap = new HashMap();
+  private final RawSystem rawSystem;
   private RawClass stringRawClass;
+
+  public StringPoolSimulator(RawSystem rawSystem) {
+    this.rawSystem = rawSystem;
+  }
 
   /** @return objectId of the string object corresponding to the given label */
   @Override
@@ -46,32 +51,30 @@ public class StringPoolSimulator implements StringPool {
    */
   private int register(String label) {
     if (stringRawClass == null) {
-      stringRawClass = RawSystem.methodAreaManager.lookupOrLoadClass(STRING_CLASS_LABEL);
+      stringRawClass = rawSystem.methodAreaManager().lookupOrLoadClass(STRING_CLASS_LABEL);
     }
 
-    int objectId = RawSystem.heapManager.newObject(stringRawClass);
-    RawObject stringObject = RawSystem.heapManager.lookupObject(objectId);
+    int objectId = rawSystem.heapManager().newObject(stringRawClass);
+    RawObject stringObject = rawSystem.heapManager().lookupObject(objectId);
     stringMap.put(label, stringObject);
 
     // set byte array of the label into value field of this String object
-    var byteArrayClass = RawArrayClass.lookupOrCreatePrimaryRawArrayClass(JvmType.BYTE, 1);
-    var arrayObjectId = RawSystem.heapManager.newArrayObject(byteArrayClass, label.length());
-    var arrayObject = RawSystem.heapManager.lookupObject(arrayObjectId);
+    var byteArrayClass = RawArrayClass.lookupOrCreatePrimaryRawArrayClass(JvmType.BYTE, 1, rawSystem);
+    var arrayObjectId = rawSystem.heapManager().newArrayObject(byteArrayClass, label.length());
+    var arrayObject = rawSystem.heapManager().lookupObject(arrayObjectId);
     for (int i = 0; i < label.getBytes().length; i++) {
       // TODO: Now allocating 1 word for 1 byte. not efficient. fix it.
-      RawSystem.heapManager.setElement(arrayObject, i, List.of(Word.of(label.getBytes()[i])));
+      rawSystem.heapManager().setElement(arrayObject, i, List.of(Word.of(label.getBytes()[i])));
     }
 
     var valueField =
         stringRawClass
             .findMemberFieldBy("value")
             .orElseThrow(() -> new RuntimeException("byte[] value field is not found"));
-    RawSystem.heapManager.setValue(stringObject, valueField, List.of(Word.of(arrayObjectId)));
+    rawSystem.heapManager().setValue(stringObject, valueField, List.of(Word.of(arrayObjectId)));
 
     return objectId;
   }
 
   public static final String STRING_CLASS_LABEL = "java/lang/String";
-
-  public static final StringPool INSTANCE = new StringPoolSimulator();
 }
